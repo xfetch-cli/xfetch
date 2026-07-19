@@ -9,7 +9,7 @@
 <h2 id="get-help" align="center">Get Help</h2>
 
 <ul>
-  <li><b>Issues:</b> <a href="https://github.com/xscriptor/xfetch/issues">github.com/xscriptor/xfetch/issues</a></li>
+  <li><b>Issues:</b> <a href="https://github.com/xfetch-cli/xfetch/issues">github.com/xfetch-cli/xfetch/issues</a></li>
   <li><b>Documentation:</b> <a href="./docs/INSTALLATION.md">Installation</a>, <a href="./docs/CONFIGURATION.md">Configuration</a>, <a href="./docs/LAYOUTS.md">Layouts</a></li>
   <li><b>Security reports:</b> <a href="mailto:x@xscriptor.com">x@xscriptor.com</a> (private disclosure)</li>
 </ul>

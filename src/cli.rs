@@ -6,7 +6,7 @@ use clap::{Parser, Subcommand};
     version,
     about,
     long_about = None,
-    after_help = "Examples:\n  xfetch\n  xfetch --config ~/.config/xfetch/config.jsonc\n  xfetch --gen-config\n  xfetch plugin install ./plugins/animate-logo\n  xfetch plugin list\n  xfetch plugin remove animate-logo"
+    after_help = "Examples:\n  xfetch\n  xfetch --config ~/.config/xfetch/config.jsonc\n  xfetch --gen-config\n  xfetch plugin install animate-logo\n  xfetch plugin list\n  xfetch plugin remove animate-logo"
 )]
 pub struct Cli {
     #[command(subcommand)]

@@ -7,8 +7,8 @@ This folder contains an example config that uses the pacman layout and the anima
 - config/xfetch_pacman_animate.jsonc
   Example configuration file.
 
-- plugins/animate-logo/assets/xfetch_logo.txt
-  Sample ASCII logo file used by the animation.
+- `xfetch-cli/plugins` repository
+  Source for the official `animate-logo` plugin and its sample assets.
 
 ## Where to put each thing
 
@@ -24,10 +24,9 @@ This folder contains an example config that uses the pacman layout and the anima
      "ascii": "~/.config/xfetch/logos/xfetch_logo.txt"
 
 3. Plugin binary
-   - Build and install the plugin:
-     cargo install --path plugins/animate-logo
-   - Make sure ~/.cargo/bin is in PATH so xfetch can find:
-     xfetch-plugin-animate-logo
+   - Install the official plugin:
+     xfetch plugin install animate-logo
+   - xfetch downloads it from `https://github.com/xfetch-cli/plugins` and installs the binary automatically.
 
 ## Quick test
 

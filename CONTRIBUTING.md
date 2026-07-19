@@ -28,76 +28,26 @@
 <h2>Contributing Plugins</h2>
 
 <p>
-  Plugins are standalone executables that extend xfetch's functionality.
-  To add a new plugin to the repository, follow this process:
+  Plugins are standalone executables that extend xfetch's functionality, but they
+  now live in the dedicated <code>plugins</code> repository:
 </p>
 
-<h3>1. Fork & Clone</h3>
-
-<p>Fork the repository on GitHub and clone your fork locally:</p>
-
-<pre><code>git clone https://github.com/YOUR_USERNAME/xfetch.git
-cd xfetch
-git checkout -b plugin-my-plugin</code></pre>
-
-<h3>2. Create the Plugin Directory</h3>
-
-<p>Create your plugin under the <code>plugins/</code> directory following the naming convention:</p>
-
-<pre><code>plugins/my-plugin/
-├── Cargo.toml        # name = "xfetch-plugin-&lt;name&gt;"
-├── README.md         # Documentation (HTML format, centered titles)
-└── src/
-    └── main.rs       # Plugin implementation</code></pre>
-
-<h3>3. Implement the Protocol</h3>
-
-<p>Your plugin must communicate with xfetch via stdin/stdout using JSON:</p>
-
-<ul>
-  <li>Read exactly one JSON object from stdin.</li>
-  <li>Write exactly one JSON response object to stdout.</li>
-  <li>Write errors to stderr and exit with non-zero status on failure.</li>
-</ul>
-
-<p>See <a href="plugins/docs/README.md">plugins/docs/README.md</a> for the full protocol specification.</p>
-
-<h3>4. Test Locally</h3>
-
-<pre><code># Build your plugin
-cargo build --release --manifest-path plugins/my-plugin/Cargo.toml
-
-# Install it locally
-xfetch plugin install ./plugins/my-plugin
-
-# Run xfetch and verify it appears
-xfetch</code></pre>
-
-<h3>5. Update Documentation</h3>
-
-<ul>
-  <li>Add a <code>README.md</code> for your plugin documenting its features, configuration, and output.</li>
-  <li>Add an entry for your plugin in <a href="plugins/README.md">plugins/README.md</a> under the "Available Plugins" table.</li>
-</ul>
-
-<h3>6. Commit and Push</h3>
-
-<pre><code>git add plugins/my-plugin/ plugins/README.md
-git commit -m "feat(plugins): add my-plugin"
-git push origin plugin-my-plugin</code></pre>
-
-<h3>7. Open a Pull Request</h3>
+<pre><code>https://github.com/xfetch-cli/plugins</code></pre>
 
 <p>
-  Open a PR from your branch to the main repository's <code>main</code> branch.
-  In the PR description, include:
+  Use that repository for plugin source code, plugin-specific docs, and the plugin
+  contribution workflow. The runtime contract used by the core is documented in
+  <a href="docs/PLUGINS.md">docs/PLUGINS.md</a>, and the full authoring guide lives in
+  <a href="https://github.com/xfetch-cli/plugins/blob/main/docs/README.md">plugins/docs/README.md</a>.
 </p>
 
+<p>The plugin authoring checklist includes:</p>
+
 <ul>
-  <li>A brief description of what your plugin does.</li>
-  <li>The kind of plugin (<code>info_provider</code> or <code>logo_animation</code>).</li>
-  <li>Any dependencies required (e.g., <code>curl</code>, <code>docker</code> CLI).</li>
-  <li>Screenshot or example output (optional but recommended).</li>
+  <li>Create a dedicated plugin directory in the plugins repository.</li>
+  <li>Use the <code>xfetch-plugin-&lt;name&gt;</code> naming convention.</li>
+  <li>Run <code>cargo test --workspace</code> in the plugins repository.</li>
+  <li>Document configuration, dependencies, and example output in the plugin README.</li>
 </ul>
 
 <h2>Code Standards</h2>

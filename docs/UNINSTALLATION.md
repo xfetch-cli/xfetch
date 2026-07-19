@@ -10,7 +10,7 @@
   You can uninstall xfetch by running the following command in your terminal:
 </p>
 
-<pre><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/xscriptor/xfetch/main/uninstall.sh | bash</code></pre>
+<pre><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/xfetch-cli/xfetch/main/uninstall.sh | bash</code></pre>
 
 <h2>Manual Uninstall</h2>
 

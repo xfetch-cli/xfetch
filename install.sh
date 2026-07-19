@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # xfetch - cross-platform system information fetcher
 # Installer script — supports remote (curl | bash) and local installation
-# Usage: curl -fsSL https://raw.githubusercontent.com/xscriptor/xfetch/main/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/xfetch-cli/xfetch/main/install.sh | bash
 #        bash install.sh --local
 #        bash install.sh --prefix /usr/local
 
@@ -11,8 +11,8 @@ IFS=$'\n\t'
 # ──────────────────────────────────────────────
 # Configuration
 # ──────────────────────────────────────────────
-REPO_URL="https://github.com/xscriptor/xfetch.git"
-REPO_RAW="https://raw.githubusercontent.com/xscriptor/xfetch/main"
+REPO_URL="https://github.com/xfetch-cli/xfetch.git"
+REPO_RAW="https://raw.githubusercontent.com/xfetch-cli/xfetch/main"
 
 VERSION="0.1.1"
 PROJECT="xfetch"

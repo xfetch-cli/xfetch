@@ -11,19 +11,27 @@ pub use run::{run_info_plugin, run_logo_animation_plugin, AnimationFrame};
 
 const PLUGIN_PREFIX: &str = "xfetch-plugin-";
 const EXE_EXT: &str = ".exe";
-const PLUGINS_DIR: &str = "plugins";
+const LEGACY_PLUGINS_DIR: &str = "plugins";
+const SIBLING_PLUGIN_REPO_DIR: &str = "plugins";
+const GROUPED_PLUGIN_DIR: &str = "plugins";
 const CONFIG_DIR_NAME: &str = "xfetch";
 const TARGET_RELEASE: &str = "target/release";
 const CARGO_TOML: &str = "Cargo.toml";
 const CARGO_CMD: &str = "cargo";
 const GIT_CMD: &str = "git";
 const ENV_PATH: &str = "PATH";
+const ENV_PLUGIN_REPO: &str = "XFETCH_PLUGIN_REPO";
+const ENV_PLUGIN_DEV_DIR: &str = "XFETCH_PLUGIN_DEV_DIR";
 
-pub const DEFAULT_PLUGIN_REPO: &str = "https://github.com/xscriptor/xfetch.git";
+pub const DEFAULT_PLUGIN_REPO: &str = "https://github.com/xfetch-cli/plugins.git";
 
 pub fn default_plugin_dir() -> PathBuf {
     let config_dir = dirs::config_dir().unwrap_or_else(|| PathBuf::from("."));
-    config_dir.join(CONFIG_DIR_NAME).join(PLUGINS_DIR)
+    config_dir.join(CONFIG_DIR_NAME).join(LEGACY_PLUGINS_DIR)
+}
+
+pub fn default_plugin_repo() -> String {
+    env::var(ENV_PLUGIN_REPO).unwrap_or_else(|_| DEFAULT_PLUGIN_REPO.to_string())
 }
 
 pub fn plugin_binary_name(plugin_name: &str) -> String {
@@ -45,6 +53,59 @@ fn extract_plugin_name(path: &Path) -> Option<String> {
     } else {
         None
     }
+}
+
+fn candidate_plugin_dirs_from(base_dir: &Path, plugin_name: &str) -> Vec<PathBuf> {
+    let mut candidates = Vec::new();
+
+    if let Ok(custom_dir) = env::var(ENV_PLUGIN_DEV_DIR) {
+        let custom_dir = PathBuf::from(custom_dir);
+        candidates.push(custom_dir.join(plugin_name));
+        candidates.push(custom_dir.join(LEGACY_PLUGINS_DIR).join(plugin_name));
+        candidates.push(
+            custom_dir
+                .join(SIBLING_PLUGIN_REPO_DIR)
+                .join(GROUPED_PLUGIN_DIR)
+                .join(plugin_name),
+        );
+    }
+
+    candidates.push(base_dir.join(plugin_name));
+    candidates.push(base_dir.join(LEGACY_PLUGINS_DIR).join(plugin_name));
+    candidates.push(base_dir.join(SIBLING_PLUGIN_REPO_DIR).join(plugin_name));
+    candidates.push(
+        base_dir
+            .join(SIBLING_PLUGIN_REPO_DIR)
+            .join(GROUPED_PLUGIN_DIR)
+            .join(plugin_name),
+    );
+
+    if let Some(parent) = base_dir.parent() {
+        candidates.push(parent.join(SIBLING_PLUGIN_REPO_DIR).join(plugin_name));
+        candidates.push(
+            parent
+                .join(SIBLING_PLUGIN_REPO_DIR)
+                .join(GROUPED_PLUGIN_DIR)
+                .join(plugin_name),
+        );
+    }
+
+    candidates.dedup();
+    candidates
+}
+
+fn candidate_plugin_binary_paths_from(plugin_dir: &Path, binary_name: &str) -> Vec<PathBuf> {
+    let mut candidates = vec![plugin_dir.join(TARGET_RELEASE).join(binary_name), plugin_dir.join(binary_name)];
+
+    let mut current = plugin_dir.parent();
+    while let Some(dir) = current {
+        candidates.push(dir.join(TARGET_RELEASE).join(binary_name));
+        current = dir.parent();
+    }
+
+    candidates.dedup();
+
+    candidates
 }
 
 fn find_in_path(binary_name: &str) -> Option<PathBuf> {
@@ -77,21 +138,12 @@ fn find_plugin_binary(plugin_name: &str) -> Option<PathBuf> {
     }
 
     if let Ok(cwd) = env::current_dir() {
-        let dev_path = cwd
-            .join(PLUGINS_DIR)
-            .join(plugin_name)
-            .join(TARGET_RELEASE)
-            .join(&binary_name);
-        if dev_path.is_file() {
-            return Some(dev_path);
-        }
-
-        let dev_path_flat = cwd
-            .join(PLUGINS_DIR)
-            .join(plugin_name)
-            .join(&binary_name);
-        if dev_path_flat.is_file() {
-            return Some(dev_path_flat);
+        for plugin_dir in candidate_plugin_dirs_from(&cwd, plugin_name) {
+            for candidate in candidate_plugin_binary_paths_from(&plugin_dir, &binary_name) {
+                if candidate.is_file() {
+                    return Some(candidate);
+                }
+            }
         }
     }
 
@@ -140,5 +192,41 @@ mod tests {
         } else {
             assert_eq!(name, "xfetch-plugin-test");
         }
+    }
+
+    #[test]
+    fn test_candidate_plugin_dirs_include_sibling_repo() {
+        let base = Path::new("/workspace/xfetch");
+        let candidates = candidate_plugin_dirs_from(base, "animate-logo");
+
+        assert!(candidates.contains(&PathBuf::from(
+            "/workspace/xfetch/plugins/plugins/animate-logo"
+        )));
+    }
+
+    #[test]
+    fn test_candidate_plugin_dirs_include_parent_sibling_repo() {
+        let base = Path::new("/workspace/xfetch/core");
+        let candidates = candidate_plugin_dirs_from(base, "animate-logo");
+
+        assert!(candidates.contains(&PathBuf::from(
+            "/workspace/xfetch/plugins/plugins/animate-logo"
+        )));
+    }
+
+    #[test]
+    fn test_candidate_binary_paths_include_workspace_target() {
+        let plugin_dir = Path::new("/workspace/xfetch/plugins/plugins/animate-logo");
+        let candidates = candidate_plugin_binary_paths_from(
+            plugin_dir,
+            "xfetch-plugin-animate-logo",
+        );
+
+        assert!(candidates.contains(&PathBuf::from(
+            "/workspace/xfetch/plugins/plugins/animate-logo/target/release/xfetch-plugin-animate-logo"
+        )));
+        assert!(candidates.contains(&PathBuf::from(
+            "/workspace/xfetch/plugins/target/release/xfetch-plugin-animate-logo"
+        )));
     }
 }

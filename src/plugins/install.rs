@@ -1,6 +1,6 @@
 use crate::plugins::{
-    default_plugin_dir, plugin_binary_name, CARGO_CMD, CARGO_TOML, GIT_CMD, PLUGIN_PREFIX,
-    PLUGINS_DIR, TARGET_RELEASE,
+    default_plugin_dir, default_plugin_repo, plugin_binary_name, CARGO_CMD, CARGO_TOML, GIT_CMD,
+    PLUGIN_PREFIX, TARGET_RELEASE,
 };
 use std::env;
 use std::fs;
@@ -19,9 +19,21 @@ fn resolve_local_plugin_dir(path: &str) -> Result<PathBuf, String> {
     }
 
     if let Ok(cwd) = env::current_dir() {
-        let in_plugins = cwd.join(PLUGINS_DIR).join(path);
-        if in_plugins.is_dir() {
-            return Ok(in_plugins);
+        let mut search_paths = vec![
+            cwd.join(path),
+            cwd.join("plugins").join(path),
+            cwd.join("plugins").join("plugins").join(path),
+        ];
+
+        if let Some(parent) = cwd.parent() {
+            search_paths.push(parent.join("plugins").join(path));
+            search_paths.push(parent.join("plugins").join("plugins").join(path));
+        }
+
+        for search_path in search_paths {
+            if search_path.is_dir() {
+                return Ok(search_path);
+            }
         }
     }
 
@@ -34,10 +46,14 @@ pub fn install_plugin(name_or_path: &str, repo: Option<&str>) -> Result<(), Stri
     match plugin_dir {
         Ok(dir) => build_and_install_plugin(&dir, name_or_path),
         Err(_) if repo.is_some() || has_path_separator(name_or_path) => {
-            let repo_url = repo.unwrap_or(super::DEFAULT_PLUGIN_REPO);
+            let default_repo = default_plugin_repo();
+            let repo_url = repo.unwrap_or(default_repo.as_str());
             install_remote_plugin(name_or_path, repo_url)
         }
-        Err(_) => install_remote_plugin(name_or_path, super::DEFAULT_PLUGIN_REPO),
+        Err(_) => {
+            let default_repo = default_plugin_repo();
+            install_remote_plugin(name_or_path, default_repo.as_str())
+        }
     }
 }
 
@@ -74,16 +90,23 @@ fn build_and_install_plugin(plugin_dir: &Path, name: &str) -> Result<(), String>
     }
 
     let binary_name = plugin_binary_name(plugin_name);
-    let built_binary = plugin_dir
-        .join(TARGET_RELEASE)
-        .join(&binary_name);
+    let mut built_binary_candidates = vec![plugin_dir.join(TARGET_RELEASE).join(&binary_name)];
 
-    if !built_binary.is_file() {
-        return Err(format!(
-            "Built binary not found at '{}'",
-            built_binary.display()
-        ));
+    let mut current = plugin_dir.parent();
+    while let Some(dir) = current {
+        built_binary_candidates.push(dir.join(TARGET_RELEASE).join(&binary_name));
+        current = dir.parent();
     }
+
+    let built_binary = built_binary_candidates
+        .into_iter()
+        .find(|path| path.is_file())
+        .ok_or_else(|| {
+            format!(
+                "Built binary not found at '{}' or in any workspace target ancestor",
+                plugin_dir.join(TARGET_RELEASE).join(&binary_name).display(),
+            )
+        })?;
 
     let dest_dir = default_plugin_dir();
     fs::create_dir_all(&dest_dir)
@@ -99,7 +122,6 @@ fn build_and_install_plugin(plugin_dir: &Path, name: &str) -> Result<(), String>
 
 fn install_remote_plugin(name: &str, repo_url: &str) -> Result<(), String> {
     let temp_dir = env::temp_dir().join(format!("{}{}", PLUGIN_PREFIX, name));
-    let plugin_path = temp_dir.join(PLUGINS_DIR).join(name);
 
     if temp_dir.exists() {
         fs::remove_dir_all(&temp_dir)
@@ -122,14 +144,18 @@ fn install_remote_plugin(name: &str, repo_url: &str) -> Result<(), String> {
         return Err("Failed to clone repository".to_string());
     }
 
-    if !plugin_path.is_dir() {
+    let plugin_path = [temp_dir.join(name), temp_dir.join("plugins").join(name)]
+        .into_iter()
+        .find(|path| path.is_dir());
+
+    let Some(plugin_path) = plugin_path else {
         let _ = fs::remove_dir_all(&temp_dir);
         return Err(format!(
             "Plugin '{}' not found in repository '{}'.\n\
-             Available plugins can be found at {}/tree/main/plugins",
+             Available plugins can be found in the repository root or under {}/tree/main/plugins",
             name, repo_display, repo_display
         ));
-    }
+    };
 
     let result = build_and_install_plugin(&plugin_path, name);
 

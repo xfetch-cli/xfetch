@@ -3,7 +3,7 @@
 <div align="center">
 <p align="center"><img src="https://raw.githubusercontent.com/xscriptor/xassets/main/xrepos/apps/xfetch/icon.svg" width="80" alt="XFetch logo" /></p>
 
-![Crates.io Version](https://img.shields.io/crates/v/xfetch?style=flat-square&logo=rust&color=%23DEA584) ![Crates.io Downloads](https://img.shields.io/crates/d/xfetch?style=flat-square&logo=rust&color=%23DEA584) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20windows-lightgrey?style=flat-square) ![CI](https://img.shields.io/github/actions/workflow/status/xscriptor/xfetch/rust-tests.yml?style=flat-square&logo=github&label=build) ![Rust](https://img.shields.io/badge/rust-2024%20edition-%23DEA584?style=flat-square&logo=rust)
+![Crates.io Version](https://img.shields.io/crates/v/xfetch?style=flat-square&logo=rust&color=%23DEA584) ![Crates.io Downloads](https://img.shields.io/crates/d/xfetch?style=flat-square&logo=rust&color=%23DEA584) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20windows-lightgrey?style=flat-square) ![CI](https://img.shields.io/github/actions/workflow/status/xfetch-cli/xfetch/rust-tests.yml?style=flat-square&logo=github&label=build) ![Rust](https://img.shields.io/badge/rust-2024%20edition-%23DEA584?style=flat-square&logo=rust)
 
 <p>A cross-platform system information fetching tool inspired by fastfetch and neofetch, written in Rust.</p>
 
@@ -69,12 +69,12 @@
 
 **Linux / macOS:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/xscriptor/xfetch/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/xfetch-cli/xfetch/main/install.sh | bash
 ```
 
 **Windows (PowerShell):**
 ```powershell
-irm https://raw.githubusercontent.com/xscriptor/xfetch/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/xfetch-cli/xfetch/main/install.ps1 | iex
 ```
 
 > For detailed installation steps — prerequisites, manual builds, package managers, and uninstallation — see the [Installation Guide](docs/INSTALLATION.md).
@@ -132,14 +132,15 @@ xfetch
 
 <div align="left">
   <ul>
-    <li><a href="https://github.com/xscriptor/xfetch/blob/main/docs/INSTALLATION.md">Installation</a></li>
-    <li><a href="https://github.com/xscriptor/xfetch/blob/main/docs/CONFIGURATION.md">Config</a></li>
-    <li><a href="https://github.com/xscriptor/xfetch/blob/main/docs/LAYOUTS.md">Layouts</a></li>
-    <li><a href="https://github.com/xscriptor/xfetch/blob/main/docs/UNINSTALLATION.md">Uninstall</a></li>
-    <li><a href="https://github.com/xscriptor/xfetch/blob/main/ROADMAP.md">Roadmap</a></li>
-    <li><a href="https://github.com/xscriptor/xfetch/blob/main/LICENSE">License</a></li>
-    <li><a href="https://github.com/xscriptor/xfetch/blob/main/CONTRIBUTING.md">Contributing</a></li>
-    <li><a href="https://github.com/xscriptor/xfetch/blob/main/SECURITY.md">Security</a></li>
+    <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/INSTALLATION.md">Installation</a></li>
+    <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/CONFIGURATION.md">Config</a></li>
+    <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/LAYOUTS.md">Layouts</a></li>
+    <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/PLUGINS.md">Plugins</a></li>
+    <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/UNINSTALLATION.md">Uninstall</a></li>
+    <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/ROADMAP.md">Roadmap</a></li>
+    <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/LICENSE">License</a></li>
+    <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/CONTRIBUTING.md">Contributing</a></li>
+    <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/SECURITY.md">Security</a></li>
   </ul>
 </div>
 
@@ -152,7 +153,8 @@ xfetch
   <li><a href="https://github.com/xscriptor/jetbrains">Jetbrains </a><img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/project.svg"/></li>
   <li><a href="https://github.com/xscriptor/gitnapse">Gitnapse </a><img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/github-alt.svg"/></li>
   <li><a href="https://github.com/xscriptor/obsidian">Obsidian </a><img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/markdown.svg"/></li>
-  <li><a href="https://github.com/xscriptor/xfetch">XFetch </a><img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/git-fetch.svg"/></li>
+  <li><a href="https://github.com/xfetch-cli/xfetch">XFetch </a><img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/git-fetch.svg"/></li>
+  <li><a href="https://github.com/xfetch-cli/plugins">XFetch Plugins </a><img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/plugin.svg"/></li>
 </ul>
 
 

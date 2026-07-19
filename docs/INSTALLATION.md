@@ -25,7 +25,7 @@
 
 <h3>Linux / macOS</h3>
 
-<pre><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/xscriptor/xfetch/main/install.sh | bash</code></pre>
+<pre><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/xfetch-cli/xfetch/main/install.sh | bash</code></pre>
 
 <p>
   If <code>cargo</code> is not installed, the script will offer to install Rust via rustup automatically.
@@ -33,7 +33,7 @@
 
 <h3>Windows (PowerShell)</h3>
 
-<pre><code class="language-powershell">irm https://raw.githubusercontent.com/xscriptor/xfetch/main/install.ps1 | iex</code></pre>
+<pre><code class="language-powershell">irm https://raw.githubusercontent.com/xfetch-cli/xfetch/main/install.ps1 | iex</code></pre>
 
 <h3>What the Script Does</h3>
 
@@ -53,13 +53,13 @@
 </p>
 
 <pre><code class="language-bash"># Install to a custom prefix
-bash &lt;(curl -fsSL https://raw.githubusercontent.com/xscriptor/xfetch/main/install.sh) --prefix /usr/local
+bash &lt;(curl -fsSL https://raw.githubusercontent.com/xfetch-cli/xfetch/main/install.sh) --prefix /usr/local
 
 # Skip PATH modification
-bash &lt;(curl -fsSL https://raw.githubusercontent.com/xscriptor/xfetch/main/install.sh) --no-modify-path
+bash &lt;(curl -fsSL https://raw.githubusercontent.com/xfetch-cli/xfetch/main/install.sh) --no-modify-path
 
 # Install from a local clone of the repository
-git clone https://github.com/xscriptor/xfetch.git
+git clone https://github.com/xfetch-cli/xfetch.git
 cd xfetch
 bash install.sh --local
 
@@ -70,7 +70,7 @@ bash install.sh --local --yes</code></pre>
   For all available flags:
 </p>
 
-<pre><code class="language-bash">bash &lt;(curl -fsSL https://raw.githubusercontent.com/xscriptor/xfetch/main/install.sh) --help</code></pre>
+<pre><code class="language-bash">bash &lt;(curl -fsSL https://raw.githubusercontent.com/xfetch-cli/xfetch/main/install.sh) --help</code></pre>
 
 <hr>
 
@@ -96,7 +96,7 @@ bash install.sh --local</code></pre>
 </p>
 
 <pre><code class="language-bash"># Clone
-git clone https://github.com/xscriptor/xfetch.git
+git clone https://github.com/xfetch-cli/xfetch.git
 cd xfetch
 
 # Build release binary
@@ -129,7 +129,7 @@ cp -r logos/* ~/.config/xfetch/logos/</code></pre>
   This method installs xfetch as a proper Arch package, making it easy to update and remove.
 </p>
 
-<pre><code class="language-bash">git clone https://github.com/xscriptor/xfetch.git
+<pre><code class="language-bash">git clone https://github.com/xfetch-cli/xfetch.git
 cd xfetch
 makepkg -si</code></pre>
 
@@ -183,7 +183,7 @@ makepkg -si</code></pre>
 
 <p><strong>Quick uninstall:</strong></p>
 
-<pre><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/xscriptor/xfetch/main/uninstall.sh | bash</code></pre>
+<pre><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/xfetch-cli/xfetch/main/uninstall.sh | bash</code></pre>
 
 <p><strong>Manual removal:</strong></p>
 

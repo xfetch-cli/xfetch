@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # xfetch - cross-platform system information fetcher
 # Uninstaller script
-# Usage: curl -fsSL https://raw.githubusercontent.com/xscriptor/xfetch/main/uninstall.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/xfetch-cli/xfetch/main/uninstall.sh | bash
 #        bash uninstall.sh
 
 set -euo pipefail
@@ -10,7 +10,7 @@ IFS=$'\n\t'
 # ──────────────────────────────────────────────
 # Configuration
 # ──────────────────────────────────────────────
-REPO_RAW="https://raw.githubusercontent.com/xscriptor/xfetch/main"
+REPO_RAW="https://raw.githubusercontent.com/xfetch-cli/xfetch/main"
 PROJECT="xfetch"
 INSTALL_DIR="${HOME}/.local/bin"
 CONFIG_DIR="${HOME}/.config/${PROJECT}"
