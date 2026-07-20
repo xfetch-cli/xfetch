@@ -1707,6 +1707,7 @@ dependencies = [
 [[package]]
 name = "xfetch-plugin-api"
 version = "0.1.0"
+source = "git+https://github.com/xfetch-cli/api#545aa5b49c3dabf60aa41d366542843865a5b198"
 dependencies = [
  "serde",
  "serde_json",

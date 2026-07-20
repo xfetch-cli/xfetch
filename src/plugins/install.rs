@@ -1,6 +1,6 @@
 use crate::plugins::{
-    default_plugin_dir, default_plugin_repo, plugin_binary_name, CARGO_CMD, CARGO_TOML, GIT_CMD,
-    PLUGIN_PREFIX, TARGET_RELEASE,
+    default_plugin_dir, default_plugin_repo, plugin_binary_name, CARGO_CMD, CARGO_TOML,
+    ENV_CARGO_NET_GIT_FETCH_WITH_CLI, GIT_CMD, PLUGIN_PREFIX, TARGET_RELEASE,
 };
 use std::env;
 use std::fs;
@@ -79,6 +79,7 @@ fn build_and_install_plugin(plugin_dir: &Path, name: &str) -> Result<(), String>
     println!("Building plugin '{}'...", plugin_name);
     let status = Command::new(CARGO_CMD)
         .args(["build", "--release"])
+        .env(ENV_CARGO_NET_GIT_FETCH_WITH_CLI, "true")
         .current_dir(plugin_dir)
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())

@@ -23,6 +23,7 @@ const GIT_CMD: &str = "git";
 const ENV_PATH: &str = "PATH";
 const ENV_PLUGIN_REPO: &str = "XFETCH_PLUGIN_REPO";
 const ENV_PLUGIN_DEV_DIR: &str = "XFETCH_PLUGIN_DEV_DIR";
+const ENV_CARGO_NET_GIT_FETCH_WITH_CLI: &str = "CARGO_NET_GIT_FETCH_WITH_CLI";
 
 pub const DEFAULT_PLUGIN_REPO: &str = "https://github.com/xfetch-cli/plugins.git";
 

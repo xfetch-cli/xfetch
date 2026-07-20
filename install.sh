@@ -329,7 +329,7 @@ build_project() {
     local src_dir="$1"
 
     log "Building ${PROJECT} (release mode)..."
-    (cd "${src_dir}" && cargo build --release)
+    (cd "${src_dir}" && CARGO_NET_GIT_FETCH_WITH_CLI=true cargo build --release)
     ok "Build completed successfully."
 }
 
