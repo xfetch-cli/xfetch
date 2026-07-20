@@ -61,11 +61,11 @@ fn count_packages_linux() -> Option<String> {
         ("snap", &["list"]),
     ];
     for (cmd, args) in checks {
-        if let Ok(output) = Command::new(cmd).args(*args).output() {
-            if output.status.success() {
-                let count = String::from_utf8_lossy(&output.stdout).lines().count();
-                return Some(format!("{} ({})", count, cmd));
-            }
+        if let Ok(output) = Command::new(cmd).args(*args).output()
+            && output.status.success()
+        {
+            let count = String::from_utf8_lossy(&output.stdout).lines().count();
+            return Some(format!("{} ({})", count, cmd));
         }
     }
     None
@@ -76,12 +76,12 @@ fn count_packages_windows() -> Option<String> {
         (SCOOP_CMD, &["list"]),
     ];
     for (cmd, args) in checks {
-        if let Ok(output) = Command::new(cmd).args(*args).output() {
-            if output.status.success() {
-                let count = String::from_utf8_lossy(&output.stdout).lines().count();
-                let count = count.saturating_sub(4);
-                return Some(format!("{} ({})", count, cmd));
-            }
+        if let Ok(output) = Command::new(cmd).args(*args).output()
+            && output.status.success()
+        {
+            let count = String::from_utf8_lossy(&output.stdout).lines().count();
+            let count = count.saturating_sub(4);
+            return Some(format!("{} ({})", count, cmd));
         }
     }
     None
@@ -92,31 +92,31 @@ fn count_packages_macos() -> Option<String> {
         (BREW_CMD, &["list", "--formula"]),
     ];
     for (cmd, args) in checks {
-        if let Ok(output) = Command::new(cmd).args(*args).output() {
-            if output.status.success() {
-                let count = String::from_utf8_lossy(&output.stdout).lines().count();
-                return Some(format!("{} ({})", count, cmd));
-            }
+        if let Ok(output) = Command::new(cmd).args(*args).output()
+            && output.status.success()
+        {
+            let count = String::from_utf8_lossy(&output.stdout).lines().count();
+            return Some(format!("{} ({})", count, cmd));
         }
     }
     None
 }
 
 pub fn get_packages_info() -> String {
-    if cfg!(target_os = "linux") {
-        if let Some(info) = count_packages_linux() {
-            return info;
-        }
+    if cfg!(target_os = "linux")
+        && let Some(info) = count_packages_linux()
+    {
+        return info;
     }
-    if cfg!(target_os = "windows") {
-        if let Some(info) = count_packages_windows() {
-            return info;
-        }
+    if cfg!(target_os = "windows")
+        && let Some(info) = count_packages_windows()
+    {
+        return info;
     }
-    if cfg!(target_os = "macos") {
-        if let Some(info) = count_packages_macos() {
-            return info;
-        }
+    if cfg!(target_os = "macos")
+        && let Some(info) = count_packages_macos()
+    {
+        return info;
     }
     super::unknown()
 }

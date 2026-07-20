@@ -7,7 +7,8 @@ use std::path::{Path, PathBuf};
 
 pub use install::install_plugin;
 pub use manage::{list_plugins, remove_plugin};
-pub use run::{run_info_plugin, run_logo_animation_plugin, AnimationFrame};
+pub use run::{run_info_plugin, run_logo_animation_plugin};
+pub use xfetch_plugin_api::AnimationFrame;
 
 const PLUGIN_PREFIX: &str = "xfetch-plugin-";
 const EXE_EXT: &str = ".exe";

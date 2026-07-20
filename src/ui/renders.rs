@@ -67,7 +67,7 @@ pub fn render_classic_variants(nodes: &[RenderNode], config: &Config, variant: &
             lines.push(format!("╰{}╯", "─".repeat(border_len)));
         },
         "pacman" => {
-            let icons = config.header_icons.as_ref().map(|v| v.clone()).unwrap_or_default();
+            let icons = config.header_icons.clone().unwrap_or_default();
             let mut header = format!("\x1b[{}m╭─ \x1b[0m", PACMAN_GREEN);
             for (idx, icon) in icons.iter().enumerate() {
                 let color = PACMAN_COLORS[idx % 5];

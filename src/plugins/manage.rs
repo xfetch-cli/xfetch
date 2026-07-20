@@ -31,10 +31,10 @@ pub fn list_plugins() -> Result<Vec<(String, PathBuf)>, String> {
         {
             let entry = entry.map_err(|err| format!("Failed to read entry: {}", err))?;
             let path = entry.path();
-            if path.is_file() {
-                if let Some(name) = extract_plugin_name(&path) {
-                    plugins.push((name, path));
-                }
+            if path.is_file()
+                && let Some(name) = extract_plugin_name(&path)
+            {
+                plugins.push((name, path));
             }
         }
     }

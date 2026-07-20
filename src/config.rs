@@ -140,13 +140,7 @@ pub fn load_config(path: Option<String>) -> Config {
     
     // println!("Debug: Config content: {}", content);
 
-    match serde_json::from_str(&content) {
-        Ok(c) => c,
-        Err(_e) => {
-            // println!("Debug: Failed to parse config: {}", e);
-            Config::default()
-        }
-    }
+    serde_json::from_str(&content).unwrap_or_default()
 }
 
 pub fn default_config_path() -> PathBuf {

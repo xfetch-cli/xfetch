@@ -1701,6 +1701,15 @@ dependencies = [
  "serde_json",
  "sysinfo",
  "viuer",
+ "xfetch-plugin-api",
+]
+
+[[package]]
+name = "xfetch-plugin-api"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

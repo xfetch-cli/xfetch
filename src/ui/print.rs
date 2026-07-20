@@ -80,7 +80,7 @@ pub fn print_animated_output(
         .unwrap_or(0);
     let line_physical_width = max_logo_width + LOGO_INFO_GAP.len() + max_content_width;
     let term_width = size().map(|(w, _)| w as usize).unwrap_or(80);
-    let wraps = (line_physical_width + term_width - 1) / term_width;
+    let wraps = line_physical_width.div_ceil(term_width);
     let physical_lines = max_lines * std::cmp::max(1, wraps);
     let scroll_margin = physical_lines + 4;
 
@@ -116,10 +116,10 @@ pub fn print_animated_output(
             if frame_index + 1 >= frames.len() {
                 break;
             }
-        } else if let Some(limit) = duration_limit {
-            if start.elapsed() >= limit {
-                break;
-            }
+        } else if let Some(limit) = duration_limit
+            && start.elapsed() >= limit
+        {
+            break;
         }
 
         frame_index = (frame_index + 1) % frames.len();
@@ -138,11 +138,7 @@ fn print_logo_line(
 ) {
     let is_custom_ascii = force_plain_logo || config.ascii.is_some() || config.logo_path.is_some();
     let visible_len = visible_width(ascii_line);
-    let padding = if ascii_width > visible_len {
-        ascii_width - visible_len
-    } else {
-        0
-    };
+    let padding = ascii_width.saturating_sub(visible_len);
 
     if is_custom_ascii {
         execute!(out, Print(format!("{}{}", ascii_line, " ".repeat(padding)))).unwrap();

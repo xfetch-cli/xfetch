@@ -1,50 +1,11 @@
 use crate::config::{InfoPluginConfig, LogoAnimationConfig};
 use crate::plugins::find_plugin_binary;
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::io::Write;
 use std::process::{Command, Stdio};
-
-#[derive(Debug, Serialize)]
-struct LogoAnimationRequest<'a> {
-    version: u32,
-    kind: &'a str,
-    lines: &'a [String],
-    frames: Option<Vec<Vec<String>>>,
-    args: LogoAnimationArgs,
-}
-
-#[derive(Debug, Serialize)]
-struct LogoAnimationArgs {
-    fps: Option<u64>,
-    duration_ms: Option<u64>,
-    #[serde(rename = "loop")]
-    loop_enabled: Option<bool>,
-    style: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-struct LogoAnimationResponse {
-    frames: Vec<AnimationFrame>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct AnimationFrame {
-    pub delay_ms: u64,
-    pub lines: Vec<String>,
-}
-
-#[derive(Debug, Serialize)]
-struct InfoPluginRequest<'a> {
-    version: u32,
-    kind: &'a str,
-    args: Option<&'a Value>,
-}
-
-#[derive(Debug, Deserialize)]
-struct InfoPluginResponse {
-    lines: Vec<String>,
-}
+use xfetch_plugin_api::{
+    AnimationFrame, InfoPluginRequest, InfoPluginResponse, LogoAnimationArgs, LogoAnimationRequest,
+    LogoAnimationResponse, parse_json_slice, to_json_vec,
+};
 
 fn run_plugin_raw(plugin_name: &str, payload: &[u8]) -> Result<Vec<u8>, String> {
     let plugin_path = find_plugin_binary(plugin_name)
@@ -84,47 +45,41 @@ pub fn run_logo_animation_plugin(
     lines: &[String],
     frames: Option<Vec<Vec<String>>>,
 ) -> Result<Vec<AnimationFrame>, String> {
-    let request = LogoAnimationRequest {
-        version: 1,
-        kind: "logo_animation",
-        lines,
+    let request = LogoAnimationRequest::new(
+        lines.to_vec(),
         frames,
-        args: LogoAnimationArgs {
+        LogoAnimationArgs {
             fps: config.fps,
             duration_ms: config.duration_ms,
             loop_enabled: config.loop_enabled,
             style: config.style.clone(),
         },
-    };
+    );
 
-    let payload = serde_json::to_vec(&request)
+    let payload = to_json_vec(&request)
         .map_err(|err| format!("Failed to serialize plugin request: {}", err))?;
 
     let stdout = run_plugin_raw(plugin_name, &payload)?;
 
-    let response: LogoAnimationResponse = serde_json::from_slice(&stdout)
+    let response: LogoAnimationResponse = parse_json_slice(&stdout)
         .map_err(|err| format!("Failed to parse plugin output: {}", err))?;
 
-    if response.frames.is_empty() {
-        return Err("Plugin returned no frames".to_string());
-    }
+    response
+        .validate()
+        .map_err(|err| format!("Invalid plugin response: {}", err))?;
 
     Ok(response.frames)
 }
 
 pub fn run_info_plugin(config: &InfoPluginConfig) -> Result<Vec<String>, String> {
-    let request = InfoPluginRequest {
-        version: 1,
-        kind: "info_provider",
-        args: config.args.as_ref(),
-    };
+    let request = InfoPluginRequest::new(config.args.clone());
 
-    let payload = serde_json::to_vec(&request)
+    let payload = to_json_vec(&request)
         .map_err(|err| format!("Failed to serialize plugin request: {}", err))?;
 
     let stdout = run_plugin_raw(&config.plugin, &payload)?;
 
-    let response: InfoPluginResponse = serde_json::from_slice(&stdout)
+    let response: InfoPluginResponse = parse_json_slice(&stdout)
         .map_err(|err| format!("Failed to parse plugin output: {}", err))?;
 
     Ok(response.lines)

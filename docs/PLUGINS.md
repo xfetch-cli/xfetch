@@ -92,6 +92,7 @@
 
 <ul>
   <li>Plugin repository: <a href="https://github.com/xfetch-cli/plugins">xfetch-cli/plugins</a></li>
+  <li>Shared plugin API: <a href="https://github.com/xfetch-cli/api">xfetch-cli/api</a></li>
   <li>Plugin development guide: <a href="https://github.com/xfetch-cli/plugins/blob/main/docs/README.md">docs/README.md</a></li>
   <li>Plugin catalog: <a href="https://github.com/xfetch-cli/plugins/blob/main/README.md">README.md</a></li>
 </ul>
