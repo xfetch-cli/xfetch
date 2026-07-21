@@ -22,6 +22,11 @@
 
 <pre><code class="language-bash">xfetch --config path/to/my_config.jsonc</code></pre>
 
+<p>
+  Curated presets and plugin-oriented examples are maintained separately in
+  <a href="https://github.com/xfetch-cli/configs">xfetch-cli/configs</a>.
+</p>
+
 <h2>Basic Structure</h2>
 
 <p>

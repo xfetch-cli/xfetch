@@ -1,8 +1,0 @@
-{
-    "layout": "pacman",
-    "header_icons": ["1", "2", "3"],
-    "footer_text": "NUM",
-    "modules": ["cpu", "memory"],
-    "icons": {"cpu": "#", "memory": "%"},
-    "colors": {"cpu": "Green", "memory": "Green"}
-}

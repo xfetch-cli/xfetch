@@ -1,8 +1,0 @@
-{
-    "layout": "pacman",
-    "header_icons": ["●", "●", "●", "●", "●"],
-    "footer_text": "SYSTEM",
-    "modules": ["os", "kernel", "memory"],
-    "icons": {"os": "", "kernel": "", "memory": ""},
-    "colors": {"os": "Cyan", "kernel": "Cyan", "memory": "Cyan"}
-}

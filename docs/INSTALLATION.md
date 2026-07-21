@@ -111,6 +111,11 @@ mkdir -p ~/.config/xfetch
 cp configs/config.jsonc ~/.config/xfetch/config.jsonc
 cp -r logos/* ~/.config/xfetch/logos/</code></pre>
 
+<p>
+  Additional presets are available in
+  <a href="https://github.com/xfetch-cli/configs">xfetch-cli/configs</a>.
+</p>
+
 <hr>
 
 <h2>Install via Cargo</h2>

@@ -1,8 +1,0 @@
-{
-    "layout": "pacman",
-    "header_icons": ["★", "★", "★"],
-    "footer_text": "STAR",
-    "modules": ["os", "uptime"],
-    "icons": {"os": "S", "uptime": "T"},
-    "colors": {"os": "Yellow", "uptime": "Yellow"}
-}

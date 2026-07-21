@@ -1,8 +1,0 @@
-{
-    "layout": "pacman",
-    "header_icons": ["+", "+", "+"],
-    "footer_text": "PLUS",
-    "modules": ["os"],
-    "icons": {"os": "+"},
-    "colors": {"os": "Blue"}
-}

@@ -1,8 +1,0 @@
-{
-    "layout": "pacman",
-    "header_icons": ["!", "@", "#"],
-    "footer_text": "SYM",
-    "modules": ["disk", "battery"],
-    "icons": {"disk": "D", "battery": "B"},
-    "colors": {"disk": "Magenta", "battery": "Magenta"}
-}
