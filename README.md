@@ -1,7 +1,7 @@
 <h1 align="center"> Xfetch </h1>
 
 <div align="center">
-<p align="center"><img src="https://raw.githubusercontent.com/xscriptor/xassets/main/xrepos/apps/xfetch/icon.svg" width="80" alt="XFetch logo" /></p>
+<p align="center"><img src="raw.githubusercontent.com/xfetch-cli/assets/main/logo/banner/xfetch.svg" width="100%" alt="XFetch banner" /></p>
 
 ![Crates.io Version](https://img.shields.io/crates/v/xfetch?style=flat-square&logo=rust&color=%23DEA584) ![Crates.io Downloads](https://img.shields.io/crates/d/xfetch?style=flat-square&logo=rust&color=%23DEA584) ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square) ![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20windows-lightgrey?style=flat-square) ![CI](https://img.shields.io/github/actions/workflow/status/xfetch-cli/xfetch/rust-tests.yml?style=flat-square&logo=github&label=build) ![Rust](https://img.shields.io/badge/rust-2024%20edition-%23DEA584?style=flat-square&logo=rust)
 
