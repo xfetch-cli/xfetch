@@ -40,6 +40,9 @@ pub struct Info {
     pub user: String,
     pub datetime: String,
     pub local_ip: String,
+    pub local_ip_v6: String,
+    pub public_ip: String,
+    pub network_interfaces: String,
     pub plugin_info: HashMap<String, Vec<String>>,
 }
 
@@ -72,6 +75,9 @@ impl Info {
             user: software::get_user_info(),
             datetime: get_datetime_info(),
             local_ip: system::get_local_ip_info(&networks),
+            local_ip_v6: system::get_ipv6_info(&networks),
+            public_ip: system::get_public_ip_info(config.disable_ip_fetching.unwrap_or(false) == false),
+            network_interfaces: system::get_network_interfaces_info(&networks),
             plugin_info,
         }
     }

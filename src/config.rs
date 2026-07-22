@@ -32,6 +32,7 @@ pub struct Config {
     pub palette_style: Option<String>, // "dots", "squares", "lines", "triangles"
     pub logo_animation: Option<LogoAnimationConfig>,
     pub info_plugins: Vec<InfoPluginConfig>,
+    pub disable_ip_fetching: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -109,6 +110,7 @@ impl Default for Config {
             palette_style: None,
             logo_animation: None,
             info_plugins: Vec::new(),
+            disable_ip_fetching: None,
         }
     }
 }

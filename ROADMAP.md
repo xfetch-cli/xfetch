@@ -62,10 +62,10 @@
 ## Phase 5 · Network & Connectivity <!-- phase:phase-5:network -->
 
 - [x] Implement local IP address detection (#80)
-- [ ] Fetch public IP address (with privacy option) (#81)
-- [ ] Add IPv6 support (#82)
-- [ ] Display network interface information (#83)
-- [ ] Add option to disable IP fetching for privacy (#84)
+- [x] Fetch public IP address (with privacy option) (#81)
+- [x] Add IPv6 support (#82)
+- [x] Display network interface information (#83)
+- [x] Add option to disable IP fetching for privacy (#84)
 
 ## Phase 6 · Enhanced Modules <!-- phase:phase-6:enhanced-modules -->
 

@@ -24,6 +24,8 @@
                 "wm",
                 "terminal",
                 "local_ip",
+                "local_ip:v6",
+                "public_ip",
                 "packages",
                 "packages:pacman",
                 "packages:dpkg",
@@ -47,6 +49,13 @@
             "modules": [
                 "packages:scoop",
                 "packages:choco"
+            ]
+        },
+        {
+            "type": "group",
+            "title": "Network",
+            "modules": [
+                "interfaces"
             ]
         },
         {

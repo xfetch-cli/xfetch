@@ -1,4 +1,7 @@
+use std::io::{BufReader, Read, Write};
+use std::net::{TcpStream, ToSocketAddrs};
 use std::process::Command;
+use std::time::Duration;
 use sysinfo::{Networks, System};
 
 const POWERSHELL_CMD: &str = "powershell";
@@ -62,6 +65,74 @@ pub fn get_local_ip_info(networks: &Networks) -> String {
         }
     }
     "127.0.0.1".to_string()
+}
+
+pub fn get_ipv6_info(networks: &Networks) -> String {
+    for (_name, data) in networks {
+        for ip in data.ip_networks() {
+            if let std::net::IpAddr::V6(ipv6) = ip.addr
+                && !ipv6.is_loopback()
+            {
+                return ipv6.to_string();
+            }
+        }
+    }
+    "N/A".to_string()
+}
+
+fn fetch_public_ip_from(host: &str) -> Option<String> {
+    let addr = (host, 80).to_socket_addrs().ok()?.next()?;
+    let mut stream = TcpStream::connect_timeout(&addr, Duration::from_secs(3)).ok()?;
+    stream.set_read_timeout(Some(Duration::from_secs(3))).ok()?;
+
+    let request = format!("GET / HTTP/1.0\r\nHost: {}\r\nConnection: close\r\n\r\n", host);
+    stream.write_all(request.as_bytes()).ok()?;
+
+    let mut reader = BufReader::new(stream);
+    let mut response = String::new();
+    reader.read_to_string(&mut response).ok()?;
+
+    let body = response.split("\r\n\r\n").nth(1)?.trim().to_string();
+    if body.is_empty() || body.contains('<') { None } else { Some(body) }
+}
+
+pub fn get_public_ip_info(enabled: bool) -> String {
+    if !enabled {
+        return "N/A".to_string();
+    }
+    for host in &["ifconfig.me", "api.ipify.org", "icanhazip.com"] {
+        if let Some(ip) = fetch_public_ip_from(host) {
+            return ip;
+        }
+    }
+    "N/A".to_string()
+}
+
+pub fn get_network_interfaces_info(networks: &Networks) -> String {
+    let mut parts: Vec<String> = Vec::new();
+    for (name, data) in networks {
+        let raw_mac = data.mac_address();
+        let mac = if raw_mac.0.iter().any(|&b| b != 0) {
+            format!("[{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}]", raw_mac.0[0], raw_mac.0[1], raw_mac.0[2], raw_mac.0[3], raw_mac.0[4], raw_mac.0[5])
+        } else {
+            String::new()
+        };
+        let ips: Vec<String> = data
+            .ip_networks()
+            .iter()
+            .filter(|ip| !ip.addr.is_loopback())
+            .map(|ip| format!("{}/{}", ip.addr, ip.prefix))
+            .collect();
+        if !ips.is_empty() {
+            let mac_part = if mac.is_empty() { String::new() } else { format!(" {} ", mac) };
+            parts.push(format!("{}{}{}", name, mac_part, ips.join(", ")));
+        }
+    }
+    if parts.is_empty() {
+        "N/A".to_string()
+    } else {
+        parts.join(" / ")
+    }
 }
 
 #[cfg(test)]
