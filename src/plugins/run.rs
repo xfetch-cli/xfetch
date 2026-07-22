@@ -19,11 +19,13 @@ fn run_plugin_raw(plugin_name: &str, payload: &[u8]) -> Result<Vec<u8>, String> 
         .map_err(|err| format!("Failed to start plugin: {}", err))?;
 
     if let Some(mut stdin) = child.stdin.take() {
-        stdin.write_all(payload)
+        stdin
+            .write_all(payload)
             .map_err(|err| format!("Failed to send plugin request: {}", err))?;
     }
 
-    let output = child.wait_with_output()
+    let output = child
+        .wait_with_output()
         .map_err(|err| format!("Failed to read plugin output: {}", err))?;
 
     if !output.status.success() {

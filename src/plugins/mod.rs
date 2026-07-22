@@ -97,7 +97,10 @@ fn candidate_plugin_dirs_from(base_dir: &Path, plugin_name: &str) -> Vec<PathBuf
 }
 
 fn candidate_plugin_binary_paths_from(plugin_dir: &Path, binary_name: &str) -> Vec<PathBuf> {
-    let mut candidates = vec![plugin_dir.join(TARGET_RELEASE).join(binary_name), plugin_dir.join(binary_name)];
+    let mut candidates = vec![
+        plugin_dir.join(TARGET_RELEASE).join(binary_name),
+        plugin_dir.join(binary_name),
+    ];
 
     let mut current = plugin_dir.parent();
     while let Some(dir) = current {
@@ -219,10 +222,8 @@ mod tests {
     #[test]
     fn test_candidate_binary_paths_include_workspace_target() {
         let plugin_dir = Path::new("/workspace/xfetch/plugins/plugins/animate-logo");
-        let candidates = candidate_plugin_binary_paths_from(
-            plugin_dir,
-            "xfetch-plugin-animate-logo",
-        );
+        let candidates =
+            candidate_plugin_binary_paths_from(plugin_dir, "xfetch-plugin-animate-logo");
 
         assert!(candidates.contains(&PathBuf::from(
             "/workspace/xfetch/plugins/plugins/animate-logo/target/release/xfetch-plugin-animate-logo"

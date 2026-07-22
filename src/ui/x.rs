@@ -37,7 +37,6 @@ Z0123456789+/woXos/Linux/Rocks/==
     .to_string()
 }
 
-
 //tests
 #[cfg(test)]
 mod tests {

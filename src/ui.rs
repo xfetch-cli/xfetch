@@ -2,14 +2,14 @@ use crate::config::{Config, FramePaths, LogoAnimationConfig};
 use crate::info::Info;
 use crate::plugins::run_logo_animation_plugin;
 use console::strip_ansi_codes;
-use std::io::{stdout, IsTerminal};
+use std::io::{IsTerminal, stdout};
 mod nodes;
-use nodes::{prepare_render_tree};
+use nodes::prepare_render_tree;
+mod layout;
+mod logo;
+mod print;
 mod renders;
 mod x;
-mod logo;
-mod layout;
-mod print;
 
 fn load_animation_frames(config: &LogoAnimationConfig) -> Option<Vec<Vec<String>>> {
     let paths = match config.frames_path.as_ref()? {
@@ -31,7 +31,11 @@ fn load_animation_frames(config: &LogoAnimationConfig) -> Option<Vec<Vec<String>
             }
         }
     }
-    if frames.is_empty() { None } else { Some(frames) }
+    if frames.is_empty() {
+        None
+    } else {
+        Some(frames)
+    }
 }
 
 const FRAME_SEPARATOR: &str = "\n===\n";
@@ -43,14 +47,11 @@ fn split_ascii_frames(content: &str) -> Vec<Vec<String>> {
     content
         .split(FRAME_SEPARATOR)
         .map(|block| block.lines().map(|l| l.to_string()).collect())
-        .filter(|frame: &Vec<String>| !frame.is_empty() && !frame.iter().all(|l| l.trim().is_empty()))
+        .filter(|frame: &Vec<String>| {
+            !frame.is_empty() && !frame.iter().all(|l| l.trim().is_empty())
+        })
         .collect()
 }
-
-
-
-
-
 
 pub fn draw(info: &Info, config: &Config) {
     let _stdout = stdout();
@@ -60,7 +61,6 @@ pub fn draw(info: &Info, config: &Config) {
 
     //2. Get Logo Data (ASCII or Image)
     let (ascii_lines, image_printed, ascii_width) = logo::get_logo_data(config);
-    
 
     // 3. Get Layout Lines
     let content_lines = layout::get_content_lines(&nodes, config);

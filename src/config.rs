@@ -1,9 +1,9 @@
+use json_comments::StripComments;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fs;
-use std::path::PathBuf;
-use json_comments::StripComments;
 use std::io::Read;
+use std::path::PathBuf;
 
 use std::collections::HashMap;
 
@@ -14,7 +14,7 @@ pub enum ModuleConfig {
     Group {
         title: String,
         modules: Vec<ModuleConfig>, // Recursive
-    }
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -83,7 +83,7 @@ impl Default for Config {
         colors.insert("os".to_string(), "Cyan".to_string());
         colors.insert("kernel".to_string(), "White".to_string());
         colors.insert("wm".to_string(), "Blue".to_string());
-        
+
         Self {
             ascii: None,
             logo_path: None,
@@ -119,7 +119,7 @@ pub fn load_config(path: Option<String>) -> Config {
     } else {
         default_config_path()
     };
-    
+
     // println!("Debug: Config path is {:?}", config_path);
 
     if !config_path.exists() {
@@ -137,7 +137,7 @@ pub fn load_config(path: Option<String>) -> Config {
     if stripped.read_to_string(&mut content).is_err() {
         return Config::default();
     }
-    
+
     // println!("Debug: Config content: {}", content);
 
     serde_json::from_str(&content).unwrap_or_default()

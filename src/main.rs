@@ -4,12 +4,12 @@ mod info;
 mod plugins;
 mod ui;
 
-use clap::Parser;
-use cli::{Cli, Commands, PluginCommands};
 use crate::config::{generate_config, load_config};
 use crate::info::Info;
 use crate::plugins::{install_plugin, list_plugins, remove_plugin};
 use crate::ui::draw;
+use clap::Parser;
+use cli::{Cli, Commands, PluginCommands};
 
 fn main() {
     let cli = Cli::parse();
@@ -39,34 +39,33 @@ fn main() {
                     }
                 }
             }
-            PluginCommands::List => {
-                match list_plugins() {
-                    Ok(plugins) => {
-                        if plugins.is_empty() {
-                            println!("No plugins installed.");
-                            println!("Plugin directory: {}", plugins::default_plugin_dir().display());
-                        } else {
-                            println!("Installed plugins:");
-                            for (name, path) in &plugins {
-                                println!("  {}  ({})", name, path.display());
-                            }
+            PluginCommands::List => match list_plugins() {
+                Ok(plugins) => {
+                    if plugins.is_empty() {
+                        println!("No plugins installed.");
+                        println!(
+                            "Plugin directory: {}",
+                            plugins::default_plugin_dir().display()
+                        );
+                    } else {
+                        println!("Installed plugins:");
+                        for (name, path) in &plugins {
+                            println!("  {}  ({})", name, path.display());
                         }
                     }
-                    Err(err) => {
-                        eprintln!("Error: {}", err);
-                        std::process::exit(1);
-                    }
                 }
-            }
-            PluginCommands::Remove { name } => {
-                match remove_plugin(&name) {
-                    Ok(()) => {}
-                    Err(err) => {
-                        eprintln!("Error: {}", err);
-                        std::process::exit(1);
-                    }
+                Err(err) => {
+                    eprintln!("Error: {}", err);
+                    std::process::exit(1);
                 }
-            }
+            },
+            PluginCommands::Remove { name } => match remove_plugin(&name) {
+                Ok(()) => {}
+                Err(err) => {
+                    eprintln!("Error: {}", err);
+                    std::process::exit(1);
+                }
+            },
         },
         None => {
             let config = load_config(cli.config);

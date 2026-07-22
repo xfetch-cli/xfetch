@@ -1,6 +1,6 @@
 use crate::plugins::{
-    default_plugin_dir, default_plugin_repo, plugin_binary_name, CARGO_CMD, CARGO_TOML,
-    ENV_CARGO_NET_GIT_FETCH_WITH_CLI, GIT_CMD, PLUGIN_PREFIX, TARGET_RELEASE,
+    CARGO_CMD, CARGO_TOML, ENV_CARGO_NET_GIT_FETCH_WITH_CLI, GIT_CMD, PLUGIN_PREFIX,
+    TARGET_RELEASE, default_plugin_dir, default_plugin_repo, plugin_binary_name,
 };
 use std::env;
 use std::fs;
@@ -117,7 +117,11 @@ fn build_and_install_plugin(plugin_dir: &Path, name: &str) -> Result<(), String>
     fs::copy(&built_binary, &dest_path)
         .map_err(|err| format!("Failed to copy plugin binary: {}", err))?;
 
-    println!("Installed plugin '{}' to {}", plugin_name, dest_path.display());
+    println!(
+        "Installed plugin '{}' to {}",
+        plugin_name,
+        dest_path.display()
+    );
     Ok(())
 }
 

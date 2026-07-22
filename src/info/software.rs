@@ -72,9 +72,7 @@ fn count_packages_linux() -> Option<String> {
 }
 
 fn count_packages_windows() -> Option<String> {
-    let checks: &[(&str, &[&str])] = &[
-        (SCOOP_CMD, &["list"]),
-    ];
+    let checks: &[(&str, &[&str])] = &[(SCOOP_CMD, &["list"])];
     for (cmd, args) in checks {
         if let Ok(output) = Command::new(cmd).args(*args).output()
             && output.status.success()
@@ -88,9 +86,7 @@ fn count_packages_windows() -> Option<String> {
 }
 
 fn count_packages_macos() -> Option<String> {
-    let checks: &[(&str, &[&str])] = &[
-        (BREW_CMD, &["list", "--formula"]),
-    ];
+    let checks: &[(&str, &[&str])] = &[(BREW_CMD, &["list", "--formula"])];
     for (cmd, args) in checks {
         if let Ok(output) = Command::new(cmd).args(*args).output()
             && output.status.success()

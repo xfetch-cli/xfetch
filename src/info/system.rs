@@ -1,5 +1,5 @@
-use sysinfo::{Networks, System};
 use std::process::Command;
+use sysinfo::{Networks, System};
 
 const POWERSHELL_CMD: &str = "powershell";
 const DATE_CMD: &str = "date";
@@ -93,6 +93,10 @@ mod tests {
     #[test]
     fn test_get_datetime_info() {
         let dt = get_datetime_info();
-        assert!(dt.len() >= 10, "datetime should be at least YYYY-MM-DD: got '{}'", dt);
+        assert!(
+            dt.len() >= 10,
+            "datetime should be at least YYYY-MM-DD: got '{}'",
+            dt
+        );
     }
 }

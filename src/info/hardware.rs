@@ -1,5 +1,5 @@
-use sysinfo::{Components, Disks, System};
 use std::process::Command;
+use sysinfo::{Components, Disks, System};
 
 const UNKNOWN_GPU: &str = "Unknown GPU";
 const ZERO_SWAP: &str = "0 B / 0 B (0%)";
@@ -7,15 +7,24 @@ const NA: &str = "N/A";
 const BATT_DIR: &str = "/sys/class/power_supply";
 const BATT_CAPACITY: &str = "capacity";
 const BATT_STATUS: &str = "status";
-const BATT_PREFIXES: [&str; 6] = ["BAT", "bat", "hidpp_battery", "ucsi_battery", "C22C", "ps-battery"];
+const BATT_PREFIXES: [&str; 6] = [
+    "BAT",
+    "bat",
+    "hidpp_battery",
+    "ucsi_battery",
+    "C22C",
+    "ps-battery",
+];
 
 const LSPCI_CMD: &str = "lspci";
 const WMIC_CMD: &str = "wmic";
 const SYSTEM_PROFILER_CMD: &str = "system_profiler";
 const PMSET_CMD: &str = "pmset";
 const POWERSHELL_CMD: &str = "powershell";
-const GPU_PS_SCRIPT: &str = "Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name";
-const BATT_PS_SCRIPT: &str = "Get-CimInstance Win32_Battery | Select-Object EstimatedChargeRemaining, BatteryStatus";
+const GPU_PS_SCRIPT: &str =
+    "Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name";
+const BATT_PS_SCRIPT: &str =
+    "Get-CimInstance Win32_Battery | Select-Object EstimatedChargeRemaining, BatteryStatus";
 
 const GPU_CLASS_VGA: &str = "VGA";
 const GPU_CLASS_3D: &str = "3D";
@@ -38,7 +47,10 @@ fn get_gpu_info_linux() -> Vec<String> {
     if let Ok(output) = Command::new(LSPCI_CMD).arg("-mm").output() {
         let out = String::from_utf8_lossy(&output.stdout);
         for line in out.lines() {
-            if line.contains(GPU_CLASS_VGA) || line.contains(GPU_CLASS_3D) || line.contains(GPU_CLASS_DISPLAY) {
+            if line.contains(GPU_CLASS_VGA)
+                || line.contains(GPU_CLASS_3D)
+                || line.contains(GPU_CLASS_DISPLAY)
+            {
                 let parts: Vec<&str> = line.split('"').collect();
                 if parts.len() > 5 {
                     gpus.push(parts[5].to_string());
