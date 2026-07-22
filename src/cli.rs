@@ -6,7 +6,7 @@ use clap::{Parser, Subcommand};
     version,
     about,
     long_about = None,
-    after_help = "Examples:\n  xfetch\n  xfetch --config ~/.config/xfetch/config.jsonc\n  xfetch --gen-config\n  xfetch plugin install animate-logo\n  xfetch plugin list\n  xfetch plugin remove animate-logo"
+    after_help = "Examples:\n  xfetch\n  xfetch --config ~/.config/xfetch/config.jsonc\n  xfetch --gen-config\n  xfetch --clean-cache\n  xfetch plugin install animate-logo\n  xfetch plugin list\n  xfetch plugin remove animate-logo"
 )]
 pub struct Cli {
     #[command(subcommand)]
@@ -17,6 +17,9 @@ pub struct Cli {
 
     #[arg(long, global = true)]
     pub gen_config: bool,
+
+    #[arg(long, global = true)]
+    pub clean_cache: bool,
 }
 
 #[derive(Subcommand, Debug)]

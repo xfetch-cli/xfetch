@@ -1,3 +1,4 @@
+mod cache;
 mod cli;
 mod config;
 mod info;
@@ -13,6 +14,19 @@ use cli::{Cli, Commands, PluginCommands};
 
 fn main() {
     let cli = Cli::parse();
+
+    if cli.clean_cache {
+        match cache::clean() {
+            Ok(()) => {
+                println!("Cache cleaned.");
+                return;
+            }
+            Err(err) => {
+                eprintln!("Failed to clean cache: {}", err);
+                std::process::exit(1);
+            }
+        }
+    }
 
     if cli.gen_config {
         match generate_config(cli.config.clone()) {

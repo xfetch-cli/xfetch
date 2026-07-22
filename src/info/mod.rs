@@ -2,9 +2,11 @@ pub mod hardware;
 pub mod software;
 pub mod system;
 
-use crate::config::{Config, InfoPluginConfig};
+use crate::cache;
+use crate::config::{Config, InfoPluginConfig, ModuleConfig};
 use crate::plugins::run_info_plugin;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::time::Duration;
 use sysinfo::{Components, Disks, Networks, System};
 
 pub use hardware::get_gpu_info;
@@ -19,6 +21,40 @@ fn unknown() -> String {
 
 fn b_to_gib(bytes: u64) -> f64 {
     bytes as f64 / BYTES_PER_GIB
+}
+
+fn collect_module_keys(modules: &[ModuleConfig]) -> HashSet<String> {
+    let mut keys = HashSet::new();
+    for module in modules {
+        match module {
+            ModuleConfig::Simple(key) => {
+                keys.insert(key.clone());
+            }
+            ModuleConfig::Group { modules: children, .. } => {
+                keys.extend(collect_module_keys(children));
+            }
+        }
+    }
+    keys
+}
+
+fn needs_sysinfo(keys: &HashSet<String>) -> bool {
+    keys.contains("os")
+        || keys.contains("kernel")
+        || keys.contains("hostname")
+        || keys.contains("host")
+        || keys.contains("uptime")
+        || keys.contains("cpu")
+        || keys.contains("memory")
+        || keys.contains("swap")
+}
+
+fn needs_network(keys: &HashSet<String>) -> bool {
+    keys.contains("local_ip") || keys.contains("local_ip:v6") || keys.contains("interfaces")
+}
+
+fn needs_any_packages(keys: &HashSet<String>) -> bool {
+    keys.contains("packages") || keys.iter().any(|k| k.starts_with("packages:"))
 }
 
 pub struct Info {
@@ -48,11 +84,75 @@ pub struct Info {
 
 impl Info {
     pub fn with_config(config: &Config) -> Self {
-        let mut sys = System::new_all();
-        sys.refresh_all();
-        let disks = Disks::new_with_refreshed_list();
-        let networks = Networks::new_with_refreshed_list();
-        let components = Components::new_with_refreshed_list();
+        let needed = collect_module_keys(&config.modules);
+
+        let sys = if needs_sysinfo(&needed) {
+            let mut s = System::new_all();
+            s.refresh_all();
+            Some(s)
+        } else {
+            None
+        };
+
+        let disks = if needed.contains("disk") {
+            Some(Disks::new_with_refreshed_list())
+        } else {
+            None
+        };
+
+        let networks = if needs_network(&needed) {
+            Some(Networks::new_with_refreshed_list())
+        } else {
+            None
+        };
+
+        let components = if needed.contains("battery") {
+            Some(Components::new_with_refreshed_list())
+        } else {
+            None
+        };
+
+        let gpu = if needed.contains("gpu") {
+            get_gpu_info()
+        } else {
+            Vec::new()
+        };
+
+        let (packages, packages_breakdown) = if needs_any_packages(&needed) {
+            match cache::get("packages", Duration::from_secs(300)) {
+                Some(cached) => {
+                    let (joined, list) = serde_json::from_str(&cached).unwrap_or_default();
+                    (joined, list)
+                }
+                None => {
+                    let (joined, list) = (get_packages_info(), get_packages_breakdown());
+                    if let Ok(json) = serde_json::to_string(&(&joined, &list)) {
+                        cache::set("packages", &json);
+                    }
+                    (joined, list)
+                }
+            }
+        } else {
+            (unknown(), Vec::new())
+        };
+
+        let public_ip = if needed.contains("public_ip") {
+            let enabled = config.disable_ip_fetching.unwrap_or(false) == false;
+            if !enabled {
+                "N/A".to_string()
+            } else {
+                match cache::get("public_ip", Duration::from_secs(300)) {
+                    Some(cached) => cached,
+                    None => {
+                        let ip = system::get_public_ip_info(true);
+                        cache::set("public_ip", &ip);
+                        ip
+                    }
+                }
+            }
+        } else {
+            "N/A".to_string()
+        };
 
         let plugin_info = load_plugin_info(&config.info_plugins);
 
@@ -62,22 +162,22 @@ impl Info {
             host_name: get_host_name(),
             shell: software::get_shell_info(),
             terminal: software::get_terminal_info(),
-            cpu: hardware::get_cpu_info(&sys),
-            gpu: get_gpu_info(),
-            memory: hardware::get_memory_info(&sys),
-            swap: hardware::get_swap_info(&sys),
-            disks: hardware::get_disk_info(&disks),
-            battery: hardware::get_battery_info(&components),
+            cpu: sys.as_ref().map(|s| hardware::get_cpu_info(s)).unwrap_or_default(),
+            gpu,
+            memory: sys.as_ref().map(|s| hardware::get_memory_info(s)).unwrap_or_default(),
+            swap: sys.as_ref().map(|s| hardware::get_swap_info(s)).unwrap_or_default(),
+            disks: disks.as_ref().map(|d| hardware::get_disk_info(d)).unwrap_or_default(),
+            battery: components.as_ref().map(|c| hardware::get_battery_info(c)).unwrap_or_else(|| "N/A".to_string()),
             uptime: get_uptime_info(),
-            packages: get_packages_info(),
-            packages_breakdown: get_packages_breakdown(),
+            packages,
+            packages_breakdown,
             desktop: software::get_desktop_info(),
             user: software::get_user_info(),
             datetime: get_datetime_info(),
-            local_ip: system::get_local_ip_info(&networks),
-            local_ip_v6: system::get_ipv6_info(&networks),
-            public_ip: system::get_public_ip_info(config.disable_ip_fetching.unwrap_or(false) == false),
-            network_interfaces: system::get_network_interfaces_info(&networks),
+            local_ip: networks.as_ref().map(|n| system::get_local_ip_info(n)).unwrap_or_else(|| "127.0.0.1".to_string()),
+            local_ip_v6: networks.as_ref().map(|n| system::get_ipv6_info(n)).unwrap_or_else(|| "N/A".to_string()),
+            public_ip,
+            network_interfaces: networks.as_ref().map(|n| system::get_network_interfaces_info(n)).unwrap_or_else(|| "N/A".to_string()),
             plugin_info,
         }
     }
