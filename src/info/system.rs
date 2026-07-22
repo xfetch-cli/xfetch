@@ -108,24 +108,35 @@ pub fn get_public_ip_info(enabled: bool) -> String {
     "N/A".to_string()
 }
 
+fn is_link_local(ipv6: &std::net::Ipv6Addr) -> bool {
+    ipv6.octets()[0] == 0xfe && ipv6.octets()[1] == 0x80
+}
+
 pub fn get_network_interfaces_info(networks: &Networks) -> String {
     let mut parts: Vec<String> = Vec::new();
     for (name, data) in networks {
         let raw_mac = data.mac_address();
         let mac = if raw_mac.0.iter().any(|&b| b != 0) {
-            format!("[{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}]", raw_mac.0[0], raw_mac.0[1], raw_mac.0[2], raw_mac.0[3], raw_mac.0[4], raw_mac.0[5])
+            format!("{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}", raw_mac.0[0], raw_mac.0[1], raw_mac.0[2], raw_mac.0[3], raw_mac.0[4], raw_mac.0[5])
         } else {
             String::new()
         };
         let ips: Vec<String> = data
             .ip_networks()
             .iter()
-            .filter(|ip| !ip.addr.is_loopback())
+            .filter(|ip| match ip.addr {
+                std::net::IpAddr::V4(ipv4) => !ipv4.is_loopback(),
+                std::net::IpAddr::V6(ipv6) => !ipv6.is_loopback() && !is_link_local(&ipv6),
+            })
             .map(|ip| format!("{}/{}", ip.addr, ip.prefix))
             .collect();
         if !ips.is_empty() {
-            let mac_part = if mac.is_empty() { String::new() } else { format!(" {} ", mac) };
-            parts.push(format!("{}{}{}", name, mac_part, ips.join(", ")));
+            let label = if mac.is_empty() {
+                format!("{} {}", name, ips.join(", "))
+            } else {
+                format!("{} [{}] {}", name, mac, ips.join(", "))
+            };
+            parts.push(label);
         }
     }
     if parts.is_empty() {
