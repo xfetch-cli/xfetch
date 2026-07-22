@@ -83,8 +83,15 @@ fn main() {
         },
         None => {
             let config = load_config(cli.config);
-            let info = Info::with_config(&config);
+            let (info, bench_lines) = Info::with_config(&config, cli.benchmark);
             draw(&info, &config);
+            if !bench_lines.is_empty() {
+                println!("\n── Benchmark ──────────────────────────────");
+                for line in &bench_lines {
+                    println!("{}", line);
+                }
+                println!("──────────────────────────────────────────");
+            }
         }
     }
 }

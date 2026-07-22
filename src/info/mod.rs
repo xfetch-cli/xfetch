@@ -6,7 +6,8 @@ use crate::cache;
 use crate::config::{Config, InfoPluginConfig, ModuleConfig};
 use crate::plugins::run_info_plugin;
 use std::collections::{HashMap, HashSet};
-use std::time::Duration;
+use std::thread;
+use std::time::{Duration, Instant};
 use sysinfo::{Components, Disks, Networks, System};
 
 pub use hardware::get_gpu_info;
@@ -83,7 +84,8 @@ pub struct Info {
 }
 
 impl Info {
-    pub fn with_config(config: &Config) -> Self {
+    pub fn with_config(config: &Config, benchmark: bool) -> (Self, Vec<String>) {
+        let _total_start = Instant::now();
         let needed = collect_module_keys(&config.modules);
 
         let sys = if needs_sysinfo(&needed) {
@@ -112,74 +114,107 @@ impl Info {
             None
         };
 
-        let gpu = if needed.contains("gpu") {
-            get_gpu_info()
+        let cache_enabled = config.disable_cache.unwrap_or(false) == false;
+
+        let cached_packages = if cache_enabled {
+            cache::get("packages", Duration::from_secs(300))
         } else {
-            Vec::new()
+            None
         };
 
-        let (packages, packages_breakdown) = if needs_any_packages(&needed) {
-            match cache::get("packages", Duration::from_secs(300)) {
-                Some(cached) => {
-                    let (joined, list) = serde_json::from_str(&cached).unwrap_or_default();
-                    (joined, list)
-                }
-                None => {
-                    let (joined, list) = (get_packages_info(), get_packages_breakdown());
-                    if let Ok(json) = serde_json::to_string(&(&joined, &list)) {
-                        cache::set("packages", &json);
-                    }
-                    (joined, list)
-                }
+        let ip_enabled = needed.contains("public_ip") && config.disable_ip_fetching.unwrap_or(false) == false;
+        let cached_ip = if ip_enabled && cache_enabled {
+            cache::get("public_ip", Duration::from_secs(300))
+        } else {
+            None
+        };
+
+        let mut _parallel_elapsed = None;
+
+        let (gpu, pkg_opt, ip_opt) = thread::scope(|s| {
+            let _ps = Instant::now();
+            let gpu_h = needed.contains("gpu").then(|| s.spawn(|| get_gpu_info()));
+            let pkg_h = (needs_any_packages(&needed) && cached_packages.is_none())
+                .then(|| s.spawn(|| (get_packages_info(), get_packages_breakdown())));
+            let ip_h = (ip_enabled && cached_ip.is_none())
+                .then(|| s.spawn(|| system::get_public_ip_info(true)));
+
+            let gpu = gpu_h.and_then(|h| h.join().ok()).unwrap_or_default();
+            let pkg = pkg_h.and_then(|h| h.join().ok());
+            let ip = ip_h.and_then(|h| h.join().ok());
+            if benchmark {
+                _parallel_elapsed = Some(_ps.elapsed());
             }
-        } else {
-            (unknown(), Vec::new())
+            (gpu, pkg, ip)
+        });
+
+        let (packages, packages_breakdown) = match cached_packages {
+            Some(json) => serde_json::from_str(&json).unwrap_or_else(|_| (unknown(), Vec::new())),
+            None => match pkg_opt {
+                Some((ref p, ref b)) => {
+                    if cache_enabled {
+                        if let Ok(json) = serde_json::to_string(&(p, b)) {
+                            cache::set("packages", &json);
+                        }
+                    }
+                    (p.clone(), b.clone())
+                }
+                None => (unknown(), Vec::new()),
+            },
         };
 
-        let public_ip = if needed.contains("public_ip") {
-            let enabled = config.disable_ip_fetching.unwrap_or(false) == false;
-            if !enabled {
-                "N/A".to_string()
-            } else {
-                match cache::get("public_ip", Duration::from_secs(300)) {
-                    Some(cached) => cached,
-                    None => {
-                        let ip = system::get_public_ip_info(true);
+        let public_ip = match cached_ip {
+            Some(ip) => ip,
+            None => match ip_opt {
+                Some(ip) => {
+                    if cache_enabled {
                         cache::set("public_ip", &ip);
-                        ip
                     }
+                    ip
                 }
-            }
-        } else {
-            "N/A".to_string()
+                None => "N/A".to_string(),
+            },
         };
 
         let plugin_info = load_plugin_info(&config.info_plugins);
 
-        Self {
-            os: get_os_info(),
-            kernel: get_kernel_info(),
-            host_name: get_host_name(),
-            shell: software::get_shell_info(),
-            terminal: software::get_terminal_info(),
-            cpu: sys.as_ref().map(|s| hardware::get_cpu_info(s)).unwrap_or_default(),
-            gpu,
-            memory: sys.as_ref().map(|s| hardware::get_memory_info(s)).unwrap_or_default(),
-            swap: sys.as_ref().map(|s| hardware::get_swap_info(s)).unwrap_or_default(),
-            disks: disks.as_ref().map(|d| hardware::get_disk_info(d)).unwrap_or_default(),
-            battery: components.as_ref().map(|c| hardware::get_battery_info(c)).unwrap_or_else(|| "N/A".to_string()),
-            uptime: get_uptime_info(),
-            packages,
-            packages_breakdown,
-            desktop: software::get_desktop_info(),
-            user: software::get_user_info(),
-            datetime: get_datetime_info(),
-            local_ip: networks.as_ref().map(|n| system::get_local_ip_info(n)).unwrap_or_else(|| "127.0.0.1".to_string()),
-            local_ip_v6: networks.as_ref().map(|n| system::get_ipv6_info(n)).unwrap_or_else(|| "N/A".to_string()),
-            public_ip,
-            network_interfaces: networks.as_ref().map(|n| system::get_network_interfaces_info(n)).unwrap_or_else(|| "N/A".to_string()),
-            plugin_info,
-        }
+        let bench_lines = if benchmark {
+            let total = _total_start.elapsed();
+            vec![
+                format!("  Parallel (GPU+packages+IP): {:>6}.{:03}s", _parallel_elapsed.unwrap().as_secs(), _parallel_elapsed.unwrap().subsec_millis()),
+                format!("  Total:                     {:>6}.{:03}s", total.as_secs(), total.subsec_millis()),
+            ]
+        } else {
+            Vec::new()
+        };
+
+        (
+            Self {
+                os: get_os_info(),
+                kernel: get_kernel_info(),
+                host_name: get_host_name(),
+                shell: software::get_shell_info(),
+                terminal: software::get_terminal_info(),
+                cpu: sys.as_ref().map(|s| hardware::get_cpu_info(s)).unwrap_or_default(),
+                gpu,
+                memory: sys.as_ref().map(|s| hardware::get_memory_info(s)).unwrap_or_default(),
+                swap: sys.as_ref().map(|s| hardware::get_swap_info(s)).unwrap_or_default(),
+                disks: disks.as_ref().map(|d| hardware::get_disk_info(d)).unwrap_or_default(),
+                battery: components.as_ref().map(|c| hardware::get_battery_info(c)).unwrap_or_else(|| "N/A".to_string()),
+                uptime: get_uptime_info(),
+                packages,
+                packages_breakdown,
+                desktop: software::get_desktop_info(),
+                user: software::get_user_info(),
+                datetime: get_datetime_info(),
+                local_ip: networks.as_ref().map(|n| system::get_local_ip_info(n)).unwrap_or_else(|| "127.0.0.1".to_string()),
+                local_ip_v6: networks.as_ref().map(|n| system::get_ipv6_info(n)).unwrap_or_else(|| "N/A".to_string()),
+                public_ip,
+                network_interfaces: networks.as_ref().map(|n| system::get_network_interfaces_info(n)).unwrap_or_else(|| "N/A".to_string()),
+                plugin_info,
+            },
+            bench_lines,
+        )
     }
 }
 

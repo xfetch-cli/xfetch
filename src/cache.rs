@@ -58,7 +58,7 @@ pub fn get(key: &str, max_age: Duration) -> Option<String> {
     let entries = load_entries();
     let entry = entries.get(key)?;
     let age_secs = now_epoch().saturating_sub(entry.cached_at);
-    if Duration::from_secs(age_secs) > max_age {
+    if Duration::from_secs(age_secs) >= max_age {
         None
     } else {
         Some(entry.data.clone())
@@ -89,35 +89,48 @@ pub fn clean() -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::Duration;
+    use std::sync::Mutex;
+
+    static MTX: Mutex<()> = Mutex::new(());
+    fn lock() -> std::sync::MutexGuard<'static, ()> {
+        MTX.lock().unwrap_or_else(|e| e.into_inner())
+    }
 
     #[test]
     fn test_cache_set_get() {
-        set("test_key", "test_value");
-        let result = get("test_key", Duration::from_secs(60));
-        assert_eq!(result, Some("test_value".to_string()));
+        let _l = lock();
+        let _ = clean();
+        set("tsg_key", "tsg_value");
+        let result = get("tsg_key", Duration::from_secs(60));
+        assert_eq!(result, Some("tsg_value".to_string()));
         let _ = clean();
     }
 
     #[test]
     fn test_cache_expired() {
-        set("exp_key", "exp_value");
-        let result = get("exp_key", Duration::from_secs(0));
+        let _l = lock();
+        let _ = clean();
+        set("te_key", "te_value");
+        let result = get("te_key", Duration::from_secs(0));
         assert_eq!(result, None);
         let _ = clean();
     }
 
     #[test]
     fn test_cache_missing() {
-        let result = get("nonexistent", Duration::from_secs(60));
+        let _l = lock();
+        let _ = clean();
+        let result = get("missing_key", Duration::from_secs(60));
         assert_eq!(result, None);
     }
 
     #[test]
     fn test_clean() {
-        set("clean_key", "clean_value");
+        let _l = lock();
+        let _ = clean();
+        set("tc_key", "tc_value");
         assert!(clean().is_ok());
-        let result = get("clean_key", Duration::from_secs(60));
+        let result = get("tc_key", Duration::from_secs(60));
         assert_eq!(result, None);
     }
 }

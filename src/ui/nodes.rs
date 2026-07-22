@@ -180,8 +180,7 @@ mod tests {
     #[test]
     fn test_prepare_render_tree_empty() {
         let config = Config::default();
-        let info = Info::with_config(&config);
-        let modules = vec![];
+        let info = Info::with_config(&config, false).0;let modules = vec![];
 
         let nodes = prepare_render_tree(&info, &modules, &config);
         assert!(nodes.is_empty());
@@ -190,7 +189,7 @@ mod tests {
     #[test]
     fn test_security_malicious_module_injection() {
         let config = Config::default();
-        let info = Info::with_config(&config);
+        let info = Info::with_config(&config, false).0;
 
         // Cybersec: test malicious module injection
         let malicious_modules = vec![

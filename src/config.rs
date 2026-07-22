@@ -33,6 +33,7 @@ pub struct Config {
     pub logo_animation: Option<LogoAnimationConfig>,
     pub info_plugins: Vec<InfoPluginConfig>,
     pub disable_ip_fetching: Option<bool>,
+    pub disable_cache: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -111,6 +112,7 @@ impl Default for Config {
             logo_animation: None,
             info_plugins: Vec::new(),
             disable_ip_fetching: None,
+            disable_cache: None,
         }
     }
 }

@@ -87,11 +87,11 @@
 
 ## Phase 8 · Performance Optimization <!-- phase:phase-8:performance -->
 
-- [/] Parallelize slow hardware probes (#97)
+- [x] Parallelize slow hardware probes (#97)
 - [x] Implement caching for module data (#98)
-- [/] Optimize GPU detection for multi-GPU systems (#99)
+- [x] Optimize GPU detection for multi-GPU systems (#99)
 - [x] Add lazy loading for optional modules (#100)
-- [ ] Benchmark and profile performance (#101)
+- [x] Benchmark and profile performance (#101)
 - [x] Modularize files (#144)
 
 ## Phase 9 · CI/CD & Distribution <!-- phase:phase-9:cicd -->

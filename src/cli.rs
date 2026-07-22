@@ -20,6 +20,9 @@ pub struct Cli {
 
     #[arg(long, global = true)]
     pub clean_cache: bool,
+
+    #[arg(long, global = true)]
+    pub benchmark: bool,
 }
 
 #[derive(Subcommand, Debug)]
