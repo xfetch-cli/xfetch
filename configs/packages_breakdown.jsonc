@@ -1,0 +1,130 @@
+{
+    "layout": "section",
+    "modules": [
+        {
+            "type": "group",
+            "title": "Hardware",
+            "modules": [
+                "hostname",
+                "cpu",
+                "gpu",
+                "memory",
+                "swap",
+                "disk",
+                "battery"
+            ]
+        },
+        {
+            "type": "group",
+            "title": "Software",
+            "modules": [
+                "os",
+                "kernel",
+                "shell",
+                "wm",
+                "terminal",
+                "local_ip",
+                "packages",
+                "packages:pacman",
+                "packages:dpkg",
+                "packages:rpm",
+                "packages:flatpak",
+                "packages:snap",
+                "packages:apk",
+                "packages:nix-env"
+            ]
+        },
+        {
+            "type": "group",
+            "title": "macOS",
+            "modules": [
+                "packages:brew"
+            ]
+        },
+        {
+            "type": "group",
+            "title": "Windows",
+            "modules": [
+                "packages:scoop",
+                "packages:choco"
+            ]
+        },
+        {
+            "type": "group",
+            "title": "Session",
+            "modules": [
+                "user",
+                "uptime",
+                "datetime"
+            ]
+        },
+        "palette"
+    ],
+    "show_colors": true,
+    "icons": {
+        "hostname": "",
+        "cpu": "",
+        "gpu": "󰍹",
+        "memory": "",
+        "swap": "�",
+        "disk": "󰋊",
+        "battery": "",
+        "os": "",
+        "kernel": "",
+        "packages": "",
+        "packages:pacman": "",
+        "packages:dpkg": "",
+        "packages:rpm": "",
+        "packages:flatpak": "",
+        "packages:snap": "",
+        "packages:apk": "",
+        "packages:nix-env": "",
+        "packages:brew": "",
+        "packages:scoop": "",
+        "packages:choco": "",
+        "shell": "",
+        "wm": "",
+        "terminal": "",
+        "local_ip": "󰩟",
+        "user": "",
+        "uptime": "󰔛",
+        "datetime": "",
+        "palette": "",
+        "hardware": "",
+        "software": "",
+        "macOS": "",
+        "windows": "",
+        "session": ""
+    },
+    "colors": {
+        "hostname": "Green",
+        "cpu": "Green",
+        "gpu": "Green",
+        "memory": "Green",
+        "swap": "Green",
+        "disk": "Green",
+        "battery": "Green",
+        "os": "Yellow",
+        "kernel": "Yellow",
+        "packages": "Yellow",
+        "packages:pacman": "Cyan",
+        "packages:dpkg": "Cyan",
+        "packages:rpm": "Red",
+        "packages:flatpak": "Blue",
+        "packages:snap": "Magenta",
+        "packages:apk": "Green",
+        "packages:nix-env": "White",
+        "packages:brew": "Cyan",
+        "packages:scoop": "Yellow",
+        "packages:choco": "Magenta",
+        "shell": "Yellow",
+        "wm": "Yellow",
+        "terminal": "Yellow",
+        "local_ip": "Yellow",
+        "user": "Magenta",
+        "uptime": "Magenta",
+        "datetime": "Magenta",
+        "palette": "White"
+    },
+    "palette_style": "circles"
+}

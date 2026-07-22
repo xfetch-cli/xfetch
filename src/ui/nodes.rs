@@ -95,6 +95,13 @@ fn get_module_value(info: &Info, key: &str) -> Option<String> {
         "hostname" | "host" => Some(info.host_name.clone()),
         "wm" => Some(info.desktop.clone()),
         "packages" => Some(info.packages.clone()),
+        key if key.starts_with("packages:") => {
+            let name = key.strip_prefix("packages:")?;
+            info.packages_breakdown
+                .iter()
+                .find(|(cmd, _)| cmd == name)
+                .map(|(_, val)| val.clone())
+        }
         "shell" => Some(info.shell.clone()),
         "cpu" => Some(info.cpu.clone()),
         "gpu" => {

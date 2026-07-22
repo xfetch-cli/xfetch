@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use sysinfo::{Components, Disks, Networks, System};
 
 pub use hardware::get_gpu_info;
-pub use software::get_packages_info;
+pub use software::{get_packages_breakdown, get_packages_info};
 pub use system::{get_datetime_info, get_host_name, get_kernel_info, get_os_info, get_uptime_info};
 
 const BYTES_PER_GIB: f64 = 1024.0 * 1024.0 * 1024.0;
@@ -35,6 +35,7 @@ pub struct Info {
     pub battery: String,
     pub uptime: String,
     pub packages: String,
+    pub packages_breakdown: Vec<(String, String)>,
     pub desktop: String,
     pub user: String,
     pub datetime: String,
@@ -66,6 +67,7 @@ impl Info {
             battery: hardware::get_battery_info(&components),
             uptime: get_uptime_info(),
             packages: get_packages_info(),
+            packages_breakdown: get_packages_breakdown(),
             desktop: software::get_desktop_info(),
             user: software::get_user_info(),
             datetime: get_datetime_info(),
