@@ -128,7 +128,11 @@ fn count_packages_windows() -> Vec<(String, String)> {
         (CHOCO_CMD, &["list", "--local-only"]),
     ];
     fn scoop_adjust(cmd: &str, count: usize) -> usize {
-        if cmd == SCOOP_CMD { adjust_scoop_count(count) } else { count }
+        if cmd == SCOOP_CMD {
+            adjust_scoop_count(count)
+        } else {
+            count
+        }
     }
     run_package_checks_with_adjustment(checks, scoop_adjust)
 }
@@ -143,7 +147,10 @@ pub fn get_packages_info() -> String {
     if list.is_empty() {
         super::unknown()
     } else {
-        list.into_iter().map(|(_, v)| v).collect::<Vec<_>>().join(" + ")
+        list.into_iter()
+            .map(|(_, v)| v)
+            .collect::<Vec<_>>()
+            .join(" + ")
     }
 }
 
@@ -203,7 +210,10 @@ mod tests {
 
     #[test]
     fn test_run_package_check_missing_cmd() {
-        assert_eq!(run_package_check("nonexistent_cmd_xyz", &["--version"]), None);
+        assert_eq!(
+            run_package_check("nonexistent_cmd_xyz", &["--version"]),
+            None
+        );
     }
 
     #[test]
@@ -218,17 +228,21 @@ mod tests {
         let windows = count_packages_windows();
         let macos = count_packages_macos();
 
-        for (_, v) in &linux { assert!(v.contains('(')); }
-        for (_, v) in &windows { assert!(v.contains('(')); }
-        for (_, v) in &macos { assert!(v.contains('(')); }
+        for (_, v) in &linux {
+            assert!(v.contains('('));
+        }
+        for (_, v) in &windows {
+            assert!(v.contains('('));
+        }
+        for (_, v) in &macos {
+            assert!(v.contains('('));
+        }
     }
 
     #[test]
     fn test_multi_manager_format() {
-        let checks: &[(&str, &[&str])] = &[
-            (PACMAN_CMD, &["-Qq"]),
-            (DPKG_CMD, &["--get-selections"]),
-        ];
+        let checks: &[(&str, &[&str])] =
+            &[(PACMAN_CMD, &["-Qq"]), (DPKG_CMD, &["--get-selections"])];
         let results = run_package_checks(checks);
 
         if results.len() > 1 {
@@ -250,7 +264,9 @@ mod tests {
     #[test]
     fn test_run_package_checks_with_adjustment_noop() {
         let checks: &[(&str, &[&str])] = &[(BREW_CMD, &["list", "--formula"])];
-        fn noop(_: &str, c: usize) -> usize { c }
+        fn noop(_: &str, c: usize) -> usize {
+            c
+        }
         let results = run_package_checks_with_adjustment(checks, noop);
         assert!(results.is_empty() || results[0].1.contains("brew"));
     }

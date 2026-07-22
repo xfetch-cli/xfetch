@@ -15,9 +15,7 @@ struct CacheEntry {
 
 fn cache_dir() -> PathBuf {
     dirs::cache_dir()
-        .unwrap_or_else(|| {
-            dirs::config_dir().unwrap_or_else(|| PathBuf::from("."))
-        })
+        .unwrap_or_else(|| dirs::config_dir().unwrap_or_else(|| PathBuf::from(".")))
         .join(CACHE_DIR_NAME)
 }
 

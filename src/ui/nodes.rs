@@ -180,7 +180,8 @@ mod tests {
     #[test]
     fn test_prepare_render_tree_empty() {
         let config = Config::default();
-        let info = Info::with_config(&config, false).0;let modules = vec![];
+        let info = Info::with_config(&config, false).0;
+        let modules = vec![];
 
         let nodes = prepare_render_tree(&info, &modules, &config);
         assert!(nodes.is_empty());

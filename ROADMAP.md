@@ -107,13 +107,13 @@
 
 ## Phase 10 · Community & Ecosystem <!-- phase:phase-10:ecosystem -->
 
-- [/] Create themes repository / registry (#110)
+- [x] Create themes repository / registry (#110)
 - [/] Implement theme download manager (#111)
-- [ ] Create online theme preview tool (#112)
-- [/] Setup community theme contributions process (#113)
+- [x] Create online theme preview tool (#112)
+- [x] Setup community theme contributions process (#113)
 - [x] Create plugin system for custom modules (#114)
 - [/] Implement plugin configuration validation (#115)
-- [ ] Setup community issue templates (#116)
+- [/] Setup community issue templates (#116)
 - [x] Create contribution guidelines (CONTRIBUTING.md) (#117)
 
 ## Phase 11 · Testing & Quality Assurance <!-- phase:phase-11:testing -->

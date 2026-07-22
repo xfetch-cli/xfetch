@@ -85,7 +85,10 @@ fn fetch_public_ip_from(host: &str) -> Option<String> {
     let mut stream = TcpStream::connect_timeout(&addr, Duration::from_secs(3)).ok()?;
     stream.set_read_timeout(Some(Duration::from_secs(3))).ok()?;
 
-    let request = format!("GET / HTTP/1.0\r\nHost: {}\r\nConnection: close\r\n\r\n", host);
+    let request = format!(
+        "GET / HTTP/1.0\r\nHost: {}\r\nConnection: close\r\n\r\n",
+        host
+    );
     stream.write_all(request.as_bytes()).ok()?;
 
     let mut reader = BufReader::new(stream);
@@ -93,7 +96,11 @@ fn fetch_public_ip_from(host: &str) -> Option<String> {
     reader.read_to_string(&mut response).ok()?;
 
     let body = response.split("\r\n\r\n").nth(1)?.trim().to_string();
-    if body.is_empty() || body.contains('<') { None } else { Some(body) }
+    if body.is_empty() || body.contains('<') {
+        None
+    } else {
+        Some(body)
+    }
 }
 
 pub fn get_public_ip_info(enabled: bool) -> String {
@@ -117,7 +124,10 @@ pub fn get_network_interfaces_info(networks: &Networks) -> String {
     for (name, data) in networks {
         let raw_mac = data.mac_address();
         let mac = if raw_mac.0.iter().any(|&b| b != 0) {
-            format!("{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}", raw_mac.0[0], raw_mac.0[1], raw_mac.0[2], raw_mac.0[3], raw_mac.0[4], raw_mac.0[5])
+            format!(
+                "{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}",
+                raw_mac.0[0], raw_mac.0[1], raw_mac.0[2], raw_mac.0[3], raw_mac.0[4], raw_mac.0[5]
+            )
         } else {
             String::new()
         };

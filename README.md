@@ -161,7 +161,7 @@ xfetch
   <li><a href="https://github.com/xscriptor/obsidian">Obsidian </a><img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/markdown.svg"/></li>
   <li><a href="https://github.com/xfetch-cli/xfetch">XFetch </a><img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/git-fetch.svg"/></li>
   <li><a href="https://github.com/xfetch-cli/configs">XFetch Configs </a><img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/symbol-key.svg"/></li>
-  <li><a href="https://github.com/xfetch-cli/plugins">XFetch Plugins </a><img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/plugin.svg"/></li>
+  <li><a href="https://github.com/xfetch-cli/plugins">XFetch Plugins </a><img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/extensions.svg"/></li>
 </ul>
 
 
