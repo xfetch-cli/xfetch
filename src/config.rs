@@ -160,7 +160,7 @@ pub fn generate_config(path: Option<String>) -> std::io::Result<PathBuf> {
     }
 
     // Keep generated defaults aligned with the curated pacman preset in the repo.
-    let template = include_str!("../configs/layout_pacman_full.jsonc");
+    let template = include_str!("../configs/layout_pacman.jsonc");
     fs::write(&config_path, template)?;
 
     Ok(config_path)
