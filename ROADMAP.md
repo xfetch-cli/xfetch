@@ -79,11 +79,11 @@
 
 ## Phase 7 · Additional Layouts <!-- phase:phase-7:additional-layouts -->
 
-- [ ] Implement compact layout for minimal output (#92)
-- [ ] Implement horizontal layout variant (#93)
-- [ ] Implement bottom layout with logo below info (#94)
-- [ ] Implement minimal layout (text-only) (#95)
-- [ ] Add layout preview documentation (#96)
+- [x] Implement compact layout for minimal output (#92)
+- [x] Implement horizontal layout variant (#93)
+- [x] Implement bottom layout with logo below info (#94)
+- [x] Implement minimal layout (text-only) (#95)
+- [/] Add layout preview documentation (#96)
 
 ## Phase 8 · Performance Optimization <!-- phase:phase-8:performance -->
 

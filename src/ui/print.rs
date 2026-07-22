@@ -16,6 +16,56 @@ const DEFAULT_LOGO_COLOR: Color = Color::Rgb {
 };
 const MIN_FRAME_DELAY_MS: u64 = 1;
 
+pub fn print_stacked_output(
+    ascii_lines: Vec<String>,
+    image_printed: bool,
+    content_lines: Vec<String>,
+    _config: &Config,
+    logo_first: bool,
+) {
+    let mut out = stdout();
+
+    if image_printed && !ascii_lines.is_empty() {
+        let (first, second) = if logo_first {
+            (&ascii_lines, &content_lines)
+        } else {
+            (&content_lines, &ascii_lines)
+        };
+        for line in first {
+            let _ = execute!(out, Print(line), Print("\n"));
+        }
+        if !second.is_empty() {
+            let _ = execute!(out, Print("\n"));
+            for line in second {
+                let _ = execute!(out, Print(line), Print("\n"));
+            }
+        }
+        return;
+    }
+
+    if logo_first {
+        for line in &ascii_lines {
+            let _ = execute!(out, Print(line), Print("\n"));
+        }
+        if !content_lines.is_empty() {
+            let _ = execute!(out, Print("\n"));
+            for line in &content_lines {
+                let _ = execute!(out, Print(line), Print("\n"));
+            }
+        }
+    } else {
+        for line in &content_lines {
+            let _ = execute!(out, Print(line), Print("\n"));
+        }
+        if !ascii_lines.is_empty() {
+            let _ = execute!(out, Print("\n"));
+            for line in &ascii_lines {
+                let _ = execute!(out, Print(line), Print("\n"));
+            }
+        }
+    }
+}
+
 pub fn print_output(
     ascii_lines: Vec<String>,
     image_printed: bool,

@@ -326,6 +326,55 @@ pub fn flatten_nodes(nodes: &[RenderNode]) -> Vec<(String, String, String)> {
     items
 }
 
+pub fn render_compact(nodes: &[RenderNode], config: &Config) -> Vec<String> {
+    let mut lines = Vec::new();
+    for node in nodes {
+        match node {
+            RenderNode::Line { key, value, icon } => {
+                if icon.is_empty() {
+                    lines.push(value.clone());
+                } else {
+                    let color_code = get_color_code(key, config);
+                    lines.push(format!("\x1b[{}m{}\x1b[0m {}", color_code, icon, value));
+                }
+            }
+            RenderNode::Group { children, .. } => {
+                for child in children {
+                    if let RenderNode::Line { key, value, icon } = child {
+                        if icon.is_empty() {
+                            lines.push(value.clone());
+                        } else {
+                            let color_code = get_color_code(key, config);
+                            lines.push(format!("\x1b[{}m{}\x1b[0m {}", color_code, icon, value));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    lines
+}
+
+pub fn render_minimal(nodes: &[RenderNode], _config: &Config) -> Vec<String> {
+    let mut lines = Vec::new();
+    for node in nodes {
+        match node {
+            RenderNode::Line { key, value, .. } => {
+                lines.push(format!("{}: {}", key, value));
+            }
+            RenderNode::Group { title, children } => {
+                lines.push(format!("-- {} --", title));
+                for child in children {
+                    if let RenderNode::Line { key, value, .. } = child {
+                        lines.push(format!("{}: {}", key, value));
+                    }
+                }
+            }
+        }
+    }
+    lines
+}
+
 pub fn format_line(key: &str, value: &str, icon: &str, config: &Config) -> String {
     let color_code = get_color_code(key, config);
     format!("\x1b[{}m{} \x1b[0m{}", color_code, icon, value)

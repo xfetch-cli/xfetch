@@ -98,7 +98,26 @@ pub fn draw(info: &Info, config: &Config) {
         }
     }
 
-    // 4. Print everything
+    // 4. Handle special layouts
+    if layout::is_minimal(config.layout.as_ref()) {
+        for line in &content_lines {
+            println!("{}", line);
+        }
+        return;
+    }
+
+    if layout::is_vertical(config.layout.as_ref()) {
+        print::print_stacked_output(
+            ascii_lines,
+            image_printed,
+            content_lines,
+            config,
+            !layout::is_bottom(config.layout.as_ref()),
+        );
+        return;
+    }
+
+    // 5. Print side-by-side (default)
     print::print_output(
         ascii_lines,
         image_printed,
