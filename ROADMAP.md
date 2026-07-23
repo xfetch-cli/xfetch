@@ -83,7 +83,7 @@
 - [x] Implement horizontal layout variant (#93)
 - [x] Implement bottom layout with logo below info (#94)
 - [x] Implement minimal layout (text-only) (#95)
-- [/] Add layout preview documentation (#96)
+- [x] Add layout preview documentation (#96)
 
 ## Phase 8 · Performance Optimization <!-- phase:phase-8:performance -->
 
@@ -140,7 +140,7 @@
 
 ## Phase 13 · Documentation & Marketing <!-- phase:phase-13:marketing -->
 
-- [ ] Create comprehensive user manual (#134)
+- [x] Create comprehensive user manual (#134)
 - [ ] Create video tutorials (#135)
 - [x] Setup project website with showcase (#136)
 - [x] Create developer documentation (#137)
