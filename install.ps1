@@ -4,9 +4,24 @@ Write-Host "Installing xfetch..." -ForegroundColor Cyan
 
 # Check for Rust/Cargo
 if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
-    Write-Host "Rust (cargo) is not installed." -ForegroundColor Red
-    Write-Host "Please install Rust from https://rustup.rs/ and try again." -ForegroundColor Yellow
-    exit 1
+    $choice = Read-Host "Rust (cargo) is not installed. Install it now? [Y/n]"
+    if ($choice -ne "n") {
+        Write-Host "Downloading rustup..." -ForegroundColor Cyan
+        $rustup = "$env:TEMP\rustup-init.exe"
+        try {
+            Invoke-WebRequest -Uri "https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe" -OutFile $rustup
+            Start-Process $rustup -ArgumentList "-y" -NoNewWindow -Wait
+            Remove-Item $rustup -Force
+            # Refresh PATH
+            $env:Path = [Environment]::GetEnvironmentVariable("Path", "User")
+            Write-Host "Rust installed successfully." -ForegroundColor Green
+        } catch {
+            Write-Host "Failed to install Rust. Install it manually from https://rustup.rs/" -ForegroundColor Red
+            exit 1
+        }
+    } else {
+        exit 1
+    }
 }
 
 $RepoUrl = "https://github.com/xfetch-cli/xfetch.git"

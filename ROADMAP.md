@@ -96,14 +96,14 @@
 
 ## Phase 9 · CI/CD & Distribution <!-- phase:phase-9:cicd -->
 
-- [ ] Setup GitHub Actions for automated builds (#102)
+- [x] Setup GitHub Actions for automated builds (#102)
 - [x] Create binary releases for Linux x86_64 (#103)
-- [ ] Create binary releases for macOS (Intel & ARM) (#104)
-- [ ] Create binary releases for Windows (#105)
+- [x] Create binary releases for macOS (Intel & ARM) (#104)
+- [x] Create binary releases for Windows (#105)
 - [x] Setup AUR package for Arch Linux (#106)
-- [ ] Setup Homebrew tap for macOS (#107)
-- [ ] Setup PyPI or cargo registry for distribution (#108)
-- [ ] Setup automated changelog generation (#109)
+- [x] Setup Homebrew tap for macOS (#107)
+- [x] Setup PyPI or cargo registry for distribution (#108)
+- [x] Setup automated changelog generation (#109)
 
 ## Phase 10 · Community & Ecosystem <!-- phase:phase-10:ecosystem -->
 
