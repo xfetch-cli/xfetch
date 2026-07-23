@@ -3,14 +3,17 @@ mod cli;
 mod config;
 mod info;
 mod plugins;
+mod themes;
 mod ui;
 
 use crate::config::{generate_config, load_config};
 use crate::info::Info;
 use crate::plugins::{install_plugin, list_plugins, remove_plugin};
+use crate::themes::{export_current_theme, list_themes, remove_theme, set_active_theme};
 use crate::ui::draw;
 use clap::Parser;
-use cli::{Cli, Commands, PluginCommands};
+use cli::{Cli, Commands, PluginCommands, ThemeCommands};
+use std::path::PathBuf;
 
 fn main() {
     let cli = Cli::parse();
@@ -81,16 +84,77 @@ fn main() {
                 }
             },
         },
+        Some(Commands::Theme { action }) => match action {
+            ThemeCommands::List => match list_themes() {
+                Ok(themes) => {
+                    if themes.is_empty() {
+                        println!("No themes installed.");
+                        println!(
+                            "Theme directory: {}",
+                            config::default_themes_dir().display()
+                        );
+                    } else {
+                        println!("Available themes:");
+                        for (name, path) in &themes {
+                            println!("  {}  ({})", name, path.display());
+                        }
+                    }
+                }
+                Err(err) => {
+                    eprintln!("Error: {}", err);
+                    std::process::exit(1);
+                }
+            },
+            ThemeCommands::Set { name } => {
+                let config_path = cli
+                    .config
+                    .as_ref()
+                    .map(PathBuf::from)
+                    .unwrap_or_else(config::default_config_path);
+
+                match set_active_theme(&config_path, &name) {
+                    Ok(()) => {
+                        println!("Theme set to '{}'.", name);
+                    }
+                    Err(err) => {
+                        eprintln!("Error: {}", err);
+                        std::process::exit(1);
+                    }
+                }
+            }
+            ThemeCommands::Remove { name } => match remove_theme(&name) {
+                Ok(()) => {
+                    println!("Theme '{}' removed.", name);
+                }
+                Err(err) => {
+                    eprintln!("Error: {}", err);
+                    std::process::exit(1);
+                }
+            },
+            ThemeCommands::Export { name } => {
+                let config = load_config(cli.config);
+                match export_current_theme(&config, &name) {
+                    Ok(path) => {
+                        println!("Theme exported to {}", path.display());
+                        println!("Set it with: xfetch theme set {}", name);
+                    }
+                    Err(err) => {
+                        eprintln!("Error: {}", err);
+                        std::process::exit(1);
+                    }
+                }
+            }
+        },
         None => {
             let config = load_config(cli.config);
             let (info, bench_lines) = Info::with_config(&config, cli.benchmark);
             draw(&info, &config);
             if !bench_lines.is_empty() {
-                println!("\n── Benchmark ──────────────────────────────");
+                println!("\n--- Benchmark -------------------------------");
                 for line in &bench_lines {
                     println!("{}", line);
                 }
-                println!("──────────────────────────────────────────");
+                println!("---------------------------------------------");
             }
         }
     }
