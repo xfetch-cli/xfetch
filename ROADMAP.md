@@ -108,12 +108,12 @@
 ## Phase 10 · Community & Ecosystem <!-- phase:phase-10:ecosystem -->
 
 - [x] Create themes repository / registry (#110)
-- [/] Implement theme download manager (#111)
+- [x] Implement theme download manager (#111)
 - [x] Create online theme preview tool (#112)
 - [x] Setup community theme contributions process (#113)
 - [x] Create plugin system for custom modules (#114)
 - [/] Implement plugin configuration validation (#115)
-- [/] Setup community issue templates (#116)
+- [x] Setup community issue templates (#116)
 - [x] Create contribution guidelines (CONTRIBUTING.md) (#117)
 
 ## Phase 11 · Testing & Quality Assurance <!-- phase:phase-11:testing -->
@@ -135,7 +135,7 @@
 - [ ] Add animation support for transitional elements (#129)
 - [ ] Implement real-time stats updates / daemon mode (#130)
 - [ ] Add config hot-reload capability (#131)
-- [ ] Implement telemetry (optional, privacy-respecting) (#132)
+- [x] Implement telemetry (optional, privacy-respecting) (#132)
 - [ ] Add accessibility features (high contrast themes) (#133)
 
 ## Phase 13 · Documentation & Marketing <!-- phase:phase-13:marketing -->

@@ -1,0 +1,25 @@
+name: Bug Report
+description: Report something that isn't working
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: xfetch version
+      description: Run `xfetch --version`
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: OS
+      options: [Linux, macOS, Windows]
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: What did you expect and what actually happened?
+    validations:
+      required: true
