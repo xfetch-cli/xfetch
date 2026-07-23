@@ -69,13 +69,13 @@
 
 ## Phase 6 · Enhanced Modules <!-- phase:phase-6:enhanced-modules -->
 
-- [ ] Implement music player integration (MPD support) (#85)
-- [ ] Add Spotify current track display (#86)
-- [ ] Implement weather module with location API (#87)
-- [ ] Add timezone and world clock display (#88)
-- [ ] Implement user info and login status (#89)
-- [ ] Add display resolution and refresh rate (#90)
-- [ ] Add theme and color scheme detection (#91)
+- [x] Implement music player integration (MPD support) (#85)
+- [x] Add Spotify current track display (#86)
+- [x] Implement weather module with location API (#87)
+- [x] Add timezone and world clock display (#88)
+- [x] Implement user info and login status (#89)
+- [x] Add display resolution and refresh rate (#90)
+- [x] Add theme and color scheme detection (#91)
 
 ## Phase 7 · Additional Layouts <!-- phase:phase-7:additional-layouts -->
 
