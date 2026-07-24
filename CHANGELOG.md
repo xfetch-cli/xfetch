@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-07-24 — v0.2.0
+
+### Theme System (Breaking Change)
+
+-  Fixed merge order: theme now takes highest priority (defaults → config → theme)
+-  deep_merge no longer overwrites non-empty strings with empty strings
+-  Created berlin.jsonc as a proper monochromatic theme
+-  Created THEMES.md with full theme system reference
+-  Updated web docs (EN, ES, DE) with corrected merge order and migration guide
+
+### Plugin Documentation
+
+-  Created individual plugin reference pages under web/docs/{en,es,de}/plugins/
+-  Streamlined xfetch/docs/PLUGINS.md to redirect to external plugin repository
+
+### Roadmap
+
+-  Closed items removed from scope (module scripting, conditional modules, theme variables)
+-  Marked completed: linting (clippy), rustfmt, cross-platform tests, code coverage
+
+### Version
+
+-  Bumped to v0.2.0
+
 ## 2026-07-23
 
 ## Phase 0 · Foundation & Core
