@@ -27,6 +27,27 @@
   <a href="https://github.com/xfetch-cli/configs">xfetch-cli/configs</a>.
 </p>
 
+<h2>Themes</h2>
+
+<p>
+  xfetch has a theme system that lets you switch visual styles (colors, icons, layout) independently from your module configuration.
+</p>
+
+<p>
+  Set the active theme in your config with the <code>theme</code> field:
+</p>
+
+<pre><code class="language-jsonc">{
+    &quot;theme&quot;: &quot;berlin&quot;,
+    &quot;modules&quot;: [&quot;os&quot;, &quot;kernel&quot;, &quot;memory&quot;]
+}</code></pre>
+
+<p>
+  Theme files live in <code>~/.config/xfetch/themes/&lt;name&gt;.jsonc</code> and contain only visual fields (colors, icons, layout). The theme merges with your config with the theme having highest priority.
+</p>
+
+<p>See <a href="THEMES.md">THEMES.md</a> for the full theme system reference.</p>
+
 <h2>Basic Structure</h2>
 
 <p>
