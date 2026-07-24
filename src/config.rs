@@ -136,6 +136,9 @@ fn deep_merge(base: &mut Value, overlay: &Value) {
                 }
             }
         }
+        (Value::String(base_str), Value::String(overlay_str)) if overlay_str.is_empty() && !base_str.is_empty() => {
+            // Don't replace a non-empty string with an empty one
+        }
         (base, overlay) => *base = overlay.clone(),
     }
 }
@@ -185,8 +188,8 @@ pub fn load_config(path: Option<String>) -> Config {
             &mut merged,
             &serde_json::to_value(Config::default()).unwrap_or_default(),
         );
-        deep_merge(&mut merged, &theme_value);
         deep_merge(&mut merged, &config_value);
+        deep_merge(&mut merged, &theme_value);
 
         if let Ok(merged_config) = serde_json::from_value(merged) {
             config = merged_config;
