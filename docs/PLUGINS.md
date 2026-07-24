@@ -80,19 +80,15 @@
 }
 </code></pre>
 
-<h2>Current Official Plugins</h2>
+<h2>Plugin Catalog &amp; Docs</h2>
+
+<p>
+  All official plugins, their documentation, and the development guide are maintained in the
+  <a href="https://github.com/xfetch-cli/plugins">xfetch-cli/plugins</a> repository:
+</p>
 
 <ul>
-  <li><code>animate-logo</code> — animated ASCII logos and frame-based effects</li>
-  <li><code>docker</code> — Docker container statistics</li>
-  <li><code>github-stats</code> — GitHub profile statistics</li>
-</ul>
-
-<h2>More Documentation</h2>
-
-<ul>
-  <li>Plugin repository: <a href="https://github.com/xfetch-cli/plugins">xfetch-cli/plugins</a></li>
-  <li>Shared plugin API: <a href="https://github.com/xfetch-cli/api">xfetch-cli/api</a></li>
+  <li>Plugin catalog &amp; reference: <a href="https://github.com/xfetch-cli/plugins">github.com/xfetch-cli/plugins</a></li>
   <li>Plugin development guide: <a href="https://github.com/xfetch-cli/plugins/blob/main/docs/README.md">docs/README.md</a></li>
-  <li>Plugin catalog: <a href="https://github.com/xfetch-cli/plugins/blob/main/README.md">README.md</a></li>
+  <li>Shared plugin API crate: <a href="https://github.com/xfetch-cli/api">github.com/xfetch-cli/api</a></li>
 </ul>
