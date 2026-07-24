@@ -14,7 +14,6 @@ IFS=$'\n\t'
 REPO_URL="https://github.com/xfetch-cli/xfetch.git"
 REPO_RAW="https://raw.githubusercontent.com/xfetch-cli/xfetch/main"
 
-VERSION="0.1.1"
 PROJECT="xfetch"
 PROJECT_DESC="cross-platform system information fetcher"
 
@@ -127,7 +126,7 @@ detect_shell_rc() {
 
 usage() {
     cat <<EOF
-${PROJECT} ${VERSION} — ${PROJECT_DESC}
+${PROJECT} — ${PROJECT_DESC}
 
 Usage:
   curl -fsSL ${REPO_RAW}/install.sh | bash
@@ -135,7 +134,6 @@ Usage:
 
 Options:
   -h, --help              Show this help message and exit
-  -V, --version           Show version and exit
   -l, --local             Install from local source (skip git clone; run from repo root)
   -p, --prefix <dir>      Installation prefix (default: \${HOME}/.local)
   -b, --bin-dir <dir>     Binary install directory (default: \${PREFIX}/bin)
@@ -171,16 +169,10 @@ EOF
     exit 0
 }
 
-version() {
-    echo "${PROJECT} installer version ${VERSION}"
-    exit 0
-}
-
 parse_args() {
     while [ $# -gt 0 ]; do
         case "$1" in
             -h|--help) usage ;;
-            -V|--version) version ;;
             -l|--local) FLAG_LOCAL=1 ;;
             -n|--no-modify-path) FLAG_MODIFY_PATH=0 ;;
             -y|--yes) FLAG_YES=1 ;;
@@ -437,7 +429,7 @@ print_summary() {
     cat <<EOF
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${PROJECT} ${VERSION} — Installation Complete
+${PROJECT} — Installation Complete
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   OS:              ${os} (${arch})
   Binary:          ${BIN_DIR}/${PROJECT}
@@ -496,7 +488,7 @@ main() {
     os="$(detect_os)"
     arch="$(detect_arch)"
 
-    log "Installing ${PROJECT} ${VERSION} on ${os} (${arch})"
+    log "Installing ${PROJECT} on ${os} (${arch})"
 
     # Check we're not running as root unnecessarily (for local installs)
     if [ "${EUID:-${UID}}" = "0" ] && [ "${FLAG_YES}" -eq 0 ]; then
