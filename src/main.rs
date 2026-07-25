@@ -8,12 +8,13 @@ mod themes;
 mod ui;
 
 use crate::config::{generate_config, load_config};
+use crate::extensions::{install_extension, list_extensions, remove_extension};
 use crate::info::Info;
 use crate::plugins::{install_plugin, list_plugins, remove_plugin};
 use crate::themes::{export_current_theme, list_themes, remove_theme, set_active_theme};
 use crate::ui::draw;
 use clap::Parser;
-use cli::{Cli, Commands, PluginCommands, ThemeCommands};
+use cli::{Cli, Commands, ExtensionCommands, PluginCommands, ThemeCommands};
 use std::path::PathBuf;
 
 fn main() {
@@ -78,6 +79,44 @@ fn main() {
                 }
             },
             PluginCommands::Remove { name } => match remove_plugin(&name) {
+                Ok(()) => {}
+                Err(err) => {
+                    eprintln!("Error: {}", err);
+                    std::process::exit(1);
+                }
+            },
+        },
+        Some(Commands::Extension { action }) => match action {
+            ExtensionCommands::Install { path, repo } => {
+                match install_extension(&path, repo.as_deref()) {
+                    Ok(()) => {}
+                    Err(err) => {
+                        eprintln!("Error: {}", err);
+                        std::process::exit(1);
+                    }
+                }
+            }
+            ExtensionCommands::List => match list_extensions() {
+                Ok(extensions) => {
+                    if extensions.is_empty() {
+                        println!("No extensions installed.");
+                        println!(
+                            "Extension directory: {}",
+                            extensions::default_extension_dir().display()
+                        );
+                    } else {
+                        println!("Installed extensions:");
+                        for (name, path) in &extensions {
+                            println!("  {}  ({})", name, path.display());
+                        }
+                    }
+                }
+                Err(err) => {
+                    eprintln!("Error: {}", err);
+                    std::process::exit(1);
+                }
+            },
+            ExtensionCommands::Remove { name } => match remove_extension(&name) {
                 Ok(()) => {}
                 Err(err) => {
                     eprintln!("Error: {}", err);

@@ -1689,7 +1689,7 @@ checksum = "f17a85883d4e6d00e8a97c586de764dabcc06133f7f1d55dce5cdc070ad7fe59"
 
 [[package]]
 name = "xfetch"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "clap",
  "console",
@@ -1708,6 +1708,7 @@ dependencies = [
 [[package]]
 name = "xfetch-extension-api"
 version = "0.1.0"
+source = "git+https://github.com/xfetch-cli/api#673e86bd0fbedce894ecdc9a5e7d25ae99da9c36"
 dependencies = [
  "serde",
  "serde_json",
@@ -1716,7 +1717,7 @@ dependencies = [
 [[package]]
 name = "xfetch-plugin-api"
 version = "0.1.0"
-source = "git+https://github.com/xfetch-cli/api#7b17c1a0717297bd06a3e3f14cc090ba30c0fee5"
+source = "git+https://github.com/xfetch-cli/api#673e86bd0fbedce894ecdc9a5e7d25ae99da9c36"
 dependencies = [
  "serde",
  "serde_json",

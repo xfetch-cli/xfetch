@@ -1,40 +1,8 @@
 use crate::extensions::types::{ConfigProviderRequest, ConfigProviderResponse};
+use crate::extensions::find_extension_binary;
 use serde_json::Value;
 use std::io::Write;
-use std::path::PathBuf;
 use std::process::{Command, Stdio};
-
-const EXTENSION_PREFIX: &str = "xfetch-extension-";
-const PLUGINS_DIR: &str = "plugins";
-
-fn extension_binary_name(name: &str) -> String {
-    if cfg!(target_os = "windows") {
-        format!("{}{}.exe", EXTENSION_PREFIX, name)
-    } else {
-        format!("{}{}", EXTENSION_PREFIX, name)
-    }
-}
-
-fn find_extension_binary(name: &str) -> Option<PathBuf> {
-    let binary_name = extension_binary_name(name);
-
-    let config_dir = dirs::config_dir().unwrap_or_else(|| PathBuf::from("."));
-    let in_plugins_dir = config_dir.join("xfetch").join(PLUGINS_DIR).join(&binary_name);
-    if in_plugins_dir.is_file() {
-        return Some(in_plugins_dir);
-    }
-
-    if let Ok(path) = std::env::var("PATH") {
-        for dir in std::env::split_paths(&path) {
-            let candidate = dir.join(&binary_name);
-            if candidate.is_file() {
-                return Some(candidate);
-            }
-        }
-    }
-
-    None
-}
 
 pub fn run_config_provider(
     extension_name: &str,

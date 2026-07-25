@@ -14,7 +14,17 @@
 -  Added `ConfigProviderRequest` / `ConfigProviderResponse` with its own `ExtensionKind` enum and `KIND_CONFIG_PROVIDER` constant
 -  Added `ConfigProviderConfig` struct + `config_providers[]` field to `Config` — runs after theme merge, in declaration order
 -  Created `xfetch/src/extensions/` module with `runner.rs` — invokes extension binaries via stdin/stdout JSON protocol, completely decoupled from `plugins/`
--  Created sample extension `layout-override` that rewrites `layout` / `modules` at load time (depends on `xfetch-extension-api`, not `xfetch-plugin-api`)
+-  Extension binaries searched in `~/.config/xfetch/extensions/` (fallback to `plugins/`), prefixed `xfetch-extension-*`
+-  Renamed `ConfigProviderConfig.plugin` → `ConfigProviderConfig.extension` to match the concept
+-  Switched `xfetch-extension-api` dependency from local path to git remote (`github.com/xfetch-cli/api`)
+-  Added `xfetch extension install/list/remove` commands (mirrors plugin commands, installs to `~/.config/xfetch/extensions/`)
+
+### Extensions Built
+
+-  Created sample extension `layout-override` that rewrites `layout` / `modules` at load time
+-  Created `config-roulette` extension — reads a JSON list of config file paths, picks one (random or daily strategy), loads the full config file, and returns it; supports 300+ routes from the test suite
+-  Created `extensions/` repo skeleton with workspace, .gitignore, and README matching plugins repo style
+-  Each extension includes a detailed README with usage, args table, and protocol reference
 
 ### Logo & Config Packs
 
