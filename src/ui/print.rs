@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::plugins::AnimationFrame;
 use console::strip_ansi_codes;
-use crossterm::cursor::{Hide, MoveUp, Show};
+use crossterm::cursor::{Hide, MoveToColumn, MoveUp, Show};
 use crossterm::execute;
 use crossterm::style::{Color, Print, ResetColor, SetForegroundColor};
 use crossterm::terminal::size;
@@ -55,6 +55,7 @@ const MIN_FRAME_DELAY_MS: u64 = 1;
 pub fn print_stacked_output(
     ascii_lines: Vec<String>,
     image_printed: bool,
+    image_height: usize,
     content_lines: Vec<String>,
     _config: &Config,
     logo_first: bool,
@@ -73,6 +74,19 @@ pub fn print_stacked_output(
         if !second.is_empty() {
             let _ = execute!(out, Print("\n"));
             for line in second {
+                let _ = execute!(out, Print(line), Print("\n"));
+            }
+        }
+        return;
+    }
+
+    if image_printed {
+        for _ in 0..image_height {
+            let _ = execute!(out, Print("\n"));
+        }
+        if !content_lines.is_empty() {
+            let _ = execute!(out, Print("\n"));
+            for line in &content_lines {
                 let _ = execute!(out, Print(line), Print("\n"));
             }
         }
@@ -106,6 +120,7 @@ pub fn print_output(
     ascii_lines: Vec<String>,
     image_printed: bool,
     ascii_width: usize,
+    image_height: usize,
     content_lines: Vec<String>,
     config: &Config,
     force_plain_logo: bool,
@@ -113,15 +128,23 @@ pub fn print_output(
     let mut out = stdout();
 
     let term_width = size().map(|(w, _)| w as usize).unwrap_or(80);
-    let gap_len = console::measure_text_width(LOGO_INFO_GAP);
-    let max_content_width = term_width.saturating_sub(ascii_width + gap_len);
+    let gap_base = config.logo_gap.unwrap_or(12) as usize;
+    let gap = console::measure_text_width(LOGO_INFO_GAP) + gap_base;
 
-    let max_lines = std::cmp::max(ascii_lines.len(), content_lines.len());
+    let text_column = ascii_width + gap;
+    let mut max_content_width = term_width.saturating_sub(text_column);
+
+    if max_content_width < 10 && term_width > 40 {
+        max_content_width = term_width.saturating_sub(ascii_width.max(12));
+    }
+
+    let text_height = content_lines.len();
+    let logo_height = if image_printed { image_height } else { ascii_lines.len() };
+    let max_lines = std::cmp::max(logo_height, text_height);
 
     for i in 0..max_lines {
         if image_printed {
-            execute!(out, crossterm::cursor::MoveRight(ascii_width as u16)).unwrap();
-            execute!(out, Print(LOGO_INFO_GAP)).unwrap();
+            let _ = execute!(out, MoveToColumn(text_column as u16));
         } else {
             let ascii_line = if i < ascii_lines.len() {
                 &ascii_lines[i]
@@ -132,7 +155,6 @@ pub fn print_output(
             execute!(out, Print(LOGO_INFO_GAP)).unwrap();
         }
 
-        // 2. Print Info Part
         if i < content_lines.len() {
             let line = truncate_line(&content_lines[i], max_content_width);
             execute!(out, Print(&line)).unwrap();
@@ -169,7 +191,8 @@ pub fn print_animated_output(
     let mut first_frame = true;
 
     let term_width = size().map(|(w, _)| w as usize).unwrap_or(80);
-    let gap_len = console::measure_text_width(LOGO_INFO_GAP);
+    let gap_base = config.logo_gap.unwrap_or(12) as usize;
+    let gap_len = console::measure_text_width(LOGO_INFO_GAP) + gap_base;
     let max_content_width = content_lines
         .iter()
         .map(|l| visible_width(l))

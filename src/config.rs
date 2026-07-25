@@ -38,6 +38,8 @@ pub struct Config {
     pub disable_cache: Option<bool>,
     pub logo_width: Option<u32>,
     pub logo_height: Option<u32>,
+    pub logo_gap: Option<u32>,
+    pub logo_kitty: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -127,6 +129,8 @@ impl Default for Config {
             disable_cache: None,
             logo_width: None,
             logo_height: None,
+            logo_gap: None,
+            logo_kitty: None,
         }
     }
 }

@@ -1,6 +1,23 @@
 # Changelog
 
-## 2026-07-25 — v0.3.0
+## 2026-07-25 — v0.3.0 (evening)
+
+### Image Rendering Overlap Fix (Kitty)
+
+- Diagnosed root cause: viuer renders kitty images with `z=0` (on top of text) using inaccurate cell ratio (1:2 vs 1:2.2+), and the cursor was mismanaged because kitty protocol doesn't advance the cursor after image placement
+- Replaced `MoveUp`/`MoveToColumn` pattern with `SavePosition`/`RestorePosition` in `get_logo_data()` — cursor always returns to the correct starting row regardless of protocol used
+- Added `logo_gap: Option<u32>` config field — configurable gap between image and text (default 12 cols, user configs set to 3)
+- Added `logo_kitty: Option<bool>` config field — toggles native kitty protocol (`true`, default) vs half-block rendering (`false`) for kitty terminals
+- Fixed `print_stacked_output()` to handle image-only logos (was ignoring `image_printed=true` with empty `ascii_lines`, causing text to overlap image in vertical layouts)
+- Improved auto-logo-width: `0.28 * term_width` (was `0.18`), clamped `[12, 42]` (was `[12, 30]`)
+- Removed absolute `MoveTo(0, bottom)` cursor positioning at end of print functions that assumed output started at row 0
+- Gap calculation in `print_output()` and `print_animated_output()` now uses `config.logo_gap`
+- Added overlap detection fallback: if text column leaves < 10 cols for content, reduces gap to minimum usable
+- Updated all 100 image-based config-roulette configs with `logo_gap: 3` and `logo_kitty: true`
+- Added `image` crate dependency (already transitive via viuer, now direct for potential future use)
+- Explored and rejected custom kitty renderer with `z=-1` due to kitty cell reservation behavior
+
+## 2026-07-25 — v0.3.0 (morning)
 
 ### Responsive Image & Text
 

@@ -56,13 +56,10 @@ fn split_ascii_frames(content: &str) -> Vec<Vec<String>> {
 pub fn draw(info: &Info, config: &Config) {
     let _stdout = stdout();
 
-    //1. Prepare Render Tree
     let nodes = prepare_render_tree(info, &config.modules, config);
 
-    //2. Get Logo Data (ASCII or Image)
-    let (ascii_lines, image_printed, ascii_width) = logo::get_logo_data(config);
+    let (ascii_lines, image_printed, ascii_width, image_height) = logo::get_logo_data(config);
 
-    // 3. Get Layout Lines
     let content_lines = layout::get_content_lines(&nodes, config);
 
     if !image_printed
@@ -98,7 +95,6 @@ pub fn draw(info: &Info, config: &Config) {
         }
     }
 
-    // 4. Handle special layouts
     if layout::is_minimal(config.layout.as_ref()) {
         for line in &content_lines {
             println!("{}", line);
@@ -110,6 +106,7 @@ pub fn draw(info: &Info, config: &Config) {
         print::print_stacked_output(
             ascii_lines,
             image_printed,
+            image_height,
             content_lines,
             config,
             !layout::is_bottom(config.layout.as_ref()),
@@ -117,11 +114,11 @@ pub fn draw(info: &Info, config: &Config) {
         return;
     }
 
-    // 5. Print side-by-side (default)
     print::print_output(
         ascii_lines,
         image_printed,
         ascii_width,
+        image_height,
         content_lines,
         config,
         false,
