@@ -154,12 +154,7 @@ xfetch
 
 <h2 align="center" id="related-repos">Related Repos</h2>
 <ul>
-  <li><a href="https://github.com/xscriptor/terminal">Terminal </a> <img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/terminal-bash.svg" /></li>
-  <li><a href="https://github.com/xscriptor/vscode">VSCode </a><img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/vscode-insiders.svg"/></li>
-  <li><a href="https://github.com/xscriptor/jetbrains">Jetbrains </a><img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/project.svg"/></li>
-  <li><a href="https://github.com/xscriptor/gitnapse">Gitnapse </a><img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/github-alt.svg"/></li>
-  <li><a href="https://github.com/xscriptor/obsidian">Obsidian </a><img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/markdown.svg"/></li>
-  <li><a href="https://github.com/xfetch-cli/xfetch">XFetch </a><img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/git-fetch.svg"/></li>
+  <li><a href="https://github.com/xfetch-cli/api">XFetch API</a><img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/git-fetch.svg"/></li>
   <li><a href="https://github.com/xfetch-cli/configs">XFetch Configs </a><img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/symbol-key.svg"/></li>
   <li><a href="https://github.com/xfetch-cli/plugins">XFetch Plugins </a><img src="https://xscriptor.github.io/icons/icons/code/product-design/xsvg/extensions.svg"/></li>
 </ul>
