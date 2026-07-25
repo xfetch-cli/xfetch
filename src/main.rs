@@ -1,6 +1,7 @@
 mod cache;
 mod cli;
 mod config;
+mod extensions;
 mod info;
 mod plugins;
 mod themes;

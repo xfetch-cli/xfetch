@@ -1,3 +1,4 @@
+use crate::extensions::run_config_provider;
 use json_comments::StripComments;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -32,8 +33,11 @@ pub struct Config {
     pub palette_style: Option<String>,
     pub logo_animation: Option<LogoAnimationConfig>,
     pub info_plugins: Vec<InfoPluginConfig>,
+    pub config_providers: Vec<ConfigProviderConfig>,
     pub disable_ip_fetching: Option<bool>,
     pub disable_cache: Option<bool>,
+    pub logo_width: Option<u32>,
+    pub logo_height: Option<u32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -59,6 +63,13 @@ pub struct LogoAnimationConfig {
 #[serde(default)]
 pub struct InfoPluginConfig {
     pub plugin: String,
+    pub args: Option<Value>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
+pub struct ConfigProviderConfig {
+    pub extension: String,
     pub args: Option<Value>,
 }
 
@@ -111,8 +122,11 @@ impl Default for Config {
             palette_style: None,
             logo_animation: None,
             info_plugins: Vec::new(),
+            config_providers: Vec::new(),
             disable_ip_fetching: None,
             disable_cache: None,
+            logo_width: None,
+            logo_height: None,
         }
     }
 }
@@ -194,6 +208,17 @@ pub fn load_config(path: Option<String>) -> Config {
         if let Ok(merged_config) = serde_json::from_value(merged) {
             config = merged_config;
         }
+    }
+
+    let config_providers = config.config_providers.clone();
+    if !config_providers.is_empty() {
+        let mut current = serde_json::to_value(&config).unwrap_or_default();
+        for provider in &config_providers {
+            if let Ok(modified) = run_config_provider(&provider.extension, provider.args.clone(), &current) {
+                current = modified;
+            }
+        }
+        config = serde_json::from_value(current).unwrap_or(config);
     }
 
     config

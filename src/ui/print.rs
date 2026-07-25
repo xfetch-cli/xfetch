@@ -1,5 +1,6 @@
 use crate::config::Config;
 use crate::plugins::AnimationFrame;
+use console::strip_ansi_codes;
 use crossterm::cursor::{Hide, MoveUp, Show};
 use crossterm::execute;
 use crossterm::style::{Color, Print, ResetColor, SetForegroundColor};
@@ -9,6 +10,41 @@ use std::io::{Stdout, stdout};
 use std::time::{Duration, Instant};
 
 const LOGO_INFO_GAP: &str = "  ";
+
+fn truncate_line(line: &str, max_visible: usize) -> String {
+    let stripped_len = console::measure_text_width(&strip_ansi_codes(line));
+    if stripped_len <= max_visible {
+        return line.to_string();
+    }
+    let mut result = String::new();
+    let mut visible = 0;
+    let mut chars = line.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if ch == '\u{1b}' {
+            result.push(ch);
+            if chars.next() == Some('[') {
+                result.push('[');
+                loop {
+                    match chars.next() {
+                        Some(c) if c.is_ascii_alphabetic() && c != '[' => {
+                            result.push(c);
+                            break;
+                        }
+                        Some(c) => result.push(c),
+                        None => break,
+                    }
+                }
+            }
+        } else if visible < max_visible {
+            result.push(ch);
+            visible += 1;
+        } else {
+            result.push_str("...");
+            break;
+        }
+    }
+    result
+}
 const DEFAULT_LOGO_COLOR: Color = Color::Rgb {
     r: 128,
     g: 128,
@@ -76,6 +112,10 @@ pub fn print_output(
 ) {
     let mut out = stdout();
 
+    let term_width = size().map(|(w, _)| w as usize).unwrap_or(80);
+    let gap_len = console::measure_text_width(LOGO_INFO_GAP);
+    let max_content_width = term_width.saturating_sub(ascii_width + gap_len);
+
     let max_lines = std::cmp::max(ascii_lines.len(), content_lines.len());
 
     for i in 0..max_lines {
@@ -94,7 +134,8 @@ pub fn print_output(
 
         // 2. Print Info Part
         if i < content_lines.len() {
-            execute!(out, Print(&content_lines[i])).unwrap();
+            let line = truncate_line(&content_lines[i], max_content_width);
+            execute!(out, Print(&line)).unwrap();
         }
         execute!(out, Print("\n")).unwrap();
     }
@@ -127,13 +168,15 @@ pub fn print_animated_output(
     let mut frame_index = 0;
     let mut first_frame = true;
 
+    let term_width = size().map(|(w, _)| w as usize).unwrap_or(80);
+    let gap_len = console::measure_text_width(LOGO_INFO_GAP);
     let max_content_width = content_lines
         .iter()
         .map(|l| visible_width(l))
         .max()
         .unwrap_or(0);
-    let line_physical_width = max_logo_width + LOGO_INFO_GAP.len() + max_content_width;
-    let term_width = size().map(|(w, _)| w as usize).unwrap_or(80);
+    let available_content_width = term_width.saturating_sub(max_logo_width + gap_len);
+    let line_physical_width = max_logo_width + gap_len + max_content_width;
     let wraps = line_physical_width.div_ceil(term_width);
     let physical_lines = max_lines * std::cmp::max(1, wraps);
     let scroll_margin = physical_lines + 4;
@@ -164,7 +207,8 @@ pub fn print_animated_output(
             );
             let _ = execute!(out, Print(LOGO_INFO_GAP));
             if i < content_lines.len() {
-                let _ = execute!(out, Print(&content_lines[i]));
+                let line = truncate_line(&content_lines[i], available_content_width);
+                let _ = execute!(out, Print(&line));
             }
             let _ = execute!(out, Print("\n"));
         }

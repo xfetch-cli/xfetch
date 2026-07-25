@@ -1,6 +1,7 @@
 use super::x::{expand_path, get_default_ascii};
 use crate::config::Config;
 use crossterm::execute;
+use crossterm::terminal::size;
 use std::io::stdout;
 use viuer::{Config as ViuerConfig, print_from_file};
 
@@ -8,6 +9,12 @@ const IMAGE_EXTENSIONS: [&str; 4] = [".png", ".jpg", ".jpeg", ".svg"];
 
 fn is_image_file(path: &str) -> bool {
     IMAGE_EXTENSIONS.iter().any(|ext| path.ends_with(ext))
+}
+
+fn auto_logo_width() -> u32 {
+    let term_width = size().map(|(w, _)| w as u32).unwrap_or(80);
+    let w = (term_width as f32 * 0.28) as u32;
+    w.clamp(15, 40)
 }
 
 pub fn get_logo_data(config: &Config) -> (Vec<String>, bool, usize) {
@@ -20,7 +27,10 @@ pub fn get_logo_data(config: &Config) -> (Vec<String>, bool, usize) {
     if let Some(path_str) = &config.logo_path {
         let path = expand_path(path_str);
         if is_image_file(path_str) {
+            let img_width = config.logo_width.unwrap_or_else(auto_logo_width);
             let conf = ViuerConfig {
+                width: Some(img_width),
+                height: config.logo_height,
                 absolute_offset: false,
                 transparent: true,
                 ..Default::default()

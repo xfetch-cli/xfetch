@@ -1701,13 +1701,22 @@ dependencies = [
  "serde_json",
  "sysinfo",
  "viuer",
+ "xfetch-extension-api",
  "xfetch-plugin-api",
+]
+
+[[package]]
+name = "xfetch-extension-api"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
 name = "xfetch-plugin-api"
 version = "0.1.0"
-source = "git+https://github.com/xfetch-cli/api#545aa5b49c3dabf60aa41d366542843865a5b198"
+source = "git+https://github.com/xfetch-cli/api#7b17c1a0717297bd06a3e3f14cc090ba30c0fee5"
 dependencies = [
  "serde",
  "serde_json",

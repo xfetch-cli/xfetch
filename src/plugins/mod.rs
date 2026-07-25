@@ -124,7 +124,7 @@ fn find_in_path(binary_name: &str) -> Option<PathBuf> {
     None
 }
 
-fn find_plugin_binary(plugin_name: &str) -> Option<PathBuf> {
+pub fn find_plugin_binary(plugin_name: &str) -> Option<PathBuf> {
     let direct_path = Path::new(plugin_name);
     if direct_path.components().count() > 1 && direct_path.is_file() {
         return Some(direct_path.to_path_buf());
