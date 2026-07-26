@@ -22,7 +22,10 @@ pub fn render_classic(nodes: &[RenderNode], config: &Config) -> Vec<String> {
     for node in nodes {
         match node {
             RenderNode::Line { key, value, icon } => {
-                if icon.is_empty() {
+                if icon.is_empty() && key.starts_with("plugin:") {
+                    let color_code = get_color_code(key, config);
+                    lines.push(format!("\x1b[{}m│\x1b[0m \x1b[{}m{}\x1b[0m", SECTION_COLOR, color_code, value));
+                } else if icon.is_empty() {
                     lines.push(format!("\x1b[{}m│\x1b[0m {}", SECTION_COLOR, value));
                 } else {
                     lines.push(format_line(key, value, icon, config));
@@ -212,10 +215,17 @@ pub fn render_tree(nodes: &[RenderNode], config: &Config) -> Vec<String> {
                     } = child
                     {
                         let key_color = get_color_code(key, config);
-                        lines.push(format!(
-                            "\x1b[{}m{}\x1b[0m \x1b[{}m{}\x1b[0m {}",
-                            SECTION_COLOR, prefix, key_color, key, value
-                        ));
+                        if key.starts_with("plugin:") {
+                            lines.push(format!(
+                                "\x1b[{}m{}\x1b[0m \x1b[{}m{}\x1b[0m",
+                                SECTION_COLOR, prefix, key_color, value
+                            ));
+                        } else {
+                            lines.push(format!(
+                                "\x1b[{}m{}\x1b[0m \x1b[{}m{}\x1b[0m {}",
+                                SECTION_COLOR, prefix, key_color, key, value
+                            ));
+                        }
                     }
                 }
             }
@@ -331,7 +341,10 @@ pub fn render_compact(nodes: &[RenderNode], config: &Config) -> Vec<String> {
     for node in nodes {
         match node {
             RenderNode::Line { key, value, icon } => {
-                if icon.is_empty() {
+                if icon.is_empty() && key.starts_with("plugin:") {
+                    let color_code = get_color_code(key, config);
+                    lines.push(format!("\x1b[{}m{}\x1b[0m", color_code, value));
+                } else if icon.is_empty() {
                     lines.push(value.clone());
                 } else {
                     let color_code = get_color_code(key, config);
@@ -341,7 +354,10 @@ pub fn render_compact(nodes: &[RenderNode], config: &Config) -> Vec<String> {
             RenderNode::Group { children, .. } => {
                 for child in children {
                     if let RenderNode::Line { key, value, icon } = child {
-                        if icon.is_empty() {
+                        if icon.is_empty() && key.starts_with("plugin:") {
+                            let color_code = get_color_code(key, config);
+                            lines.push(format!("\x1b[{}m{}\x1b[0m", color_code, value));
+                        } else if icon.is_empty() {
                             lines.push(value.clone());
                         } else {
                             let color_code = get_color_code(key, config);
@@ -377,7 +393,11 @@ pub fn render_minimal(nodes: &[RenderNode], _config: &Config) -> Vec<String> {
 
 pub fn format_line(key: &str, value: &str, icon: &str, config: &Config) -> String {
     let color_code = get_color_code(key, config);
-    format!("\x1b[{}m{} \x1b[0m{}", color_code, icon, value)
+    if icon.is_empty() && key.starts_with("plugin:") {
+        format!("\x1b[{}m{}\x1b[0m", color_code, value)
+    } else {
+        format!("\x1b[{}m{} \x1b[0m{}", color_code, icon, value)
+    }
 }
 
 pub fn format_line_content(key: &str, value: &str, icon: &str, config: &Config) -> String {
