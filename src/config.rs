@@ -40,6 +40,8 @@ pub struct Config {
     pub logo_height: Option<u32>,
     pub logo_gap: Option<u32>,
     pub logo_kitty: Option<bool>,
+    pub daemon: bool,
+    pub daemon_min_rows: Option<u32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -131,6 +133,8 @@ impl Default for Config {
             logo_height: None,
             logo_gap: None,
             logo_kitty: None,
+            daemon: false,
+            daemon_min_rows: None,
         }
     }
 }

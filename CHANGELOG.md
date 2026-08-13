@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-13 — v0.4.0
+
+### Daemon Mode (`--daemon`)
+
+- **Daemon mode** (`--daemon` / `"daemon": true`): forks to the background, writes its PID to `~/.config/xfetch/daemon.pid` and exits immediately — the shell prompt returns instantly while the animation loops pinned at the top. Stop it with `xfetch --daemon-stop`.
+- Pins the logo in a fixed scroll region (`SetScrollRegion`/`ResetScrollRegion`) and draws each row with absolute `MoveTo(0,row)` + cursor save/restore, so command output scrolls below the pinned block.
+- Each frame is emitted as a single atomic `write_all` and the user's cursor is restored after every frame — typed input is never yanked away.
+- The scroll region is re-asserted every frame (the shell may reset it) and `SIGWINCH` resizes are detected, recomputing geometry and redrawing.
+- `stop_daemon()` validates the PID via `/proc/<pid>/comm` before signaling (avoids killing a recycled PID); the daemon also writes `daemon.rows` (pinned height) next to `daemon.pid`.
+- The child uses `setsid()`, installs SIGINT/SIGTERM/SIGHUP handlers and exits cleanly (cursor shown, scroll region reset, PID file removed); the module is gated with `#[cfg(unix)]`.
+- Added `src/ui/daemon.rs` and `src/ui/frames.rs` (shared, unit-tested frame loading); refactored `src/ui/print.rs` to share `compute_frame_geometry()`/`render_frame()` between the one-shot animation and the daemon; added `SetScrollRegion`/`ResetScrollRegion` ANSI commands and a direct `libc` dependency.
+
 ## 2026-07-25 — v0.3.0 (evening)
 
 ### Image Rendering Overlap Fix (Kitty)
