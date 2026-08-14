@@ -85,8 +85,11 @@ irm https://raw.githubusercontent.com/xfetch-cli/xfetch/main/install.ps1 | iex
 <h2 id="features" align="center"> Features</h2>
 
 - **Cross-platform**: Works on Linux, Windows, and macOS.
-- **Customizable**: Configure modules via `config.jsonc`.
+- **Customizable**: Configure modules, layouts, icons and colors via `config.jsonc`.
 - **Fast**: Written in Rust for performance.
+- **Animated logos**: Animate the ASCII logo with plugins (e.g. `animate-logo`).
+- **Daemon mode**: Pin an animated fetch at the top of the terminal and keep using the shell below.
+- **Themes, plugins & extensions**: Switch visual themes, extend info with plugins, and transform the config with extensions.
 
 <h2 id="configuration" align="center"> Configuration </h2>
 
@@ -131,8 +134,18 @@ Additional curated presets and example configs are maintained in
 Simply run `xfetch` in your terminal.
 
 ```bash
-xfetch
+xfetch                          # render the fetch
+xfetch --daemon                 # pin an animated fetch at the top (daemon mode)
+xfetch --daemon-stop            # stop the daemon
+xfetch --config path/to/config.jsonc
+xfetch --gen-config             # generate a starter config
+xfetch --clean-cache            # clear the module cache
+xfetch plugin install <name>    # install a plugin
+xfetch extension install <name> # install an extension
+xfetch theme list               # list themes
 ```
+
+> Full documentation: see the docs below.
 
 <h2 id="related-documents" align="center">Related Documents</h2>
 
@@ -140,8 +153,10 @@ xfetch
   <ul>
     <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/INSTALLATION.md">Installation</a></li>
     <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/CONFIGURATION.md">Config</a></li>
+    <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/DAEMON.md">Daemon Mode</a></li>
     <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/LAYOUTS.md">Layouts</a></li>
     <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/PLUGINS.md">Plugins</a></li>
+    <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/EXTENSIONS.md">Extensions</a></li>
     <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/UNINSTALLATION.md">Uninstall</a></li>
     <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/ROADMAP.md">Roadmap</a></li>
     <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/LICENSE">License</a></li>

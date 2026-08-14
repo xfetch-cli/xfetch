@@ -27,6 +27,26 @@
   <a href="https://github.com/xfetch-cli/configs">xfetch-cli/configs</a>.
 </p>
 
+<h2>Command Line Options</h2>
+
+<table>
+  <thead>
+    <tr><th>Flag / Command</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>xfetch</code></td><td>Render the fetch with the default (or configured) layout.</td></tr>
+    <tr><td><code>xfetch --config &lt;path&gt;</code></td><td>Use a custom config file.</td></tr>
+    <tr><td><code>xfetch --daemon</code></td><td>Run in daemon mode: pin an animated fetch at the top of the terminal while keeping the prompt usable below. See <a href="DAEMON.md">DAEMON.md</a>.</td></tr>
+    <tr><td><code>xfetch --daemon-stop</code></td><td>Stop the running daemon.</td></tr>
+    <tr><td><code>xfetch --gen-config</code></td><td>Generate a starter config at the default location.</td></tr>
+    <tr><td><code>xfetch --clean-cache</code></td><td>Clear the module cache.</td></tr>
+    <tr><td><code>xfetch --benchmark</code></td><td>Print benchmarking info for the info gathering step.</td></tr>
+    <tr><td><code>xfetch plugin install|list|remove &lt;name&gt;</code></td><td>Manage plugins. See <a href="PLUGINS.md">PLUGINS.md</a>.</td></tr>
+    <tr><td><code>xfetch extension install|list|remove &lt;name&gt;</code></td><td>Manage extensions. See <a href="EXTENSIONS.md">EXTENSIONS.md</a>.</td></tr>
+    <tr><td><code>xfetch theme list|set|remove|export &lt;name&gt;</code></td><td>Manage themes. See <a href="THEMES.md">THEMES.md</a>.</td></tr>
+  </tbody>
+</table>
+
 <h2>Themes</h2>
 
 <p>
@@ -71,7 +91,9 @@
   <li><code>os</code>: Operating System name and architecture</li>
   <li><code>kernel</code>: Kernel version</li>
   <li><code>hostname</code>: Hostname of the machine</li>
+  <li><code>user</code>: Current username</li>
   <li><code>uptime</code>: System uptime</li>
+  <li><code>datetime</code>: Current date and time</li>
   <li><code>packages</code>: Package count (pacman, dpkg, brew, scoop, etc.)</li>
   <li><code>shell</code>: Current shell (bash, zsh, powershell, etc.)</li>
   <li><code>terminal</code>: Current terminal emulator</li>
@@ -82,6 +104,10 @@
   <li><code>swap</code>: Swap memory usage</li>
   <li><code>disk</code>: Disk usage (first disk)</li>
   <li><code>battery</code>: Battery percentage and status</li>
+  <li><code>local_ip</code>: Local IPv4 address</li>
+  <li><code>local_ip:v6</code>: Local IPv6 address</li>
+  <li><code>public_ip</code>: Public IP address (requires network access)</li>
+  <li><code>interfaces</code>: Network interfaces</li>
   <li><code>palette</code>: Color palette</li>
 </ul>
 
@@ -146,14 +172,14 @@
 <h4>2. Default ASCII Logo Color</h4>
 
 <p>
-  When <strong>no custom logo is specified</strong>, xfetch uses a built-in default ASCII logo. This logo is rendered with an <strong>orange color</strong> (<code>RGB: 255, 165, 0</code>) applied programmatically.
+  When <strong>no custom logo is specified</strong>, xfetch uses a built-in default ASCII logo. This logo is rendered with a <strong>gray color</strong> (<code>RGB: 128, 128, 128</code>) applied programmatically.
 </p>
 
 <p>
-  The color is set in <code>src/ui.rs</code> using CrossTerm:
+  The color is set in <code>src/ui/print.rs</code> (<code>DEFAULT_LOGO_COLOR</code>) using crossterm:
 </p>
 
-<pre><code class="language-rust">SetForegroundColor(Color::Rgb { r: 255, g: 165, b: 0 })</code></pre>
+<pre><code class="language-rust">SetForegroundColor(Color::Rgb { r: 128, g: 128, b: 128 })</code></pre>
 
 <blockquote><strong>Note:</strong> Custom ASCII logos bypass this automatic coloring and use their embedded ANSI codes instead.</blockquote>
 
@@ -180,24 +206,168 @@
     // ...
 }</code></pre>
 
+<h4>Image Logo Options</h4>
+
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>logo_width</code></td><td>number</td><td>auto (28% of terminal width, clamped 12-42)</td>
+      <td>Explicit image width in terminal columns.</td>
+    </tr>
+    <tr>
+      <td><code>logo_height</code></td><td>number</td><td>auto</td>
+      <td>Explicit image height in terminal rows.</td>
+    </tr>
+    <tr>
+      <td><code>logo_gap</code></td><td>number</td><td>12</td>
+      <td>Gap (in columns) between the logo and the module text.</td>
+    </tr>
+    <tr>
+      <td><code>logo_kitty</code></td><td>boolean</td><td><code>true</code></td>
+      <td>Use the native Kitty graphics protocol when running inside Kitty; set to <code>false</code> to fall back to half-block rendering.</td>
+    </tr>
+  </tbody>
+</table>
+
 <h2>Logo Animation (Plugin)</h2>
 
 <p>
-  xfetch can animate the ASCII logo via an external plugin. The animation runs only on TTY terminals and only for ASCII logos.
+  xfetch can animate the ASCII logo via an external plugin. The animation runs only on TTY terminals and only for ASCII logos (not images).
 </p>
 
 <pre><code class="language-jsonc">{
     &quot;logo_animation&quot;: {
         &quot;plugin&quot;: &quot;animate-logo&quot;,
-        &quot;fps&quot;: 12,
-        &quot;duration_ms&quot;: 1200,
-        &quot;loop&quot;: false
+        &quot;style&quot;: &quot;frame&quot;,
+        &quot;fps&quot;: 6,
+        &quot;duration_ms&quot;: 8000,
+        &quot;loop&quot;: true,
+        &quot;frames_path&quot;: &quot;~/.config/xfetch/logos/fox.txt&quot;
     }
 }</code></pre>
+
+<table>
+  <thead>
+    <tr><th>Field</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>plugin</code></td><td>Plugin short name or full path to the executable.</td></tr>
+    <tr><td><code>style</code></td><td>Animation style: <code>sweep</code> (default), <code>wave</code>, <code>rainbow</code>, <code>sparkle</code>, <code>breathing</code>, <code>frame</code>, or <code>none</code>.</td></tr>
+    <tr><td><code>fps</code></td><td>Frames per second (speed of the animation).</td></tr>
+    <tr><td><code>duration_ms</code></td><td>Total animation duration in milliseconds. Only honored outside daemon mode.</td></tr>
+    <tr><td><code>loop</code></td><td>Loop the animation (<code>true</code>/<code>false</code>). Only honored outside daemon mode.</td></tr>
+    <tr><td><code>frames_path</code></td><td>Frame source for the <code>frame</code> style: a single file with frames separated by a line containing <code>===</code>, or an array of files (one per frame).</td></tr>
+  </tbody>
+</table>
+
+<blockquote>
+  <strong>Note:</strong> With <code>"daemon": true</code> the animation runs as an infinite loop pinned at the top of the terminal, and <code>duration_ms</code>/<code>loop</code> are ignored. To play a finite animation that stops on its own, leave daemon mode off. See <a href="DAEMON.md">DAEMON.md</a>.
+</blockquote>
 
 <p>
   For plugin installation and the protocol details, see <a href="PLUGINS.md">PLUGINS.md</a>.
 </p>
+
+<h2>Daemon Mode</h2>
+
+<p>
+  Daemon mode pins an animated fetch at the top of the terminal and keeps looping it in the background without blocking the shell prompt.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>daemon</code></td><td>boolean</td><td><code>false</code></td>
+      <td>Enable daemon mode. Equivalent to the <code>--daemon</code> CLI flag (the CLI flag overrides the config value).</td>
+    </tr>
+    <tr>
+      <td><code>daemon_min_rows</code></td><td>number</td><td>6</td>
+      <td>Minimum number of terminal rows left free below the pinned block for command output.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>
+  Full reference, usage and troubleshooting: see <a href="DAEMON.md">DAEMON.md</a>.
+</p>
+
+<h2>Config Providers (Extensions)</h2>
+
+<p>
+  Extensions run at config load time and can modify or replace the effective config. They are declared with <code>config_providers</code>:
+</p>
+
+<pre><code class="language-jsonc">{
+    &quot;config_providers&quot;: [
+        {
+            &quot;extension&quot;: &quot;config-roulette&quot;,
+            &quot;args&quot;: {
+                &quot;routes&quot;: &quot;~/.config/xfetch/routes.json&quot;,
+                &quot;strategy&quot;: &quot;random&quot;
+            }
+        }
+    ]
+}</code></pre>
+
+<p>
+  Full reference: see <a href="EXTENSIONS.md">EXTENSIONS.md</a>.
+</p>
+
+<h2>Info Plugins</h2>
+
+<p>
+  Plugins can contribute extra module lines. They are declared with <code>info_plugins</code>, each with a <code>plugin</code> name/path and optional <code>args</code>:
+</p>
+
+<pre><code class="language-jsonc">{
+    &quot;info_plugins&quot;: [
+        {
+            &quot;plugin&quot;: &quot;weather&quot;,
+            &quot;args&quot;: { &quot;city&quot;: &quot;Madrid&quot; }
+        }
+    ]
+}</code></pre>
+
+<h2>Palette Style</h2>
+
+<p>
+  The <code>palette</code> module can render in different styles via <code>palette_style</code>:
+</p>
+
+<ul>
+  <li><code>squares</code> (default)</li>
+  <li><code>circles</code></li>
+  <li><code>triangles</code></li>
+  <li><code>lines</code></li>
+</ul>
+
+<pre><code class="language-jsonc">{
+    &quot;palette_style&quot;: &quot;circles&quot;
+}</code></pre>
+
+<h2>Privacy &amp; Cache</h2>
+
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>disable_ip_fetching</code></td><td>boolean</td>
+      <td>Skip the network request for the <code>public_ip</code> module.</td>
+    </tr>
+    <tr>
+      <td><code>disable_cache</code></td><td>boolean</td>
+      <td>Disable the on-disk cache used for slow probes (e.g. package counts).</td>
+    </tr>
+  </tbody>
+</table>
 
 <h2>Layouts</h2>
 
@@ -277,15 +447,26 @@
 <h2>Full Example</h2>
 
 <pre><code class="language-jsonc">{
-    &quot;logo_path&quot;: &quot;~/.config/xfetch/logos/ghost.txt&quot;,
+    &quot;ascii&quot;: &quot;~/.config/xfetch/logos/ghost.txt&quot;,
+    &quot;logo_gap&quot;: 8,
+    &quot;theme&quot;: &quot;berlin&quot;,
     &quot;layout&quot;: &quot;pacman&quot;,
     &quot;header_icons&quot;: [&quot;ᗧ&quot;, &quot;ᗣ&quot;, &quot;ᗣ&quot;],
     &quot;footer_text&quot;: &quot;xfetch&quot;,
+    &quot;palette_style&quot;: &quot;circles&quot;,
+    &quot;logo_animation&quot;: {
+        &quot;plugin&quot;: &quot;animate-logo&quot;,
+        &quot;style&quot;: &quot;sweep&quot;,
+        &quot;fps&quot;: 12,
+        &quot;duration_ms&quot;: 1200,
+        &quot;loop&quot;: false
+    },
     &quot;modules&quot;: [
         &quot;os&quot;,
         &quot;kernel&quot;,
         &quot;cpu&quot;,
-        &quot;memory&quot;
+        &quot;memory&quot;,
+        &quot;palette&quot;
     ],
     &quot;show_colors&quot;: true,
     &quot;icons&quot;: {

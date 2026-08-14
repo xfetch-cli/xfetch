@@ -43,12 +43,28 @@
 <pre><code class="language-jsonc">{
   "logo_animation": {
     "plugin": "animate-logo",
-    "fps": 12,
-    "duration_ms": 1200,
-    "loop": false
+    "style": "frame",
+    "fps": 6,
+    "duration_ms": 8000,
+    "loop": true,
+    "frames_path": "~/.config/xfetch/logos/fox.txt"
   }
 }
 </code></pre>
+
+<p>
+  For the <code>frame</code> style, <code>frames_path</code> can be a single file whose
+  frames are separated by a line containing <code>===</code>, or an array of files (one
+  per frame). Other <code>style</code> values include <code>sweep</code> (default),
+  <code>wave</code>, <code>rainbow</code>, <code>sparkle</code>, <code>breathing</code>,
+  and <code>none</code>.
+</p>
+
+<blockquote>
+  <strong>Note:</strong> <code>duration_ms</code> and <code>loop</code> only apply to the
+  one-shot animation (daemon mode off). With <code>"daemon": true</code> the animation
+  loops indefinitely and these fields are ignored. See <a href="DAEMON.md">DAEMON.md</a>.
+</blockquote>
 
 <h2>Protocol</h2>
 
