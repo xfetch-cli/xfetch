@@ -3,6 +3,7 @@ use crate::info::Info;
 use crate::plugins::run_logo_animation_plugin;
 use console::strip_ansi_codes;
 use std::io::{IsTerminal, stdout};
+pub mod custom_x;
 mod frames;
 mod layout;
 mod logo;
@@ -32,7 +33,15 @@ pub fn draw(info: &Info, config: &Config) {
 
     let (ascii_lines, image_printed, ascii_width, image_height) = logo::get_logo_data(config);
 
-    let content_lines = layout::get_content_lines(&nodes, config);
+    let term_width = crossterm::terminal::size().map(|(w, _)| w as usize).unwrap_or(80);
+    let gap_base = config.logo_gap.unwrap_or(12) as usize;
+    let gap = console::measure_text_width(print::LOGO_INFO_GAP) + gap_base;
+    let mut available_width = term_width.saturating_sub(ascii_width + gap);
+    if available_width < 10 && term_width > 40 {
+        available_width = term_width.saturating_sub(ascii_width.max(12));
+    }
+
+    let content_lines = layout::get_content_lines(&nodes, config, Some(available_width));
 
     if !image_printed
         && !ascii_lines.is_empty()

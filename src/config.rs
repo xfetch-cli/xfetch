@@ -1,4 +1,5 @@
 use crate::extensions::run_config_provider;
+use crate::ui::custom_x::CustomX;
 use json_comments::StripComments;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -42,6 +43,7 @@ pub struct Config {
     pub logo_kitty: Option<bool>,
     pub daemon: bool,
     pub daemon_min_rows: Option<u32>,
+    pub custom_x: Option<CustomX>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -135,6 +137,7 @@ impl Default for Config {
             logo_kitty: None,
             daemon: false,
             daemon_min_rows: None,
+            custom_x: None,
         }
     }
 }

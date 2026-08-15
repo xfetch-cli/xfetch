@@ -7,7 +7,7 @@ use crate::ui::logo;
 use crate::ui::nodes::prepare_render_tree;
 use crate::ui::print::{
     build_daemon_frame_buffer, daemon_move_to_prompt, daemon_prepare, print_daemon_output,
-    restore_terminal, DaemonState,
+    restore_terminal, DaemonState, LOGO_INFO_GAP,
 };
 use console::strip_ansi_codes;
 use std::io::{IsTerminal, Write, stdout};
@@ -98,7 +98,16 @@ fn prepare_frames(
 
     let nodes = prepare_render_tree(info, &config.modules, config);
     let (ascii_lines, image_printed, ascii_width, _image_height) = logo::get_logo_data(config);
-    let content_lines = layout::get_content_lines(&nodes, config);
+
+    let term_width = crossterm::terminal::size().map(|(w, _)| w as usize).unwrap_or(80);
+    let gap_base = config.logo_gap.unwrap_or(12) as usize;
+    let gap = console::measure_text_width(LOGO_INFO_GAP) + gap_base;
+    let mut available_width = term_width.saturating_sub(ascii_width + gap);
+    if available_width < 10 && term_width > 40 {
+        available_width = term_width.saturating_sub(ascii_width.max(12));
+    }
+
+    let content_lines = layout::get_content_lines(&nodes, config, Some(available_width));
 
     let Some(animation_config) = &config.logo_animation else {
         return None;

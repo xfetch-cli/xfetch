@@ -320,6 +320,98 @@ pub fn render_section(nodes: &[RenderNode], config: &Config) -> Vec<String> {
     lines
 }
 
+pub fn render_section_box(nodes: &[RenderNode], config: &Config) -> Vec<String> {
+    let mut lines = Vec::new();
+    let mut first = true;
+    for node in nodes {
+        match node {
+            RenderNode::Group { title, children } => {
+                if !first {
+                    lines.push(String::new());
+                }
+                first = false;
+                lines.extend(render_group_box(title, children, config));
+            }
+            RenderNode::Line { key, value, icon } => {
+                if !first {
+                    lines.push(String::new());
+                }
+                first = false;
+                lines.push(render_section_row(key, value, icon, config, 0));
+            }
+        }
+    }
+    lines
+}
+
+fn render_group_box(title: &str, children: &[RenderNode], config: &Config) -> Vec<String> {
+    let mut rows: Vec<String> = Vec::new();
+
+    let indent = children
+        .iter()
+        .filter_map(|c| {
+            if let RenderNode::Line { icon, key, .. } = c {
+                if !icon.is_empty() {
+                    Some(prefix_width(icon, key))
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        })
+        .max()
+        .unwrap_or(0);
+
+    for child in children {
+        match child {
+            RenderNode::Group { title, children } => {
+                rows.extend(render_group_box(title, children, config));
+            }
+            RenderNode::Line { key, value, icon } => {
+                rows.push(render_section_row(key, value, icon, config, indent));
+            }
+        }
+    }
+
+    let mut inner_width = rows
+        .iter()
+        .map(|r| strip_ansi_codes(r).chars().count())
+        .max()
+        .unwrap_or(0);
+    inner_width = inner_width.max(title.chars().count() + 1).max(1);
+    let fill = inner_width - title.chars().count() - 1;
+
+    let border = |s: String| format!("\x1b[{}m{}\x1b[0m", SECTION_COLOR, s);
+
+    let mut lines = Vec::new();
+    lines.push(border(format!("╭─ {} {}╮", title, "─".repeat(fill))));
+    for row in rows {
+        let pad = inner_width.saturating_sub(strip_ansi_codes(&row).chars().count());
+        lines.push(border(format!("│ {} {}│", row, " ".repeat(pad))));
+    }
+    lines.push(border(format!("╰{}╯", "─".repeat(inner_width + 2))));
+    lines
+}
+
+fn render_section_row(key: &str, value: &str, icon: &str, config: &Config, indent: usize) -> String {
+    if icon.is_empty() && key.is_empty() {
+        value.to_string()
+    } else if icon.is_empty() && key.starts_with("plugin:") {
+        let color_code = get_color_code(key, config);
+        format!("\x1b[{}m{}\x1b[0m", color_code, value)
+    } else if icon.is_empty() {
+        let color_code = get_color_code(key, config);
+        format!(
+            "\x1b[{}m{:indent$}\x1b[0m{}",
+            color_code, "", value,
+            indent = indent
+        )
+    } else {
+        format_line(key, value, icon, config)
+    }
+}
+
 pub fn flatten_nodes(nodes: &[RenderNode]) -> Vec<(String, String, String)> {
     let mut items = Vec::new();
     for node in nodes {
@@ -452,7 +544,48 @@ mod tests {
     }
 
     #[test]
-    //  Test that tree render doesn't crash with empty nodes
+    // Test that section-box renders a bordered box per group
+    fn test_render_section_box_groups() {
+        let config = Config::default();
+        let nodes = vec![
+            RenderNode::Group {
+                title: "Hardware".to_string(),
+                children: vec![
+                    RenderNode::Line {
+                        key: "cpu".to_string(),
+                        value: "Apple M4".to_string(),
+                        icon: "\u{f2db}".to_string(),
+                    },
+                    RenderNode::Line {
+                        key: "memory".to_string(),
+                        value: "16 GiB".to_string(),
+                        icon: "\u{e266}".to_string(),
+                    },
+                ],
+            },
+            RenderNode::Group {
+                title: "Software".to_string(),
+                children: vec![RenderNode::Line {
+                    key: "os".to_string(),
+                    value: "Darwin".to_string(),
+                    icon: "\u{f17c}".to_string(),
+                }],
+            },
+        ];
+
+        let lines = render_section_box(&nodes, &config);
+        assert!(lines.len() >= 6);
+
+        let joined = lines.join("\n");
+        assert!(joined.contains("╭─ Hardware"));
+        assert!(joined.contains("╭─ Software"));
+        assert!(joined.contains("│"));
+        assert!(joined.contains("╰"));
+        assert_eq!(strip_ansi_codes(&lines[1]).chars().count(), strip_ansi_codes(&lines[0]).chars().count());
+    }
+
+    #[test]
+    // Test that tree render doesn't crash with empty nodes
     fn test_render_tree_empty() {
         let config = Config::default();
         let nodes: Vec<RenderNode> = vec![];

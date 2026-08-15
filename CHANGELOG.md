@@ -10,6 +10,25 @@
 - Fixed daemon silent exit on macOS: with `XDG_CONFIG_HOME` set, the daemon previously could not find plugins installed in the legacy dir, so `prepare_frames()` returned `None` and `--daemon` exited with code 0 without forking. The legacy-dir fallback restores plugin discovery.
 - Behavior on Linux and Windows is unchanged: without `XDG_CONFIG_HOME`, `config_search_dirs()` resolves to a single directory (the same one `dirs::config_dir()` returns).
 
+### Section-Box Layout (`"layout": "section-box"`)
+
+- New layout that renders a bordered box per module group: `╭─ Title ─╮` header, `│` rows, `╰───╯` footer, with the title embedded in the top border.
+- Each box measures its own content width (ANSI-stripped) so borders align per group; groups are separated by a blank line.
+- Nested groups render as boxes inside boxes (recursive `render_group_box`); top-level modules outside groups render as plain lines.
+- Added `render_section_box()`, `render_group_box()`, `render_section_row()` in `src/ui/renders.rs` and registered the layout in `src/ui/layout.rs` — existing layouts are untouched.
+- Added unit test `test_render_section_box_groups` covering border presence and alignment.
+
+### Custom-X Layout (`"layout": "custom-x"`)
+
+- New fully customizable layout: every border line is a literal template the user writes in the `custom_x` config object — top, bottom, left, right, group titles, internal dividers, and extra header/footer lines.
+- Templates support two placeholders: `{fill}` repeats the `fill` character until the line reaches the box width (templates without `{fill}` are extended with `fill`), and `{title}` is replaced with the current group title.
+- `divider_between` controls internal separators (`"groups"`, `"modules"`, or `"none"`); `padding` controls the space between borders and content; group title and divider templates are independent.
+- `module_top` / `module_bottom` wrap every module row in its own box (rendered around each line), so a single outer frame can group everything while each module stays individually enclosed.
+- Fixed row alignment: content rows now pad inside the right border, so `left`/`right` borders land exactly on the box edge.
+- New `custom_x.width` option: `"auto"` (default, content-sized), `"full"` (stretches the box to the end of the terminal line, accounting for the logo column), or a fixed number of columns.
+- New `custom_x.full_margin` option (default 2): how many cells `"full"` keeps free at the right edge of the terminal, avoiding the wrap column on narrow terminals; the small-terminal content fallback from `print_output` is now also applied when computing the stretched width, keeping both paths consistent.
+- Added `src/ui/custom_x.rs` (new module with its own types and renderer, 7 unit tests) and a new `custom_x` field on `Config` (additive, defaults to `None`); registered the layout in `src/ui/layout.rs` — no existing layout or config behavior changed.
+
 ## 2026-08-13 — v0.4.0
 
 ### Daemon Mode (`--daemon`)

@@ -10,7 +10,7 @@ use crossterm::terminal::{Clear, ClearType};
 use std::io::{Stdout, Write, stdout};
 use std::time::{Duration, Instant};
 
-const LOGO_INFO_GAP: &str = "  ";
+pub(crate) const LOGO_INFO_GAP: &str = "  ";
 
 fn truncate_line(line: &str, max_visible: usize) -> String {
     let stripped_len = console::measure_text_width(&strip_ansi_codes(line));
