@@ -170,6 +170,63 @@
     "layout": "bottom_line"
 }</code></pre>
 
+<h2>10. Section-Box Layout</h2>
+
+<p>
+  Like <code>section</code>, but every group is drawn as its own box with a
+  title embedded in the top border. Nested groups render as boxes inside boxes.
+</p>
+
+<p><strong>Configuration:</strong></p>
+
+<pre><code class="language-jsonc">{
+    "layout": "section-box",
+    "modules": [
+        { "type": "group", "title": "Hardware", "modules": ["cpu", "gpu"] },
+        { "type": "group", "title": "Software", "modules": ["os", "shell"] }
+    ]
+}</code></pre>
+
+<p><strong>Appearance:</strong></p>
+
+<pre><code>╭─ Hardware ────────────╮
+│  Apple M4           │
+│ 󰍹 Apple M4           │
+╰───────────────────────╯
+
+╭─ Software ────────────╮
+│  Darwin 26.5.2       │
+╰───────────────────────╯</code></pre>
+
+<h2>11. Custom-X Layout</h2>
+
+<p>
+  The most flexible layout: every border line is a literal template written in
+  the <code>custom_x</code> config object, with <code>{fill}</code> and
+  <code>{title}</code> placeholders, configurable width, internal dividers and
+  per-module boxes. See <a href="CUSTOM_X.md">CUSTOM_X.md</a> for the full
+  reference.
+</p>
+
+<p><strong>Configuration:</strong></p>
+
+<pre><code class="language-jsonc">{
+    "layout": "custom-x",
+    "custom_x": {
+        "top": "╔═══════ XFETCH ═══════{fill}╗",
+        "bottom": "╚══════════════════════{fill}╝",
+        "left": "║",
+        "right": "║",
+        "fill": "═",
+        "padding": 1,
+        "width": "full",
+        "group_title": "╭─── {title} ───{fill}╮"
+    },
+    "modules": [
+        { "type": "group", "title": "Hardware", "modules": ["cpu", "gpu"] }
+    ]
+}</code></pre>
+
 <h2>Module Grouping</h2>
 
 <p>

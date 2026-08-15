@@ -1,5 +1,7 @@
+use super::renders::color_sgr;
 use super::x::{expand_path, get_default_ascii};
 use crate::config::Config;
+use console::strip_ansi_codes;
 use crossterm::execute;
 use crossterm::terminal::size;
 use std::io::{stdout, Write};
@@ -34,7 +36,12 @@ pub fn get_logo_data(config: &Config) -> (Vec<String>, bool, usize, usize) {
 
     if let Some(path_str) = &config.logo_path {
         let path = expand_path(path_str);
-        if is_image_file(path_str) {
+        let treat_as_image = match config.logo_type.as_deref() {
+            Some("ascii") => false,
+            Some("image") => true,
+            _ => is_image_file(path_str),
+        };
+        if treat_as_image {
             let img_width = config.logo_width.unwrap_or_else(auto_logo_width);
             let use_native = is_kitty() && config.logo_kitty.unwrap_or(true);
 
@@ -92,13 +99,44 @@ pub fn get_logo_data(config: &Config) -> (Vec<String>, bool, usize, usize) {
             .into_iter()
             .map(|l| l.trim_end().to_string())
             .collect();
+        if let Some(pad) = config.logo_padding {
+            let pad_str = " ".repeat(pad);
+            for line in &mut ascii_lines {
+                *line = format!("{}{}", pad_str, line);
+            }
+        }
+        if let Some(color) = &config.logo_color {
+            let code = color_sgr(color);
+            for line in &mut ascii_lines {
+                *line = format!("\x1b[{}m{}\x1b[0m", code, line);
+            }
+        }
         ascii_width = ascii_lines
             .iter()
-            .map(|l| console::measure_text_width(l))
+            .map(|l| console::measure_text_width(&strip_ansi_codes(l)))
             .max()
             .unwrap_or(0);
     }
     (ascii_lines, image_printed, ascii_width, image_height)
+}
+
+/// Applies `logo_padding` and `logo_color` to animation frames produced by a
+/// plugin. Lines that already contain ANSI styling are left untouched.
+pub fn apply_logo_style(frames: &mut [xfetch_plugin_api::AnimationFrame], config: &Config) {
+    let pad = config.logo_padding.unwrap_or(0);
+    let color = config.logo_color.as_deref().map(color_sgr);
+    for frame in frames {
+        for line in &mut frame.lines {
+            if pad > 0 {
+                *line = format!("{}{}", " ".repeat(pad), line);
+            }
+            if let Some(code) = &color {
+                if !line.contains('\u{1b}') {
+                    *line = format!("\x1b[{}m{}\x1b[0m", code, line);
+                }
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -113,5 +151,37 @@ mod tests {
 
         assert!(!is_image);
         assert!(!ascii_lines.is_empty());
+    }
+
+    #[test]
+    fn test_get_logo_data_color() {
+        let mut config = Config::default();
+        config.logo_color = Some("Cyan".to_string());
+        let (ascii_lines, _, _, _) = get_logo_data(&config);
+        assert!(ascii_lines.iter().all(|l| l.starts_with("\x1b[36m")));
+    }
+
+    #[test]
+    fn test_get_logo_data_padding() {
+        let mut config = Config::default();
+        config.logo_padding = Some(3);
+        let (ascii_lines, _, width, _) = get_logo_data(&config);
+        assert!(ascii_lines.iter().all(|l| l.starts_with("   ")));
+        assert!(width >= 3);
+    }
+
+    #[test]
+    fn test_apply_logo_style_colors_frames() {
+        use xfetch_plugin_api::AnimationFrame;
+        let mut config = Config::default();
+        config.logo_color = Some("196".to_string());
+        let mut frames = vec![AnimationFrame {
+            delay_ms: 10,
+            lines: vec!["  hello".to_string(), "\x1b[31mstyled\x1b[0m".to_string()],
+        }];
+        apply_logo_style(&mut frames, &config);
+        assert!(frames[0].lines[0].starts_with("\x1b[38;5;196m"));
+        assert!(frames[0].lines[0].ends_with("\x1b[0m"));
+        assert_eq!(frames[0].lines[1], "\x1b[31mstyled\x1b[0m");
     }
 }

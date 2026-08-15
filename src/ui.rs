@@ -53,6 +53,7 @@ pub fn draw(info: &Info, config: &Config) {
         if let Ok(mut frames) =
             run_logo_animation_plugin(plugin_name, animation_config, &ascii_lines, frame_sets)
         {
+            logo::apply_logo_style(&mut frames, config);
             if !config.show_colors {
                 for frame in &mut frames {
                     frame.lines = frame

@@ -195,6 +195,34 @@
     // ...
 }</code></pre>
 
+<h3>ASCII Logo Options</h3>
+
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>logo_color</code></td><td>string</td><td>none</td>
+      <td>Color applied to the ASCII logo. Accepts names (<code>&quot;Cyan&quot;</code>), 256-color indexes (<code>&quot;196&quot;</code>) and hex RGB (<code>&quot;#FF0000&quot;</code>). Also applies to animated logos; lines that already contain ANSI codes are left untouched.</td>
+    </tr>
+    <tr>
+      <td><code>logo_padding</code></td><td>number</td><td>0</td>
+      <td>Leading spaces added before the logo (and its frames when animated).</td>
+    </tr>
+    <tr>
+      <td><code>logo_type</code></td><td>string</td><td><code>&quot;auto&quot;</code></td>
+      <td><code>&quot;auto&quot;</code> detects by file extension, <code>&quot;ascii&quot;</code> forces text rendering, <code>&quot;image&quot;</code> forces image rendering.</td>
+    </tr>
+  </tbody>
+</table>
+
+<pre><code class="language-jsonc">{
+    &quot;ascii&quot;: &quot;~/.config/xfetch/logos/arch.txt&quot;,
+    &quot;logo_color&quot;: &quot;#00FF87&quot;,
+    &quot;logo_padding&quot;: 2
+}</code></pre>
+
 <h3>Images</h3>
 
 <p>
@@ -444,11 +472,41 @@
     }
 }</code></pre>
 
+<h2>Keys (Labels)</h2>
+
+<p>
+  By default xfetch renders each module as <code>icon value</code>. To display the module label as well, enable <code>show_keys</code>; use <code>key_width</code> to pad the labels to a fixed column count so values align vertically.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>show_keys</code></td><td>boolean</td><td><code>false</code></td>
+      <td>Render <code>key: value</code> in the icon-style layouts (classic, section, compact, custom-x, box variants).</td>
+    </tr>
+    <tr>
+      <td><code>key_width</code></td><td>number</td><td>auto</td>
+      <td>Pad the key to this many columns before the <code>:</code> separator. Applies wherever keys are shown, including <code>section</code> and <code>minimal</code>.</td>
+    </tr>
+  </tbody>
+</table>
+
+<pre><code class="language-jsonc">{
+    &quot;show_keys&quot;: true,
+    &quot;key_width&quot;: 12
+}</code></pre>
+
 <h2>Full Example</h2>
 
 <pre><code class="language-jsonc">{
     &quot;ascii&quot;: &quot;~/.config/xfetch/logos/ghost.txt&quot;,
     &quot;logo_gap&quot;: 8,
+    &quot;logo_color&quot;: &quot;Cyan&quot;,
+    &quot;show_keys&quot;: true,
+    &quot;key_width&quot;: 12,
     &quot;theme&quot;: &quot;berlin&quot;,
     &quot;layout&quot;: &quot;pacman&quot;,
     &quot;header_icons&quot;: [&quot;ᗧ&quot;, &quot;ᗣ&quot;, &quot;ᗣ&quot;],

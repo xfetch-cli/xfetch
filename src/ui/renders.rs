@@ -293,9 +293,13 @@ pub fn render_section(nodes: &[RenderNode], config: &Config) -> Vec<String> {
                             ));
                         } else {
                             let key_color = get_color_code(key, config);
+                            let key_display = match config.key_width {
+                                Some(w) => format!("{:width$}:", key, width = w),
+                                None => format!("{}:", key),
+                            };
                             lines.push(format!(
-                                "\x1b[{}m│\x1b[0m \x1b[{}m{} {}:\x1b[0m {}",
-                                SECTION_COLOR, key_color, icon, key, value
+                                "\x1b[{}m│\x1b[0m \x1b[{}m{} {}\x1b[0m {}",
+                                SECTION_COLOR, key_color, icon, key_display, value
                             ));
                         }
                     }
@@ -463,18 +467,26 @@ pub fn render_compact(nodes: &[RenderNode], config: &Config) -> Vec<String> {
     lines
 }
 
-pub fn render_minimal(nodes: &[RenderNode], _config: &Config) -> Vec<String> {
+pub fn render_minimal(nodes: &[RenderNode], config: &Config) -> Vec<String> {
     let mut lines = Vec::new();
     for node in nodes {
         match node {
             RenderNode::Line { key, value, .. } => {
-                lines.push(format!("{}: {}", key, value));
+                let k = match config.key_width {
+                    Some(w) => format!("{:width$}", key, width = w),
+                    None => key.clone(),
+                };
+                lines.push(format!("{}: {}", k, value));
             }
             RenderNode::Group { title, children } => {
                 lines.push(format!("-- {} --", title));
                 for child in children {
                     if let RenderNode::Line { key, value, .. } = child {
-                        lines.push(format!("{}: {}", key, value));
+                        let k = match config.key_width {
+                            Some(w) => format!("{:width$}", key, width = w),
+                            None => key.clone(),
+                        };
+                        lines.push(format!("{}: {}", k, value));
                     }
                 }
             }
@@ -487,6 +499,15 @@ pub fn format_line(key: &str, value: &str, icon: &str, config: &Config) -> Strin
     let color_code = get_color_code(key, config);
     if icon.is_empty() && key.starts_with("plugin:") {
         format!("\x1b[{}m{}\x1b[0m", color_code, value)
+    } else if config.show_keys && !key.is_empty() {
+        format!(
+            "\x1b[{}m{} \x1b[0m\x1b[{}m{}\x1b[0m{}",
+            color_code,
+            icon,
+            color_code,
+            format_key(key, config),
+            value
+        )
     } else {
         format!("\x1b[{}m{} \x1b[0m{}", color_code, icon, value)
     }
@@ -502,7 +523,11 @@ pub fn get_color_code(key: &str, config: &Config) -> &'static str {
         .get(key)
         .map(|s| s.as_str())
         .unwrap_or("White");
-    match color_name.to_lowercase().as_str() {
+    color_code_from_name(color_name)
+}
+
+pub fn color_code_from_name(name: &str) -> &'static str {
+    match name.to_lowercase().as_str() {
         "black" => "30",
         "red" => "31",
         "green" => "32",
@@ -514,6 +539,37 @@ pub fn get_color_code(key: &str, config: &Config) -> &'static str {
         "grey" | "gray" => "90",
         _ => "37",
     }
+}
+
+/// Resolves a color value to an SGR parameter string.
+/// Supports names (`"Cyan"`), 256-color indexes (`"196"`, `"0"`-`"255"`)
+/// and hex RGB (`"#FF0000"`).
+pub fn color_sgr(value: &str) -> String {
+    let v = value.trim();
+    if let Some(hex) = v.strip_prefix('#') {
+        let parse = |s: &str| u8::from_str_radix(s, 16).ok();
+        if hex.len() == 6 {
+            if let (Some(r), Some(g), Some(b)) = (parse(&hex[0..2]), parse(&hex[2..4]), parse(&hex[4..6])) {
+                return format!("38;2;{};{};{}", r, g, b);
+            }
+        }
+        return "37".to_string();
+    }
+    if !v.is_empty() && v.chars().all(|c| c.is_ascii_digit()) {
+        if let Ok(n) = v.parse::<u8>() {
+            return format!("38;5;{}", n);
+        }
+        return "37".to_string();
+    }
+    color_code_from_name(v).to_string()
+}
+
+pub fn format_key(key: &str, config: &Config) -> String {
+    let k = match config.key_width {
+        Some(w) => format!("{:width$}", key, width = w),
+        None => key.to_string(),
+    };
+    format!("{}: ", k)
 }
 
 //tests
@@ -582,6 +638,26 @@ mod tests {
         assert!(joined.contains("│"));
         assert!(joined.contains("╰"));
         assert_eq!(strip_ansi_codes(&lines[1]).chars().count(), strip_ansi_codes(&lines[0]).chars().count());
+    }
+
+    #[test]
+    fn test_format_line_with_keys() {
+        let mut config = Config::default();
+        config.show_keys = true;
+        config.key_width = Some(10);
+        let line = format_line("cpu", "Apple M4", "\u{f2db}", &config);
+        assert!(line.contains("cpu"));
+        assert!(line.contains("Apple M4"));
+        let stripped = strip_ansi_codes(&line);
+        assert!(stripped.contains("cpu       : "));
+        assert!(stripped.contains("\u{f2db}"));
+    }
+
+    #[test]
+    fn test_format_line_no_keys_by_default() {
+        let config = Config::default();
+        let line = format_line("cpu", "Apple M4", "\u{f2db}", &config);
+        assert!(!line.contains("cpu"));
     }
 
     #[test]

@@ -13,6 +13,14 @@
 ### Section-Box Layout (`"layout": "section-box"`)
 
 - New layout that renders a bordered box per module group: `╭─ Title ─╮` header, `│` rows, `╰───╯` footer, with the title embedded in the top border.
+
+### Keys and Logo Options
+
+- New `show_keys` config option (default `false`): renders `key: value` in the icon-style layouts (classic, section, compact, custom-x, box variants) instead of only the icon — opt-in, no visual change for existing configs.
+- New `key_width` config option: pads the key to a fixed number of columns so values align vertically (applies wherever keys are shown, including `section` and `minimal`).
+- New logo options: `logo_color` (ANSI color name applied to the ASCII logo), `logo_padding` (leading spaces before the logo), and `logo_type` (`"auto"` by extension, `"ascii"` forces text rendering, `"image"` forces image rendering).
+- `logo_color` now supports names (`"Cyan"`), 256-color indexes (`"196"`), and hex RGB (`"#FF0000"`) via the new `color_sgr()` helper, and it also applies to animated logos (plugin frames) through the new `logo::apply_logo_style()` — previously animation frames bypassed the color.
+- Added `color_code_from_name()` helper in `src/ui/renders.rs` and unit tests for keys and logo options (61 tests total).
 - Each box measures its own content width (ANSI-stripped) so borders align per group; groups are separated by a blank line.
 - Nested groups render as boxes inside boxes (recursive `render_group_box`); top-level modules outside groups render as plain lines.
 - Added `render_section_box()`, `render_group_box()`, `render_section_row()` in `src/ui/renders.rs` and registered the layout in `src/ui/layout.rs` — existing layouts are untouched.

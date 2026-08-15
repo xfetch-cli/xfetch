@@ -127,6 +127,8 @@ fn prepare_frames(
         return None;
     }
 
+    logo::apply_logo_style(&mut frames, config);
+
     if !config.show_colors {
         for frame in &mut frames {
             frame.lines = frame
