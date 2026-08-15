@@ -6,6 +6,8 @@ mod types;
 use std::env;
 use std::path::{Path, PathBuf};
 
+use crate::config::{config_dir, config_search_dirs};
+
 pub use install::install_extension;
 pub use manage::{list_extensions, remove_extension};
 pub use runner::run_config_provider;
@@ -16,8 +18,7 @@ pub const DEFAULT_EXTENSION_REPO: &str = "https://github.com/xfetch-cli/extensio
 const EXE_EXT: &str = ".exe";
 
 pub fn default_extension_dir() -> PathBuf {
-    let config_dir = dirs::config_dir().unwrap_or_else(|| PathBuf::from("."));
-    config_dir.join("xfetch").join("extensions")
+    config_dir().join("xfetch").join("extensions")
 }
 
 pub fn extension_binary_name(name: &str) -> String {
@@ -43,17 +44,19 @@ fn extract_extension_name(path: &Path) -> Option<String> {
 
 pub fn find_extension_binary(name: &str) -> Option<PathBuf> {
     let binary_name = extension_binary_name(name);
-    let config_dir = dirs::config_dir().unwrap_or_else(|| PathBuf::from("."));
-    let xfetch_dir = config_dir.join("xfetch");
 
-    let in_extensions = xfetch_dir.join("extensions").join(&binary_name);
-    if in_extensions.is_file() {
-        return Some(in_extensions);
-    }
+    for config_dir in config_search_dirs() {
+        let xfetch_dir = config_dir.join("xfetch");
 
-    let in_plugins = xfetch_dir.join("plugins").join(&binary_name);
-    if in_plugins.is_file() {
-        return Some(in_plugins);
+        let in_extensions = xfetch_dir.join("extensions").join(&binary_name);
+        if in_extensions.is_file() {
+            return Some(in_extensions);
+        }
+
+        let in_plugins = xfetch_dir.join("plugins").join(&binary_name);
+        if in_plugins.is_file() {
+            return Some(in_plugins);
+        }
     }
 
     if let Ok(path) = env::var("PATH") {

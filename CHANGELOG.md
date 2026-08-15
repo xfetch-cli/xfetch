@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-15 — v0.4.0
+
+### XDG_CONFIG_HOME Support (macOS fix)
+
+- Added `config_dir()` helper in `src/config.rs`: prefers an absolute `XDG_CONFIG_HOME`, falling back to `dirs::config_dir()` — on macOS with `XDG_CONFIG_HOME` set, configs are now read directly from `~/.config/xfetch/` instead of `~/Library/Application Support/xfetch/`.
+- Applied the helper to `default_config_path()`, `default_themes_dir()`, `resolve_theme_path()`, plugin lookup (`default_plugin_dir`), extension lookup (`default_extension_dir`, `find_extension_binary`), and daemon state files (`daemon.pid`, `daemon.rows`).
+- Added `config_search_dirs()`: looks up the XDG dir first, then falls back to the platform default dir. `find_plugin_binary()`, `find_extension_binary()`, and `resolve_theme_path()` search both, so existing installs in the legacy dir keep working without reinstalling.
+- Fixed daemon silent exit on macOS: with `XDG_CONFIG_HOME` set, the daemon previously could not find plugins installed in the legacy dir, so `prepare_frames()` returned `None` and `--daemon` exited with code 0 without forking. The legacy-dir fallback restores plugin discovery.
+- Behavior on Linux and Windows is unchanged: without `XDG_CONFIG_HOME`, `config_search_dirs()` resolves to a single directory (the same one `dirs::config_dir()` returns).
+
 ## 2026-08-13 — v0.4.0
 
 ### Daemon Mode (`--daemon`)

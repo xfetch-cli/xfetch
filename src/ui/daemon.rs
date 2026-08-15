@@ -1,4 +1,4 @@
-use crate::config::Config;
+use crate::config::{Config, config_dir};
 use crate::info::Info;
 use crate::plugins::{AnimationFrame, run_logo_animation_plugin};
 use crate::ui::frames::load_animation_frames;
@@ -31,13 +31,11 @@ fn install_signal_handlers() {
 }
 
 fn pid_file_path() -> PathBuf {
-    let config_dir = dirs::config_dir().unwrap_or_else(|| PathBuf::from("."));
-    config_dir.join("xfetch").join("daemon.pid")
+    config_dir().join("xfetch").join("daemon.pid")
 }
 
 fn rows_file_path() -> PathBuf {
-    let config_dir = dirs::config_dir().unwrap_or_else(|| PathBuf::from("."));
-    config_dir.join("xfetch").join("daemon.rows")
+    config_dir().join("xfetch").join("daemon.rows")
 }
 
 fn write_pid_file(pid: i32) {

@@ -5,6 +5,8 @@ pub mod run;
 use std::env;
 use std::path::{Path, PathBuf};
 
+use crate::config::{config_dir, config_search_dirs};
+
 pub use install::install_plugin;
 pub use manage::{list_plugins, remove_plugin};
 pub use run::{run_info_plugin, run_logo_animation_plugin};
@@ -28,8 +30,7 @@ const ENV_CARGO_NET_GIT_FETCH_WITH_CLI: &str = "CARGO_NET_GIT_FETCH_WITH_CLI";
 pub const DEFAULT_PLUGIN_REPO: &str = "https://github.com/xfetch-cli/plugins.git";
 
 pub fn default_plugin_dir() -> PathBuf {
-    let config_dir = dirs::config_dir().unwrap_or_else(|| PathBuf::from("."));
-    config_dir.join(CONFIG_DIR_NAME).join(LEGACY_PLUGINS_DIR)
+    config_dir().join(CONFIG_DIR_NAME).join(LEGACY_PLUGINS_DIR)
 }
 
 pub fn default_plugin_repo() -> String {
@@ -136,10 +137,14 @@ pub fn find_plugin_binary(plugin_name: &str) -> Option<PathBuf> {
         return Some(path);
     }
 
-    let config_dir = default_plugin_dir();
-    let in_config_dir = config_dir.join(&binary_name);
-    if in_config_dir.is_file() {
-        return Some(in_config_dir);
+    for config_dir in config_search_dirs() {
+        let in_config_dir = config_dir
+            .join(CONFIG_DIR_NAME)
+            .join(LEGACY_PLUGINS_DIR)
+            .join(&binary_name);
+        if in_config_dir.is_file() {
+            return Some(in_config_dir);
+        }
     }
 
     if let Ok(cwd) = env::current_dir() {

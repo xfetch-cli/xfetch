@@ -165,19 +165,42 @@ fn deep_merge(base: &mut Value, overlay: &Value) {
     }
 }
 
+pub fn config_search_dirs() -> Vec<PathBuf> {
+    let mut dirs: Vec<PathBuf> = Vec::new();
+    if let Some(xdg) = std::env::var_os("XDG_CONFIG_HOME")
+        .map(PathBuf::from)
+        .filter(|p| p.is_absolute())
+    {
+        dirs.push(xdg);
+    }
+    let legacy = dirs::config_dir().unwrap_or_else(|| PathBuf::from("."));
+    if !dirs.contains(&legacy) {
+        dirs.push(legacy);
+    }
+    dirs
+}
+
+pub fn config_dir() -> PathBuf {
+    config_search_dirs()
+        .into_iter()
+        .next()
+        .unwrap_or_else(|| PathBuf::from("."))
+}
+
 pub fn resolve_theme_path(theme: &str) -> Option<PathBuf> {
     let theme_path = PathBuf::from(theme);
     if theme_path.is_file() {
         return Some(theme_path);
     }
 
-    let config_dir = dirs::config_dir().unwrap_or_else(|| PathBuf::from("."));
-    let in_themes_dir = config_dir
-        .join("xfetch")
-        .join("themes")
-        .join(format!("{}.jsonc", theme));
-    if in_themes_dir.is_file() {
-        return Some(in_themes_dir);
+    for config_dir in config_search_dirs() {
+        let in_themes_dir = config_dir
+            .join("xfetch")
+            .join("themes")
+            .join(format!("{}.jsonc", theme));
+        if in_themes_dir.is_file() {
+            return Some(in_themes_dir);
+        }
     }
 
     None
@@ -233,13 +256,11 @@ pub fn load_config(path: Option<String>) -> Config {
 }
 
 pub fn default_config_path() -> PathBuf {
-    let config_dir = dirs::config_dir().unwrap_or_else(|| PathBuf::from("."));
-    config_dir.join("xfetch").join("config.jsonc")
+    config_dir().join("xfetch").join("config.jsonc")
 }
 
 pub fn default_themes_dir() -> PathBuf {
-    let config_dir = dirs::config_dir().unwrap_or_else(|| PathBuf::from("."));
-    config_dir.join("xfetch").join("themes")
+    config_dir().join("xfetch").join("themes")
 }
 
 pub fn generate_config(path: Option<String>) -> std::io::Result<PathBuf> {
