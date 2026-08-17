@@ -1,5 +1,32 @@
 # Changelog
 
+## 2026-08-17 — v0.4.0
+
+### External Command Timeouts (hang fix)
+
+- Fixed xfetch hanging before rendering on systems where `snap` is installed but the snapd daemon is not running (e.g., WSL): `snap list` blocks forever on the snapd socket, and `count_packages_linux()` waited on that thread inside `thread::scope`, so the whole fetch never printed.
+- Added `run_cmd_with_timeout()` in `src/info/platform/shared/commands.rs`: runs a command with piped stdout/stderr and a deadline, kills the process when it expires and returns `None` instead of blocking forever; stdin is closed (`Stdio::null`) so commands can no longer wait on terminal input.
+- Timeouts are per command, carried as a `(&str, &[&str], Duration)` tuple (`PackageCheck`), so each platform tunes its own commands independently: `snap` 3 s (the pathological case), package managers (`pacman`, `dpkg`, `rpm`, `flatpak`, `apk`, `nix-env`, `brew`, `scoop`, `choco`) 10 s, hardware probes (`lspci`, `pmset`, `wmic`, `powershell`) 10 s, `system_profiler` 30 s (macOS, notoriously slow), `date` 10 s.
+- Windows: the `wmic` → `powershell` GPU/battery fallback now also triggers when `wmic` times out (previously only on spawn errors).
+- Added cross-platform test `test_cmd_timeout_kills_hanging_command` (`sleep` on Unix, `timeout` on Windows) proving a hanging command is killed within the deadline — 62 tests total, all passing.
+- No config, layout, theme, plugin, extension, or daemon behavior was changed.
+
+### Platform Separation (`src/info/platform/`)
+
+- New per-OS folder structure: `src/info/platform/{linux,macos,windows}/` plus `shared/` for platform-agnostic machinery — the first step toward per-platform code that is only compiled on its own OS.
+- Contract: every OS folder exposes the same functions (`get_gpu_info()`, `get_battery_info()`, `get_datetime_info()`, `get_packages_breakdown()`), and `platform/mod.rs` re-exports the active one via `#[cfg(target_os)]`; the rest of the code calls `info::*` and never sees the OS.
+- Moved GPU detection (lspci / system_profiler / wmic+powershell), battery (sysfs / pmset / wmic), datetime (date / powershell) and the per-OS package-manager tables into their platform folders.
+- `shared/` keeps only the mechanism: `commands.rs` (command runner with timeout) and `packages.rs` (probe runner, `PackageCheck` type, per-command timeouts, `get_packages_info`).
+- `hardware.rs` now holds only cross-platform sysinfo probes (cpu, memory, swap, disk); `software.rs` only env-var detection (shell, terminal, desktop, user); `system.rs` only sysinfo/network probes (os, kernel, hostname, uptime, IPs).
+- The unused `Components` battery probe was dropped (the battery value no longer depends on it).
+- Tests moved with the code: per-OS detector tests (`test_linux/macos/windows_detectors_safe`), per-OS datetime tests, package-machinery tests in `shared/packages.rs`, and command-runner tests in `shared/commands.rs`.
+
+### Local CI
+
+- Added `scripts/ci.sh` (Linux/macOS) and `scripts/ci.ps1` (Windows): run `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings` and `cargo test` locally.
+- GitHub Actions workflows (`rust-tests.yml`, `roadmap-sync.yml`) now trigger only manually (`workflow_dispatch`) — no runs on push.
+- Fixed pre-existing rustfmt drift (`cargo fmt --all`) and clippy warnings in `ui/logo.rs`, `ui/nodes.rs`, `ui/renders.rs`, `ui/daemon.rs` so the local CI passes cleanly.
+
 ## 2026-08-15 — v0.4.0
 
 ### XDG_CONFIG_HOME Support (macOS fix)

@@ -1,4 +1,4 @@
-use crate::extensions::{default_extension_dir, extract_extension_name, extension_binary_name};
+use crate::extensions::{default_extension_dir, extension_binary_name, extract_extension_name};
 use std::fs;
 use std::path::PathBuf;
 

@@ -1,5 +1,5 @@
-use crate::extensions::types::{ConfigProviderRequest, ConfigProviderResponse};
 use crate::extensions::find_extension_binary;
+use crate::extensions::types::{ConfigProviderRequest, ConfigProviderResponse};
 use serde_json::Value;
 use std::io::Write;
 use std::process::{Command, Stdio};
@@ -9,9 +9,8 @@ pub fn run_config_provider(
     args: Option<Value>,
     current_config: &Value,
 ) -> Result<Value, String> {
-    let extension_path = find_extension_binary(extension_name).ok_or_else(|| {
-        format!("Extension not found: {}", extension_name)
-    })?;
+    let extension_path = find_extension_binary(extension_name)
+        .ok_or_else(|| format!("Extension not found: {}", extension_name))?;
 
     let request = ConfigProviderRequest::new(current_config.clone(), args);
 

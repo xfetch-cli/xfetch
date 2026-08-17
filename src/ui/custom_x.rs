@@ -187,7 +187,10 @@ pub fn render_custom_x(
         .divider_between
         .clone()
         .unwrap_or_else(|| "groups".to_string());
-    let top_tpl = cx.top.clone().unwrap_or_else(|| "╭─ {title}{fill}╮".to_string());
+    let top_tpl = cx
+        .top
+        .clone()
+        .unwrap_or_else(|| "╭─ {title}{fill}╮".to_string());
     let bottom_tpl = cx.bottom.clone().unwrap_or_else(|| "╰{fill}╯".to_string());
 
     let mut rows: Vec<Row> = Vec::new();
@@ -204,13 +207,7 @@ pub fn render_custom_x(
     for node in nodes {
         match node {
             RenderNode::Group { title, children } => {
-                append_group_rows(
-                    &mut rows,
-                    title,
-                    children,
-                    &ctx,
-                    &mut last_was_divider,
-                );
+                append_group_rows(&mut rows, title, children, &ctx, &mut last_was_divider);
             }
             RenderNode::Line { key, value, icon } => {
                 if !module_top_tpl.is_empty() {
@@ -265,9 +262,9 @@ pub fn render_custom_x(
 
     let stretch = match &cx.width {
         Some(CustomXWidth::Fixed(n)) => Some(*n),
-        Some(CustomXWidth::Mode(m)) if m == "full" => available_width.map(|w| {
-            w.saturating_sub(cx.full_margin.unwrap_or(2))
-        }),
+        Some(CustomXWidth::Mode(m)) if m == "full" => {
+            available_width.map(|w| w.saturating_sub(cx.full_margin.unwrap_or(2)))
+        }
         _ => None,
     };
     if let Some(w) = stretch {

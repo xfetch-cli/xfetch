@@ -4,7 +4,7 @@ use crate::config::Config;
 use console::strip_ansi_codes;
 use crossterm::execute;
 use crossterm::terminal::size;
-use std::io::{stdout, Write};
+use std::io::{Write, stdout};
 use viuer::{Config as ViuerConfig, print_from_file};
 
 const IMAGE_EXTENSIONS: [&str; 4] = [".png", ".jpg", ".jpeg", ".svg"];
@@ -73,11 +73,9 @@ pub fn get_logo_data(config: &Config) -> (Vec<String>, bool, usize, usize) {
                 crossterm::cursor::MoveToColumn(0)
             );
             let _ = stdout.flush();
-        } else {
-            if let Ok(content) = std::fs::read_to_string(&path) {
-                for line in content.lines() {
-                    ascii_lines.push(line.to_string());
-                }
+        } else if let Ok(content) = std::fs::read_to_string(&path) {
+            for line in content.lines() {
+                ascii_lines.push(line.to_string());
             }
         }
     } else if let Some(path_str) = &config.ascii {
@@ -130,10 +128,10 @@ pub fn apply_logo_style(frames: &mut [xfetch_plugin_api::AnimationFrame], config
             if pad > 0 {
                 *line = format!("{}{}", " ".repeat(pad), line);
             }
-            if let Some(code) = &color {
-                if !line.contains('\u{1b}') {
-                    *line = format!("\x1b[{}m{}\x1b[0m", code, line);
-                }
+            if let Some(code) = &color
+                && !line.contains('\u{1b}')
+            {
+                *line = format!("\x1b[{}m{}\x1b[0m", code, line);
             }
         }
     }
@@ -155,16 +153,20 @@ mod tests {
 
     #[test]
     fn test_get_logo_data_color() {
-        let mut config = Config::default();
-        config.logo_color = Some("Cyan".to_string());
+        let config = Config {
+            logo_color: Some("Cyan".to_string()),
+            ..Config::default()
+        };
         let (ascii_lines, _, _, _) = get_logo_data(&config);
         assert!(ascii_lines.iter().all(|l| l.starts_with("\x1b[36m")));
     }
 
     #[test]
     fn test_get_logo_data_padding() {
-        let mut config = Config::default();
-        config.logo_padding = Some(3);
+        let config = Config {
+            logo_padding: Some(3),
+            ..Config::default()
+        };
         let (ascii_lines, _, width, _) = get_logo_data(&config);
         assert!(ascii_lines.iter().all(|l| l.starts_with("   ")));
         assert!(width >= 3);
@@ -173,8 +175,10 @@ mod tests {
     #[test]
     fn test_apply_logo_style_colors_frames() {
         use xfetch_plugin_api::AnimationFrame;
-        let mut config = Config::default();
-        config.logo_color = Some("196".to_string());
+        let config = Config {
+            logo_color: Some("196".to_string()),
+            ..Config::default()
+        };
         let mut frames = vec![AnimationFrame {
             delay_ms: 10,
             lines: vec!["  hello".to_string(), "\x1b[31mstyled\x1b[0m".to_string()],

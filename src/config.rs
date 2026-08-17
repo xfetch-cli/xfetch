@@ -171,7 +171,9 @@ fn deep_merge(base: &mut Value, overlay: &Value) {
                 }
             }
         }
-        (Value::String(base_str), Value::String(overlay_str)) if overlay_str.is_empty() && !base_str.is_empty() => {
+        (Value::String(base_str), Value::String(overlay_str))
+            if overlay_str.is_empty() && !base_str.is_empty() =>
+        {
             // Don't replace a non-empty string with an empty one
         }
         (base, overlay) => *base = overlay.clone(),
@@ -258,7 +260,9 @@ pub fn load_config(path: Option<String>) -> Config {
     if !config_providers.is_empty() {
         let mut current = serde_json::to_value(&config).unwrap_or_default();
         for provider in &config_providers {
-            if let Ok(modified) = run_config_provider(&provider.extension, provider.args.clone(), &current) {
+            if let Ok(modified) =
+                run_config_provider(&provider.extension, provider.args.clone(), &current)
+            {
                 current = modified;
             }
         }

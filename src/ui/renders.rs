@@ -24,7 +24,10 @@ pub fn render_classic(nodes: &[RenderNode], config: &Config) -> Vec<String> {
             RenderNode::Line { key, value, icon } => {
                 if icon.is_empty() && key.starts_with("plugin:") {
                     let color_code = get_color_code(key, config);
-                    lines.push(format!("\x1b[{}m│\x1b[0m \x1b[{}m{}\x1b[0m", SECTION_COLOR, color_code, value));
+                    lines.push(format!(
+                        "\x1b[{}m│\x1b[0m \x1b[{}m{}\x1b[0m",
+                        SECTION_COLOR, color_code, value
+                    ));
                 } else if icon.is_empty() {
                     lines.push(format!("\x1b[{}m│\x1b[0m {}", SECTION_COLOR, value));
                 } else {
@@ -398,7 +401,13 @@ fn render_group_box(title: &str, children: &[RenderNode], config: &Config) -> Ve
     lines
 }
 
-fn render_section_row(key: &str, value: &str, icon: &str, config: &Config, indent: usize) -> String {
+fn render_section_row(
+    key: &str,
+    value: &str,
+    icon: &str,
+    config: &Config,
+    indent: usize,
+) -> String {
     if icon.is_empty() && key.is_empty() {
         value.to_string()
     } else if icon.is_empty() && key.starts_with("plugin:") {
@@ -408,7 +417,9 @@ fn render_section_row(key: &str, value: &str, icon: &str, config: &Config, inden
         let color_code = get_color_code(key, config);
         format!(
             "\x1b[{}m{:indent$}\x1b[0m{}",
-            color_code, "", value,
+            color_code,
+            "",
+            value,
             indent = indent
         )
     } else {
@@ -548,10 +559,11 @@ pub fn color_sgr(value: &str) -> String {
     let v = value.trim();
     if let Some(hex) = v.strip_prefix('#') {
         let parse = |s: &str| u8::from_str_radix(s, 16).ok();
-        if hex.len() == 6 {
-            if let (Some(r), Some(g), Some(b)) = (parse(&hex[0..2]), parse(&hex[2..4]), parse(&hex[4..6])) {
-                return format!("38;2;{};{};{}", r, g, b);
-            }
+        if hex.len() == 6
+            && let (Some(r), Some(g), Some(b)) =
+                (parse(&hex[0..2]), parse(&hex[2..4]), parse(&hex[4..6]))
+        {
+            return format!("38;2;{};{};{}", r, g, b);
         }
         return "37".to_string();
     }
@@ -637,14 +649,19 @@ mod tests {
         assert!(joined.contains("╭─ Software"));
         assert!(joined.contains("│"));
         assert!(joined.contains("╰"));
-        assert_eq!(strip_ansi_codes(&lines[1]).chars().count(), strip_ansi_codes(&lines[0]).chars().count());
+        assert_eq!(
+            strip_ansi_codes(&lines[1]).chars().count(),
+            strip_ansi_codes(&lines[0]).chars().count()
+        );
     }
 
     #[test]
     fn test_format_line_with_keys() {
-        let mut config = Config::default();
-        config.show_keys = true;
-        config.key_width = Some(10);
+        let config = Config {
+            show_keys: true,
+            key_width: Some(10),
+            ..Config::default()
+        };
         let line = format_line("cpu", "Apple M4", "\u{f2db}", &config);
         assert!(line.contains("cpu"));
         assert!(line.contains("Apple M4"));

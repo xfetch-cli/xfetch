@@ -57,9 +57,7 @@ pub fn install_extension(name_or_path: &str, repo: Option<&str>) -> Result<(), S
             let repo_url = repo.unwrap_or(default_repo);
             install_remote_extension(name_or_path, repo_url)
         }
-        Err(_) => {
-            install_remote_extension(name_or_path, DEFAULT_EXTENSION_REPO)
-        }
+        Err(_) => install_remote_extension(name_or_path, DEFAULT_EXTENSION_REPO),
     }
 }
 

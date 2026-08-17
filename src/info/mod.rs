@@ -1,4 +1,5 @@
 pub mod hardware;
+pub mod platform;
 pub mod software;
 pub mod system;
 
@@ -8,15 +9,15 @@ use crate::plugins::run_info_plugin;
 use std::collections::{HashMap, HashSet};
 use std::thread;
 use std::time::{Duration, Instant};
-use sysinfo::{Components, Disks, Networks, System};
+use sysinfo::{Disks, Networks, System};
 
-pub use hardware::get_gpu_info;
-pub use software::{get_packages_breakdown, get_packages_info};
-pub use system::{get_datetime_info, get_host_name, get_kernel_info, get_os_info, get_uptime_info};
+pub use platform::shared::packages::get_packages_info;
+pub use platform::{get_battery_info, get_datetime_info, get_gpu_info, get_packages_breakdown};
+pub use system::{get_host_name, get_kernel_info, get_os_info, get_uptime_info};
 
 const BYTES_PER_GIB: f64 = 1024.0 * 1024.0 * 1024.0;
 
-fn unknown() -> String {
+pub(crate) fn unknown() -> String {
     "Unknown".to_string()
 }
 
@@ -106,12 +107,6 @@ impl Info {
 
         let networks = if needs_network(&needed) {
             Some(Networks::new_with_refreshed_list())
-        } else {
-            None
-        };
-
-        let components = if needed.contains("battery") {
-            Some(Components::new_with_refreshed_list())
         } else {
             None
         };
@@ -218,10 +213,11 @@ impl Info {
                     .as_ref()
                     .map(hardware::get_disk_info)
                     .unwrap_or_default(),
-                battery: components
-                    .as_ref()
-                    .map(hardware::get_battery_info)
-                    .unwrap_or_else(|| "N/A".to_string()),
+                battery: if needed.contains("battery") {
+                    get_battery_info()
+                } else {
+                    "N/A".to_string()
+                },
                 uptime: get_uptime_info(),
                 packages,
                 packages_breakdown,
@@ -276,8 +272,7 @@ mod tests {
 
     #[test]
     fn test_get_battery_info_fallback() {
-        use sysinfo::Components;
-        let battery = hardware::get_battery_info(&Components::new_with_refreshed_list());
+        let battery = get_battery_info();
         assert!(battery.contains('%') || battery == "N/A");
     }
 

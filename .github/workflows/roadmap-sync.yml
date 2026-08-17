@@ -1,13 +1,7 @@
 name: Sync Roadmap with Issues
 
 on:
-  push:
-    paths:
-      - 'ROADMAP.md'
-    branches:
-      - main
-
-  # Allow manual trigger
+  # Manual trigger only — no runs on push.
   workflow_dispatch:
 
 permissions:

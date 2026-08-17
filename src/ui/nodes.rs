@@ -30,11 +30,13 @@ pub enum RenderNode {
 fn extract_plugin_icon_and_value(line: &str) -> (String, String) {
     if let Some(first_char) = line.chars().next() {
         let c = first_char as u32;
-        let is_private = (0xE000..=0xF8FF).contains(&c) || (0xF0000..=0xFFFFD).contains(&c) || (0x100000..=0x10FFFD).contains(&c);
+        let is_private = (0xE000..=0xF8FF).contains(&c)
+            || (0xF0000..=0xFFFFD).contains(&c)
+            || (0x100000..=0x10FFFD).contains(&c);
         if is_private && line.len() > first_char.len_utf8() {
             let rest = &line[first_char.len_utf8()..];
-            if rest.starts_with(' ') {
-                return (first_char.to_string(), rest[1..].to_string());
+            if let Some(rest) = rest.strip_prefix(' ') {
+                return (first_char.to_string(), rest.to_string());
             }
             return (first_char.to_string(), rest.to_string());
         }

@@ -140,7 +140,11 @@ pub fn print_output(
     }
 
     let text_height = content_lines.len();
-    let logo_height = if image_printed { image_height } else { ascii_lines.len() };
+    let logo_height = if image_printed {
+        image_height
+    } else {
+        ascii_lines.len()
+    };
     let max_lines = std::cmp::max(logo_height, text_height);
 
     for i in 0..max_lines {
@@ -216,11 +220,7 @@ pub fn render_frame(
     force_plain_logo: bool,
 ) {
     for i in 0..geometry.max_lines {
-        let ascii_line = frame
-            .lines
-            .get(i)
-            .map(|line| line.as_str())
-            .unwrap_or("");
+        let ascii_line = frame.lines.get(i).map(|line| line.as_str()).unwrap_or("");
         print_logo_line(
             out,
             ascii_line,
@@ -274,7 +274,14 @@ pub(crate) fn print_animated_output(
             let _ = execute!(out, Clear(ClearType::FromCursorDown));
         }
 
-        render_frame(&mut out, frame, &geometry, content_lines, config, force_plain_logo);
+        render_frame(
+            &mut out,
+            frame,
+            &geometry,
+            content_lines,
+            config,
+            force_plain_logo,
+        );
 
         let delay = std::cmp::max(MIN_FRAME_DELAY_MS, frame.delay_ms);
         std::thread::sleep(Duration::from_millis(delay));
@@ -363,7 +370,13 @@ fn append_daemon_row(
     config: &Config,
     force_plain_logo: bool,
 ) {
-    append_logo_line(buf, ascii_line, geometry.max_logo_width, config, force_plain_logo);
+    append_logo_line(
+        buf,
+        ascii_line,
+        geometry.max_logo_width,
+        config,
+        force_plain_logo,
+    );
     let _ = Print(LOGO_INFO_GAP).write_ansi(buf);
     if let Some(line) = content_line {
         let line = truncate_line(line, geometry.available_content_width);
@@ -458,7 +471,8 @@ pub fn print_daemon_output(
         }
 
         let frame = &frames[frame_index];
-        let buffer = build_daemon_frame_buffer(frame, &state, content_lines, config, force_plain_logo);
+        let buffer =
+            build_daemon_frame_buffer(frame, &state, content_lines, config, force_plain_logo);
         let _ = out.write_all(buffer.as_bytes());
         let _ = out.flush();
 

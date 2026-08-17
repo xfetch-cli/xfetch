@@ -1,8 +1,9 @@
 name: Rust Tests
+
 on:
-  push:
-    branches:
-      - main
+  # Local-only CI (ci.sh / ci.ps1). Runs here only when triggered manually.
+  workflow_dispatch:
+
 jobs:
   test:
     runs-on: ubuntu-latest

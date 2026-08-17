@@ -1,13 +1,7 @@
 use std::io::{BufReader, Read, Write};
 use std::net::{TcpStream, ToSocketAddrs};
-use std::process::Command;
 use std::time::Duration;
 use sysinfo::{Networks, System};
-
-const POWERSHELL_CMD: &str = "powershell";
-const DATE_CMD: &str = "date";
-const DATE_FMT_WIN: &str = "Get-Date -Format 'yyyy-MM-dd HH:mm:ss'";
-const DATE_FMT_UNIX: &str = "+%Y-%m-%d %H:%M:%S";
 
 pub fn get_os_info() -> String {
     let name = System::name().unwrap_or_else(super::unknown);
@@ -35,23 +29,6 @@ pub fn get_uptime_info() -> String {
     let hour_label = if hours == 1 { "hour" } else { "hours" };
     let min_label = if mins == 1 { "min" } else { "mins" };
     format!("{} {}, {} {}", hours, hour_label, mins, min_label)
-}
-
-pub fn get_datetime_info() -> String {
-    if cfg!(target_os = "windows") {
-        if let Ok(output) = Command::new(POWERSHELL_CMD)
-            .arg("-Command")
-            .arg(DATE_FMT_WIN)
-            .output()
-        {
-            return String::from_utf8_lossy(&output.stdout).trim().to_string();
-        }
-    } else {
-        if let Ok(output) = Command::new(DATE_CMD).arg(DATE_FMT_UNIX).output() {
-            return String::from_utf8_lossy(&output.stdout).trim().to_string();
-        }
-    }
-    super::unknown()
 }
 
 pub fn get_local_ip_info(networks: &Networks) -> String {
@@ -179,16 +156,6 @@ mod tests {
             uptime.contains("hour") || uptime.contains("min"),
             "uptime '{}' should contain hour or min",
             uptime
-        );
-    }
-
-    #[test]
-    fn test_get_datetime_info() {
-        let dt = get_datetime_info();
-        assert!(
-            dt.len() >= 10,
-            "datetime should be at least YYYY-MM-DD: got '{}'",
-            dt
         );
     }
 }

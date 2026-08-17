@@ -6,8 +6,8 @@ use crate::ui::layout;
 use crate::ui::logo;
 use crate::ui::nodes::prepare_render_tree;
 use crate::ui::print::{
-    build_daemon_frame_buffer, daemon_move_to_prompt, daemon_prepare, print_daemon_output,
-    restore_terminal, DaemonState, LOGO_INFO_GAP,
+    DaemonState, LOGO_INFO_GAP, build_daemon_frame_buffer, daemon_move_to_prompt, daemon_prepare,
+    print_daemon_output, restore_terminal,
 };
 use console::strip_ansi_codes;
 use std::io::{IsTerminal, Write, stdout};
@@ -99,7 +99,9 @@ fn prepare_frames(
     let nodes = prepare_render_tree(info, &config.modules, config);
     let (ascii_lines, image_printed, ascii_width, _image_height) = logo::get_logo_data(config);
 
-    let term_width = crossterm::terminal::size().map(|(w, _)| w as usize).unwrap_or(80);
+    let term_width = crossterm::terminal::size()
+        .map(|(w, _)| w as usize)
+        .unwrap_or(80);
     let gap_base = config.logo_gap.unwrap_or(12) as usize;
     let gap = console::measure_text_width(LOGO_INFO_GAP) + gap_base;
     let mut available_width = term_width.saturating_sub(ascii_width + gap);
@@ -109,12 +111,8 @@ fn prepare_frames(
 
     let content_lines = layout::get_content_lines(&nodes, config, Some(available_width));
 
-    let Some(animation_config) = &config.logo_animation else {
-        return None;
-    };
-    let Some(plugin_name) = animation_config.plugin.as_deref() else {
-        return None;
-    };
+    let animation_config = config.logo_animation.as_ref()?;
+    let plugin_name = animation_config.plugin.as_deref()?;
 
     let frame_sets = load_animation_frames(animation_config);
     let Ok(mut frames) =
@@ -150,8 +148,7 @@ fn prepare_frames(
 /// returns instantly. The child keeps rendering the animation loop pinned at
 /// the top of the terminal. Stop it with `--daemon-stop`.
 pub fn draw_daemon(info: &Info, config: &Config) {
-    let Some((frames, ascii_width, content_lines, force_plain_logo)) =
-        prepare_frames(info, config)
+    let Some((frames, ascii_width, content_lines, force_plain_logo)) = prepare_frames(info, config)
     else {
         return;
     };
@@ -163,7 +160,8 @@ pub fn draw_daemon(info: &Info, config: &Config) {
 
     let mut out = stdout();
 
-    let buffer = build_daemon_frame_buffer(&frames[0], &state, &content_lines, config, force_plain_logo);
+    let buffer =
+        build_daemon_frame_buffer(&frames[0], &state, &content_lines, config, force_plain_logo);
     let _ = out.write_all(buffer.as_bytes());
     daemon_move_to_prompt(&mut out, &state);
     let _ = out.flush();
@@ -186,7 +184,13 @@ pub fn draw_daemon(info: &Info, config: &Config) {
     INTERRUPTED.store(false, Ordering::SeqCst);
     install_signal_handlers();
 
-    print_daemon_output(&frames, ascii_width, &content_lines, config, force_plain_logo);
+    print_daemon_output(
+        &frames,
+        ascii_width,
+        &content_lines,
+        config,
+        force_plain_logo,
+    );
 
     remove_pid_file();
     restore_terminal();
