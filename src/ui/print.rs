@@ -1,13 +1,18 @@
 use crate::config::Config;
 use crate::plugins::AnimationFrame;
 use console::strip_ansi_codes;
+#[cfg(unix)]
 use crossterm::Command;
-use crossterm::cursor::{Hide, MoveTo, MoveToColumn, MoveUp, RestorePosition, SavePosition, Show};
+use crossterm::cursor::{Hide, MoveToColumn, MoveUp, Show};
+#[cfg(unix)]
+use crossterm::cursor::{MoveTo, RestorePosition, SavePosition};
 use crossterm::execute;
 use crossterm::style::{Color, Print, ResetColor, SetForegroundColor};
 use crossterm::terminal::size;
 use crossterm::terminal::{Clear, ClearType};
-use std::io::{Stdout, Write, stdout};
+#[cfg(unix)]
+use std::io::Write;
+use std::io::{Stdout, stdout};
 use std::time::{Duration, Instant};
 
 pub(crate) const LOGO_INFO_GAP: &str = "  ";
@@ -303,6 +308,7 @@ pub(crate) fn print_animated_output(
     let _ = execute!(out, Show);
 }
 
+#[cfg(unix)]
 pub struct DaemonState {
     pub geometry: FrameGeometry,
     pub block_height: u16,
@@ -310,6 +316,7 @@ pub struct DaemonState {
     pub scale: f64,
 }
 
+#[cfg(unix)]
 pub fn daemon_prepare(
     frames: &[AnimationFrame],
     ascii_width: usize,
@@ -337,10 +344,12 @@ pub fn daemon_prepare(
     }
 }
 
+#[cfg(unix)]
 pub fn daemon_move_to_prompt(out: &mut Stdout, state: &DaemonState) {
     let _ = execute!(out, MoveTo(0, state.block_height));
 }
 
+#[cfg(unix)]
 fn append_logo_line(
     buf: &mut String,
     ascii_line: &str,
@@ -362,6 +371,7 @@ fn append_logo_line(
     }
 }
 
+#[cfg(unix)]
 fn append_daemon_row(
     buf: &mut String,
     ascii_line: &str,
@@ -392,6 +402,7 @@ fn append_daemon_row(
 /// scroll region (the shell may reset it), draws each pinned row with absolute
 /// positioning, and finally restores the user's cursor — leaving it untouched
 /// so typed input is never yanked away.
+#[cfg(unix)]
 pub fn build_daemon_frame_buffer(
     frame: &AnimationFrame,
     state: &DaemonState,
@@ -427,6 +438,7 @@ pub fn build_daemon_frame_buffer(
     buf
 }
 
+#[cfg(unix)]
 fn scale_index(row: u16, source_len: usize, state: &DaemonState) -> usize {
     if source_len == 0 {
         return usize::MAX;
@@ -483,6 +495,7 @@ pub fn print_daemon_output(
     }
 }
 
+#[cfg(unix)]
 pub fn restore_terminal() {
     let _ = execute!(stdout(), Show);
     let _ = execute!(stdout(), ResetScrollRegion);
@@ -530,18 +543,32 @@ fn visible_width(value: &str) -> usize {
     console::measure_text_width(&stripped)
 }
 
+#[cfg(unix)]
 pub struct SetScrollRegion(pub u16, pub u16);
 
+#[cfg(unix)]
 impl crossterm::Command for SetScrollRegion {
     fn write_ansi(&self, f: &mut impl std::fmt::Write) -> std::fmt::Result {
         write!(f, "\x1b[{};{}r", self.0, self.1)
     }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        Ok(())
+    }
 }
 
+#[cfg(unix)]
 pub struct ResetScrollRegion;
 
+#[cfg(unix)]
 impl crossterm::Command for ResetScrollRegion {
     fn write_ansi(&self, f: &mut impl std::fmt::Write) -> std::fmt::Result {
         f.write_str("\x1b[r")
+    }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> std::io::Result<()> {
+        Ok(())
     }
 }

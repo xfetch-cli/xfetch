@@ -1,4 +1,5 @@
 use super::commands::run_cmd_with_timeout;
+#[cfg(unix)]
 use std::thread;
 use std::time::Duration;
 
@@ -10,6 +11,7 @@ use std::time::Duration;
 pub type PackageCheck<'a> = (&'a str, &'a [&'a str], Duration);
 
 pub const PACKAGE_CHECK_TIMEOUT: Duration = Duration::from_secs(10);
+#[cfg(target_os = "linux")]
 pub const SNAP_CHECK_TIMEOUT: Duration = Duration::from_secs(3);
 
 pub fn run_package_check_with_timeout(
@@ -26,6 +28,7 @@ pub fn format_package_count(count: usize, cmd: &str) -> String {
     format!("{} ({})", count, cmd)
 }
 
+#[cfg(unix)]
 pub fn run_package_checks(checks: &[PackageCheck]) -> Vec<(String, String)> {
     thread::scope(|s| {
         checks
@@ -75,6 +78,7 @@ mod tests {
         assert_eq!(format_package_count(0, "brew"), "0 (brew)");
     }
 
+    #[cfg(unix)]
     #[test]
     fn test_multi_manager_format() {
         let checks: &[PackageCheck] = &[
