@@ -8,19 +8,36 @@
 
 <h2>Prerequisites</h2>
 
+<p>
+  The installer follows a <strong>no-sudo-by-default</strong> design: everything is installed in
+  your user space (<code>~/.local/bin</code>, <code>~/.config/xfetch</code>), and <code>sudo</code>
+  is only ever used to install missing system dependencies, always after asking for your
+  confirmation first. Nothing else requires privileges.
+</p>
+
 <ul>
-  <li><strong>git</strong> — for cloning the repository (not needed for the remote one-liner install)</li>
-  <li><strong>Rust/Cargo</strong> — the build toolchain. If not installed, the installer can set it up via <a href="https://rustup.rs/">rustup</a></li>
-  <li><strong>macOS</strong>: Xcode Command Line Tools (<code>xcode-select --install</code>)</li>
-  <li><strong>Linux</strong>: <code>build-essential</code>, <code>pkg-config</code>, <code>libssl-dev</code> (Debian/Ubuntu) or <code>base-devel</code> (Arch)</li>
+  <li><strong>bash</strong> — present on virtually every Linux/macOS system (required to run the script itself)</li>
+  <li><strong>curl</strong> — used by the remote one-liner and by rustup</li>
+  <li><strong>git</strong> — for cloning the repository (not needed for the remote one-liner)</li>
+  <li><strong>Rust/Cargo</strong> — the build toolchain. If not installed, the installer can set it up via <a href="https://rustup.rs/">rustup</a>, fully in user space (no sudo)</li>
+  <li><strong>C compiler</strong> — a C toolchain is required to link Rust binaries: <code>build-essential</code> (Debian/Ubuntu), <code>base-devel</code> (Arch), <code>devel_basis</code> pattern (openSUSE), Xcode Command Line Tools (macOS), etc.</li>
 </ul>
+
+<p>
+  If any of these are missing, the installer asks you in the terminal and installs them for you
+  automatically (using your distro's package manager, with sudo only for that step). In
+  non-interactive environments (CI, containers) it never uses sudo without authorization: either
+  pass <code>--install-deps</code> or run the printed command yourself.
+</p>
 
 <hr>
 
 <h2>Quick Install (Recommended)</h2>
 
 <p>
-  The fastest way to install xfetch.
+  The fastest way to install xfetch. <strong>No sudo is required</strong> — if your system already
+  has a C toolchain, this installs xfetch entirely in your user space. If something is missing
+  (Rust, C compiler, git, curl), the installer asks and handles it automatically.
 </p>
 
 <h3>Linux / macOS</h3>
@@ -31,6 +48,28 @@
   If <code>cargo</code> is not installed, the script will offer to install Rust via rustup automatically.
 </p>
 
+<p>
+  If system dependencies are missing, it will ask for your confirmation and then prompt for your
+  sudo password to install them (only that step uses sudo):
+</p>
+
+<p>
+  In non-interactive environments (CI, containers), pass <code>--install-deps</code> to pre-authorize
+  the dependency installation:
+</p>
+
+<pre><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/xfetch-cli/xfetch/main/install.sh | bash -s -- --install-deps</code></pre>
+
+<h3>WSL</h3>
+
+<p>
+  WSL is treated as a normal Linux system by the installer — no special steps are needed.
+  If your WSL distribution runs as root by default, pass <code>--yes</code> to skip the
+  root confirmation prompt.
+</p>
+
+<pre><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/xfetch-cli/xfetch/main/install.sh | bash -s -- --yes</code></pre>
+
 <h3>Windows (PowerShell)</h3>
 
 <pre><code class="language-powershell">irm https://raw.githubusercontent.com/xfetch-cli/xfetch/main/install.ps1 | iex</code></pre>
@@ -38,12 +77,13 @@
 <h3>What the Script Does</h3>
 
 <ol>
-  <li>Checks for Rust (offers to install it if missing)</li>
+  <li>Preflight checks: writable home, disk space, network reachability</li>
+  <li>Checks for Rust (offers to install it if missing, via rustup, no sudo)</li>
   <li>Clones the repository</li>
-  <li>Builds the binary with <code>cargo build --release</code></li>
+  <li>Builds the binary with <code>cargo build --release --locked</code></li>
   <li>Installs it to <code>~/.local/bin/</code></li>
   <li>Sets up default config files in <code>~/.config/xfetch/</code></li>
-  <li>Adds <code>~/.local/bin</code> to your PATH (via <code>~/.bashrc</code>, <code>~/.zshrc</code>, etc.)</li>
+  <li>Adds <code>~/.local/bin</code> to your PATH (via <code>~/.bashrc</code>, <code>~/.zshrc</code>, <code>~/.zprofile</code>, or <code>config.fish</code>)</li>
 </ol>
 
 <h3>Install Script Options</h3>
@@ -52,7 +92,10 @@
   The install script supports several flags for customization:
 </p>
 
-<pre><code class="language-bash"># Install to a custom prefix
+<pre><code class="language-bash"># Install missing system dependencies automatically (prompts for sudo)
+bash &lt;(curl -fsSL https://raw.githubusercontent.com/xfetch-cli/xfetch/main/install.sh) --install-deps
+
+# Install to a custom prefix
 bash &lt;(curl -fsSL https://raw.githubusercontent.com/xfetch-cli/xfetch/main/install.sh) --prefix /usr/local
 
 # Skip PATH modification
@@ -190,17 +233,14 @@ makepkg -si</code></pre>
 
 <pre><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/xfetch-cli/xfetch/main/uninstall.sh | bash</code></pre>
 
+<p><strong>Uninstall including config files and PATH entries:</strong></p>
+
+<pre><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/xfetch-cli/xfetch/main/uninstall.sh | bash -s -- --purge</code></pre>
+
 <p><strong>Manual removal:</strong></p>
 
 <pre><code class="language-bash">rm -f ~/.local/bin/xfetch
 rm -rf ~/.config/xfetch</code></pre>
-
-<p>
-  Also remove the PATH line from <code>~/.bashrc</code>, <code>~/.zshrc</code>, or <code>~/.bash_profile</code>:
-</p>
-
-<pre><code class="language-bash"># xfetch path
-export PATH="$HOME/.local/bin:$PATH"</code></pre>
 
 <hr>
 

@@ -12,6 +12,19 @@
 
 <pre><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/xfetch-cli/xfetch/main/uninstall.sh | bash</code></pre>
 
+<p>
+  The uninstaller removes the binary and the PATH entries added by the installer, and preserves
+  your configuration. To also remove all config files and data, add <code>--purge</code>:
+</p>
+
+<pre><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/xfetch-cli/xfetch/main/uninstall.sh | bash -s -- --purge</code></pre>
+
+<p>
+  If you installed to a custom location, pass the same options you used during installation:
+</p>
+
+<pre><code class="language-bash">bash uninstall.sh --prefix /usr/local --config-dir /etc/xfetch --purge</code></pre>
+
 <h2>Manual Uninstall</h2>
 
 <p>
@@ -33,3 +46,17 @@
 export PATH="$HOME/.local/bin:$PATH"</code></pre>
   </li>
 </ol>
+
+<h2>Windows</h2>
+
+<p>
+  If you installed with <code>install.ps1</code>, run the uninstaller in PowerShell:
+</p>
+
+<pre><code class="language-powershell">irm https://raw.githubusercontent.com/xfetch-cli/xfetch/main/uninstall.ps1 | iex</code></pre>
+
+<p>
+  Add <code>-Purge</code> to also remove the config directory (<code>%APPDATA%\xfetch</code>):
+</p>
+
+<pre><code class="language-powershell">irm https://raw.githubusercontent.com/xfetch-cli/xfetch/main/uninstall.ps1 | iex -Args "-Purge"</code></pre>

@@ -70,9 +70,15 @@
 
 <h2 id="quick-install" align="center"> Quick Install</h2>
 
-**Linux / macOS:**
+**Linux / macOS** (no sudo required):
 ```bash
 curl -fsSL https://raw.githubusercontent.com/xfetch-cli/xfetch/main/install.sh | bash
+```
+
+The installer asks automatically for anything missing (Rust, C compiler, git, curl) — sudo is
+only used to install those dependencies, after your confirmation. For non-interactive runs (CI):
+```bash
+curl -fsSL https://raw.githubusercontent.com/xfetch-cli/xfetch/main/install.sh | bash -s -- --install-deps
 ```
 
 **Windows (PowerShell):**

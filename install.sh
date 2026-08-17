@@ -30,6 +30,7 @@ FLAG_YES=0
 FLAG_VERBOSE=0
 FLAG_SKIP_CONFIG=0
 FLAG_SKIP_CARGO_INSTALL=0
+FLAG_INSTALL_DEPS=0
 
 # Runtime
 TEMP_DIR=""
@@ -45,6 +46,8 @@ ok()    { printf '\033[1;32m[%s]\033[0m %s\n' "${PROJECT}" "$*"; }
 warn()  { printf '\033[1;33m[%s]\033[0m %s\n' "${PROJECT}" "$*" >&2; }
 error() { printf '\033[1;31m[%s]\033[0m %s\n' "${PROJECT}" "$*" >&2; }
 die()   { error "$*"; exit 1; }
+
+has_tty() { [ -t 0 ]; }
 
 cleanup() {
     local exit_code=$?
@@ -144,6 +147,10 @@ Options:
   -q, --quiet             Quiet mode (minimal output)
   -v, --verbose           Verbose output
   --no-cargo-install      Skip cargo install (assume binary already built)
+  --install-deps          Install missing system dependencies automatically.
+                          In interactive runs they are always offered; this flag
+                          pre-authorizes it for non-interactive runs (CI, containers).
+                          sudo is only used for this step, after confirmation.
 
 Environment variables:
   PREFIX                  Same as --prefix
@@ -152,8 +159,14 @@ Environment variables:
   DATA_DIR                Data files directory
 
 Examples:
-  # Quick install (remote)
+  # Quick install (remote, no sudo needed)
   curl -fsSL ${REPO_RAW}/install.sh | bash
+
+  # Install missing system dependencies automatically (asks for sudo)
+  curl -fsSL ${REPO_RAW}/install.sh | bash -s -- --install-deps
+
+  # Non-interactive install (CI, remote without a TTY)
+  curl -fsSL ${REPO_RAW}/install.sh | bash -s -- --yes
 
   # Local install from cloned repo
   bash install.sh --local
@@ -180,6 +193,7 @@ parse_args() {
             -v|--verbose) FLAG_VERBOSE=1 ;;
             -q|--quiet) FLAG_VERBOSE=0 ;;
             --no-cargo-install) FLAG_SKIP_CARGO_INSTALL=1 ;;
+            --install-deps) FLAG_INSTALL_DEPS=1 ;;
             -p|--prefix)
                 shift; PREFIX="$1"
                 [ -z "${BIN_DIR_OVERRIDE:-}" ] && BIN_DIR="${PREFIX}/bin"
@@ -204,20 +218,129 @@ parse_args() {
 # Dependency checks
 # ──────────────────────────────────────────────
 
-check_deps() {
-    local missing=0
+detect_distro() {
+    # Map /etc/os-release (with ID_LIKE fallbacks) to a package-manager family
+    local id="" id_like=""
+    if [ -r /etc/os-release ]; then
+        id="$(sed -n 's/^ID=//p' /etc/os-release | tr -d '"' | head -n 1)"
+        id_like="$(sed -n 's/^ID_LIKE=//p' /etc/os-release | tr -d '"' | head -n 1)"
+    fi
+    case "${id} ${id_like}" in
+        *debian*|*ubuntu*)       echo "debian" ;;
+        *arch*|*manjaro*|*endeavouros*) echo "arch" ;;
+        *fedora*|*rhel*|*centos*|*rocky*|*alma*|*amzn*) echo "fedora" ;;
+        *suse*|*opensuse*)       echo "suse" ;;
+        *alpine*)                echo "alpine" ;;
+        *void*)                  echo "void" ;;
+        *gentoo*)                echo "gentoo" ;;
+        *solus*)                 echo "solus" ;;
+        *mageia*)                echo "mageia" ;;
+        *slackware*)             echo "slackware" ;;
+        *)                       echo "unknown" ;;
+    esac
+}
 
-    if [ "${FLAG_LOCAL}" -eq 0 ]; then
-        if ! command -v git >/dev/null 2>&1; then
-            warn "git is required for remote installation."
-            warn "Install git, or use --local to install from a local clone."
-            missing=1
+system_deps_cmd() {
+    # Command that installs a C toolchain + git + curl on this distribution
+    case "$(detect_distro)" in
+        debian)   echo "apt-get update && apt-get install -y build-essential git curl" ;;
+        arch)     echo "pacman -Sy --noconfirm base-devel git curl" ;;
+        fedora)   echo "dnf install -y gcc gcc-c++ make git curl" ;;
+        suse)     echo "zypper -n install -t pattern devel_basis && zypper -n install git curl" ;;
+        alpine)   echo "apk add build-base git curl" ;;
+        void)     echo "xbps-install -y base-devel git curl" ;;
+        gentoo)   echo "emerge --ask=n --oneshot sys-devel/gcc sys-devel/binutils git curl" ;;
+        solus)    echo "eopkg install -y -c system.devel git curl" ;;
+        mageia)   echo "urpmi --auto git curl gcc gcc-c++ make" ;;
+        slackware) echo "slapt-get -y -i git curl gcc binutils make" ;;
+        *)        echo "" ;;
+    esac
+}
+
+run_as_root() {
+    # Run a command as root. Never prompts for a password without a TTY;
+    # with a TTY, sudo reads the password from /dev/tty (works via curl | bash).
+    if [ "${EUID:-${UID}}" = "0" ]; then
+        "$@"
+        return
+    fi
+    if ! command -v sudo >/dev/null 2>&1; then
+        warn "sudo is not installed."
+        return 1
+    fi
+    if ! sudo -n true 2>/dev/null && ! has_tty; then
+        warn "sudo requires a password but there is no interactive terminal."
+        return 1
+    fi
+    sudo "$@"
+}
+
+install_system_deps() {
+    local missing=("$@")
+
+    # macOS: CLT provides the C compiler; Homebrew provides git/curl
+    if [ "$(detect_os)" = "macos" ]; then
+        if ! command -v cc >/dev/null 2>&1 && ! xcode-select -p >/dev/null 2>&1; then
+            error "Xcode Command Line Tools are missing."
+            error "Run 'xcode-select --install' and accept the dialog, then re-run this installer."
+            return 1
         fi
+        if ! command -v brew >/dev/null 2>&1; then
+            error "Homebrew is missing."
+            error "Install it with: /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+            return 1
+        fi
+        local brew_pkgs=()
+        command -v git >/dev/null 2>&1 || brew_pkgs+=(git)
+        command -v curl >/dev/null 2>&1 || brew_pkgs+=(curl)
+        if [ ${#brew_pkgs[@]} -gt 0 ]; then
+            log "Installing via Homebrew: ${brew_pkgs[*]}"
+            brew install "${brew_pkgs[@]}"
+        fi
+        ok "macOS dependencies ready."
+        return 0
+    fi
+
+    local cmd
+    cmd="$(system_deps_cmd)"
+    if [ -z "${cmd}" ]; then
+        error "Cannot auto-install dependencies on this distribution ($(detect_distro))."
+        error "Install a C compiler, git and curl manually, then re-run."
+        return 1
+    fi
+
+    if [ "${FLAG_YES}" -eq 0 ] && has_tty; then
+        printf "[%s] Install missing dependencies with sudo? [y/N]\n[%s]   Command: sudo sh -c '%s'\n[%s] Proceed? [y/N]: " \
+            "${PROJECT}" "${PROJECT}" "${cmd}" "${PROJECT}"
+        read -r response
+        case "${response}" in
+            y|Y|yes) ;;
+            *) die "Aborted. Run it manually: sudo sh -c '${cmd}'" ;;
+        esac
+    fi
+
+    log "Installing system dependencies (sudo required)..."
+    if ! run_as_root sh -c "${cmd}"; then
+        error "Failed to install dependencies (sudo unavailable without a TTY?)."
+        error "Run manually: sudo sh -c '${cmd}'"
+        return 1
+    fi
+    ok "System dependencies installed."
+}
+
+check_deps() {
+    local os
+    os="$(detect_os)"
+
+    if [ "${os}" = "windows" ]; then
+        warn "Native Windows is supported via install.ps1 (PowerShell)."
+        warn "Run: powershell -ExecutionPolicy Bypass -File install.ps1"
+        die "Aborting: use install.ps1 on Windows."
     fi
 
     if [ "${FLAG_SKIP_CARGO_INSTALL}" -eq 0 ]; then
         if ! command -v cargo >/dev/null 2>&1; then
-            if [ "${FLAG_YES}" -eq 1 ]; then
+            if [ "${FLAG_YES}" -eq 1 ] || ! has_tty; then
                 warn "Rust (cargo) is not installed. Will attempt to install Rust via rustup..."
             else
                 warn "Rust (cargo) is not installed."
@@ -229,21 +352,78 @@ check_deps() {
                     *) ;;
                 esac
             fi
+            if ! command -v curl >/dev/null 2>&1; then
+                die "curl is required to install Rust via rustup."
+            fi
             install_rust
         fi
     fi
 
+    # Collect missing system tools (git, curl, C compiler)
+    local missing=()
+    if [ "${FLAG_LOCAL}" -eq 0 ] && ! command -v git >/dev/null 2>&1; then
+        missing+=("git")
+    fi
+    if ! command -v curl >/dev/null 2>&1; then
+        missing+=("curl")
+    fi
+    if [ "${FLAG_SKIP_CARGO_INSTALL}" -eq 0 ] \
+        && ! command -v cc >/dev/null 2>&1 \
+        && ! command -v clang >/dev/null 2>&1; then
+        missing+=("cc")
+    fi
+
+    if [ ${#missing[@]} -gt 0 ]; then
+        warn "Missing system dependencies: ${missing[*]}"
+        if [ "${FLAG_INSTALL_DEPS}" -eq 1 ] || has_tty; then
+            # Interactive runs ask automatically; --install-deps pre-authorizes
+            # non-interactive runs (CI, containers) to install them.
+            if ! install_system_deps "${missing[@]}"; then
+                die "Could not install system dependencies automatically."
+            fi
+        else
+            if [ "${os}" = "macos" ]; then
+                warn "macOS: install the Xcode Command Line Tools (xcode-select --install)."
+            else
+                local cmd
+                cmd="$(system_deps_cmd)"
+                if [ -n "${cmd}" ]; then
+                    warn "Run: sudo sh -c '${cmd}'"
+                else
+                    warn "Install a C compiler, git and curl (the build-essential/base-devel equivalent of your distro)."
+                fi
+            fi
+            warn "Or re-run with --install-deps (e.g. CI runs) to install them automatically."
+            die "Missing required dependencies. Please install them and try again."
+        fi
+    fi
+
     # Check for the 'install' command (coreutils) on Linux
-    local os
-    os="$(detect_os)"
     if [ "${os}" != "macos" ]; then
         if ! command -v install >/dev/null 2>&1; then
             warn "coreutils 'install' command not found. Will use cp fallback."
         fi
     fi
+}
 
-    if [ "${missing}" -eq 1 ]; then
-        die "Missing required dependencies. Please install them and try again."
+preflight() {
+    # HOME writability
+    if ! mkdir -p "${BIN_DIR}" 2>/dev/null; then
+        die "Cannot write to ${BIN_DIR}. Check HOME permissions."
+    fi
+
+    # Disk space (~2 GB for the Rust toolchain + build)
+    local free_kb
+    free_kb="$(df -k "${HOME}" 2>/dev/null | awk 'NR==2 {print $4}')"
+    if [ -n "${free_kb}" ] && [ "${free_kb}" -lt 2097152 ] 2>/dev/null; then
+        warn "Low disk space (${free_kb} KB free under ${HOME}). Building may fail."
+    fi
+
+    # Network reachability (warn only)
+    if [ "${FLAG_LOCAL}" -eq 0 ]; then
+        if ! curl -fsSL --max-time 8 -o /dev/null "https://github.com" 2>/dev/null; then
+            warn "Cannot reach github.com — remote install may fail."
+        fi
     fi
 }
 
@@ -270,11 +450,12 @@ ensure_path_in_file() {
 
     if [ ! -f "${file}" ]; then
         [ "${FLAG_VERBOSE}" -eq 1 ] && log "Creating ${file}..."
+        mkdir -p "$(dirname "${file}")"
         touch "${file}"
     fi
 
-    # Check if the path line already exists in any form
-    if grep -qsF "${BIN_DIR}" "${file}" 2>/dev/null; then
+    # Idempotency: bail out if our marker comment is already present
+    if grep -qsF "# ${comment}" "${file}" 2>/dev/null; then
         [ "${FLAG_VERBOSE}" -eq 1 ] && ok "PATH already configured in ${file}"
         return 0
     fi
@@ -284,33 +465,48 @@ ensure_path_in_file() {
 }
 
 modify_path() {
-    local primary_rc
     local os
+    local primary_rc
     os="$(detect_os)"
+    primary_rc="$(detect_shell_rc)"
+
+    local fish_rc="${HOME}/.config/fish/config.fish"
+    local -a rc_list=()
 
     # Determine which rc files to update
     if [ "${os}" = "macos" ]; then
-        SHELL_RC_FILES="${HOME}/.bash_profile ${HOME}/.zprofile ${HOME}/.zshrc"
+        rc_list=("${HOME}/.bash_profile" "${HOME}/.zprofile" "${HOME}/.zshrc")
         # Also check for .bashrc on macOS (common with iTerm2)
-        [ -f "${HOME}/.bashrc" ] && SHELL_RC_FILES="${SHELL_RC_FILES} ${HOME}/.bashrc"
+        [ -f "${HOME}/.bashrc" ] && rc_list+=("${HOME}/.bashrc")
     else
-        SHELL_RC_FILES="${HOME}/.bashrc ${HOME}/.zshrc ${HOME}/.profile"
-        [ -f "${HOME}/.bash_profile" ] && SHELL_RC_FILES="${SHELL_RC_FILES} ${HOME}/.bash_profile"
+        rc_list=("${HOME}/.bashrc" "${HOME}/.zshrc" "${HOME}/.profile")
+        [ -f "${HOME}/.bash_profile" ] && rc_list+=("${HOME}/.bash_profile")
+    fi
+    # fish uses its own config file and PATH syntax
+    if [ -f "${fish_rc}" ] || [ "${primary_rc}" = "${fish_rc}" ]; then
+        rc_list+=("${fish_rc}")
     fi
 
-    local path_line="export PATH=\"${BIN_DIR}:\$PATH\""
     local comment="${PROJECT} path"
+    local path_line
 
-    for rc in ${SHELL_RC_FILES}; do
+    for rc in "${rc_list[@]}"; do
         # Only modify files that exist (or the primary shell rc)
-        if [ -f "${rc}" ] || [ "${rc}" = "$(detect_shell_rc)" ]; then
+        if [ -f "${rc}" ] || [ "${rc}" = "${primary_rc}" ]; then
+            if [ "${rc}" = "${fish_rc}" ]; then
+                path_line="fish_add_path ${BIN_DIR}"
+            else
+                path_line="export PATH=\"${BIN_DIR}:\$PATH\""
+            fi
             ensure_path_in_file "${rc}" "${path_line}" "${comment}"
         fi
     done
 
-    local shell_rc
-    shell_rc="$(detect_shell_rc)"
-    ok "To add ${BIN_DIR} to your current session, run: source ${shell_rc}"
+    if [ "${primary_rc}" = "${fish_rc}" ]; then
+        ok "To add ${BIN_DIR} to your current session, run: fish_add_path ${BIN_DIR}"
+    else
+        ok "To add ${BIN_DIR} to your current session, run: source ${primary_rc}"
+    fi
 }
 
 # ──────────────────────────────────────────────
@@ -321,7 +517,7 @@ build_project() {
     local src_dir="$1"
 
     log "Building ${PROJECT} (release mode)..."
-    (cd "${src_dir}" && CARGO_NET_GIT_FETCH_WITH_CLI=true cargo build --release)
+    (cd "${src_dir}" && CARGO_NET_GIT_FETCH_WITH_CLI=true cargo build --release --locked)
     ok "Build completed successfully."
 }
 
@@ -372,10 +568,10 @@ install_config() {
         fi
     fi
 
-    # Install logos
+    # Install logos (including dotfiles)
     if [ -d "${src_dir}/logos" ]; then
         mkdir -p "${CONFIG_DIR}/logos"
-        cp -r "${src_dir}/logos/"* "${CONFIG_DIR}/logos/" 2>/dev/null || true
+        cp -r "${src_dir}/logos/." "${CONFIG_DIR}/logos/" 2>/dev/null || true
         ok "Installed logos to ${CONFIG_DIR}/logos/"
     fi
 
@@ -434,7 +630,6 @@ ${PROJECT} — Installation Complete
   OS:              ${os} (${arch})
   Binary:          ${BIN_DIR}/${PROJECT}
   Config:          ${CONFIG_DIR}/
-  Data:            ${DATA_DIR}/
 
 EOF
 
@@ -447,10 +642,17 @@ EOF
     if [ "${FLAG_MODIFY_PATH}" -eq 1 ]; then
         local shell_rc
         shell_rc="$(detect_shell_rc)"
-        cat <<EOF
+        if [ "${shell_rc}" = "${HOME}/.config/fish/config.fish" ]; then
+            cat <<EOF
+  PATH updated in:  ${shell_rc}
+  Restart your terminal (or run 'fish_add_path ${BIN_DIR}') to use ${PROJECT}.
+EOF
+        else
+            cat <<EOF
   PATH updated in:  ${shell_rc}
   Restart your terminal or run 'source ${shell_rc}' to use ${PROJECT}.
 EOF
+        fi
     else
         cat <<EOF
   PATH not modified. Add ${BIN_DIR} to your PATH manually:
@@ -493,15 +695,21 @@ main() {
     # Check we're not running as root unnecessarily (for local installs)
     if [ "${EUID:-${UID}}" = "0" ] && [ "${FLAG_YES}" -eq 0 ]; then
         warn "Running as root is not recommended for local installs."
-        printf "[%s] Continue as root? [y/N]: " "${PROJECT}"
-        read -r response
-        case "${response}" in
-            y|Y|yes) ;;
-            *) die "Aborted. Run as a normal user, or use --yes to skip this check." ;;
-        esac
+        if has_tty; then
+            printf "[%s] Continue as root? [y/N]: " "${PROJECT}"
+            read -r response
+            case "${response}" in
+                y|Y|yes) ;;
+                *) die "Aborted. Run as a normal user, or use --yes to skip this check." ;;
+            esac
+        else
+            die "Running as root without an interactive terminal. Re-run with --yes to skip this check."
+        fi
     fi
 
     check_deps
+
+    preflight
 
     # Determine source directory
     local src_dir=""
@@ -523,7 +731,8 @@ main() {
     # Build
     if [ "${FLAG_SKIP_CARGO_INSTALL}" -eq 1 ]; then
         log "Skipping cargo build (--no-cargo-install). Checking for pre-built binary..."
-        if [ ! -f "${src_dir}/target/release/${PROJECT}" ]; then
+        if [ ! -f "${src_dir}/target/release/${PROJECT}" ] \
+            && [ ! -f "${src_dir}/target/release/${PROJECT}.exe" ]; then
             die "No pre-built binary found. Remove --no-cargo-install to build from source."
         fi
         ok "Using pre-built binary."
