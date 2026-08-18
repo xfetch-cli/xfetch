@@ -22,8 +22,22 @@ const CHECKS: &[PackageCheck] = &[
     (NIX_ENV_CMD, &["-q"], PACKAGE_CHECK_TIMEOUT),
 ];
 
+/// When snapd is not running, `snap list` blocks forever on the snapd socket.
+/// The socket only exists while the daemon is up, so probing it avoids spawning
+/// `snap` (and its 3 s timeout) on systems without snapd — the count would be
+/// zero anyway.
+fn snapd_running() -> bool {
+    std::path::Path::new("/run/snapd.socket").exists()
+        || std::path::Path::new("/run/snapd-snap.socket").exists()
+}
+
 pub fn get_packages_breakdown() -> Vec<(String, String)> {
-    run_package_checks(CHECKS)
+    let checks: Vec<PackageCheck> = CHECKS
+        .iter()
+        .copied()
+        .filter(|(cmd, _, _)| *cmd != SNAP_CMD || snapd_running())
+        .collect();
+    run_package_checks(&checks)
 }
 
 #[cfg(test)]
@@ -36,5 +50,18 @@ mod tests {
         for (_, v) in &linux {
             assert!(v.contains('('));
         }
+    }
+
+    #[test]
+    fn test_snapd_socket_precheck_skips_snap() {
+        let checks: Vec<PackageCheck> = CHECKS
+            .iter()
+            .copied()
+            .filter(|(cmd, _, _)| *cmd != SNAP_CMD || snapd_running())
+            .collect();
+        assert!(
+            !checks.iter().any(|(cmd, _, _)| *cmd == SNAP_CMD)
+                || std::path::Path::new("/run/snapd.socket").exists()
+        );
     }
 }

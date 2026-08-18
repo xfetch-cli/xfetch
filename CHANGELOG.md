@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-18 — v0.4.0
+
+### Package Counter Speedup
+
+- Fixed `run_package_checks()` running every package-manager probe in series: the per-check `handle.join()` inside `filter_map` waited for each command before spawning the next, so cold package counts took the sum of all probes instead of the slowest one. All probes are now spawned first and joined after, cutting cold time on multi-manager systems dramatically.
+- Removed the duplicated package scan: `get_packages_info()` (which re-ran the whole breakdown internally) plus a second `get_packages_breakdown()` call in `src/info/mod.rs` meant every cold fetch ran all package checks twice. The breakdown now runs once and the display string is derived from it via `packages_info_from_breakdown()`. The redundant `get_packages_info()` was deleted.
+- Snap socket pre-check: on systems where `snap` is installed but the snapd daemon is not running (e.g. WSL), `snap list` blocks forever on the snapd socket and costs the full 3 s timeout per scan. `get_packages_breakdown()` on Linux now skips the `snap` probe entirely when neither `/run/snapd.socket` nor `/run/snapd-snap.socket` exists — an instant, subprocess-free check; the count would be zero anyway. Snap still counts where snapd actually runs.
+- Windows `run_package_checks_with_adjustment()` got the same spawn-all-then-join fix.
+- Measured on a WSL system with snapd off: cold `packages` module 8.7 s → 0.23 s (~38× faster); the earlier 3 s `snap` timeout is gone and the parallel section no longer runs probes twice.
+- No config, layout, theme, or daemon behavior was changed. Tests updated: `test_get_packages_not_empty` builds the string from the breakdown, new `test_snapd_socket_precheck_skips_snap` guards the socket probe — 63 tests, all passing.
+
 ## 2026-08-17 — v0.4.0
 
 ### External Command Timeouts (hang fix)

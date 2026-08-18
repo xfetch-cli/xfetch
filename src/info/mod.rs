@@ -11,7 +11,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 use sysinfo::{Disks, Networks, System};
 
-pub use platform::shared::packages::get_packages_info;
+pub use platform::shared::packages::packages_info_from_breakdown;
 pub use platform::{get_battery_info, get_datetime_info, get_gpu_info, get_packages_breakdown};
 pub use system::{get_host_name, get_kernel_info, get_os_info, get_uptime_info};
 
@@ -132,8 +132,13 @@ impl Info {
         let (gpu, pkg_opt, ip_opt) = thread::scope(|s| {
             let _ps = Instant::now();
             let gpu_h = needed.contains("gpu").then(|| s.spawn(get_gpu_info));
-            let pkg_h = (needs_any_packages(&needed) && cached_packages.is_none())
-                .then(|| s.spawn(|| (get_packages_info(), get_packages_breakdown())));
+            let pkg_h = (needs_any_packages(&needed) && cached_packages.is_none()).then(|| {
+                s.spawn(|| {
+                    let breakdown = get_packages_breakdown();
+                    let info = packages_info_from_breakdown(&breakdown);
+                    (info, breakdown)
+                })
+            });
             let ip_h = (ip_enabled && cached_ip.is_none())
                 .then(|| s.spawn(|| system::get_public_ip_info(true)));
 
@@ -284,7 +289,8 @@ mod tests {
 
     #[test]
     fn test_get_packages_not_empty() {
-        let pkgs = get_packages_info();
+        let breakdown = get_packages_breakdown();
+        let pkgs = packages_info_from_breakdown(&breakdown);
         assert!(!pkgs.is_empty(), "packages should not be empty");
     }
 }

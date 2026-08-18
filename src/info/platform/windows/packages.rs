@@ -17,16 +17,16 @@ fn run_package_checks_with_adjustment(
     adjust: fn(&str, usize) -> usize,
 ) -> Vec<(String, String)> {
     thread::scope(|s| {
-        checks
+        let handles: Vec<_> = checks
             .iter()
-            .filter_map(|(cmd, args, timeout)| {
-                let handle = s.spawn(|| {
+            .map(|(cmd, args, timeout)| {
+                s.spawn(move || {
                     run_package_check_with_timeout(cmd, args, *timeout)
                         .map(|c| (cmd.to_string(), format_package_count(adjust(cmd, c), cmd)))
-                });
-                handle.join().ok()?
+                })
             })
-            .collect()
+            .collect();
+        handles.into_iter().filter_map(|h| h.join().ok()?).collect()
     })
 }
 

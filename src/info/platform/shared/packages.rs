@@ -31,26 +31,26 @@ pub fn format_package_count(count: usize, cmd: &str) -> String {
 #[cfg(unix)]
 pub fn run_package_checks(checks: &[PackageCheck]) -> Vec<(String, String)> {
     thread::scope(|s| {
-        checks
+        let handles: Vec<_> = checks
             .iter()
-            .filter_map(|(cmd, args, timeout)| {
-                let handle = s.spawn(|| {
+            .map(|(cmd, args, timeout)| {
+                s.spawn(move || {
                     run_package_check_with_timeout(cmd, args, *timeout)
                         .map(|c| (cmd.to_string(), format_package_count(c, cmd)))
-                });
-                handle.join().ok()?
+                })
             })
-            .collect()
+            .collect();
+        handles.into_iter().filter_map(|h| h.join().ok()?).collect()
     })
 }
 
-pub fn get_packages_info() -> String {
-    let list = crate::info::platform::get_packages_breakdown();
-    if list.is_empty() {
+pub fn packages_info_from_breakdown(breakdown: &[(String, String)]) -> String {
+    if breakdown.is_empty() {
         crate::info::unknown()
     } else {
-        list.into_iter()
-            .map(|(_, v)| v)
+        breakdown
+            .iter()
+            .map(|(_, v)| v.as_str())
             .collect::<Vec<_>>()
             .join(" + ")
     }
