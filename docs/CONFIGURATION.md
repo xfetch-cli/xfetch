@@ -38,7 +38,7 @@
     <tr><td><code>xfetch --config &lt;path&gt;</code></td><td>Use a custom config file.</td></tr>
     <tr><td><code>xfetch --daemon</code></td><td>Run in daemon mode: pin an animated fetch at the top of the terminal while keeping the prompt usable below. See <a href="DAEMON.md">DAEMON.md</a>.</td></tr>
     <tr><td><code>xfetch --daemon-stop</code></td><td>Stop the running daemon.</td></tr>
-    <tr><td><code>xfetch --gen-config</code></td><td>Generate a starter config at the default location.</td></tr>
+    <tr><td><code>xfetch --gen-config</code></td><td>Generate a starter config at the default location. See <a href="GEN_CONFIG.md">GEN_CONFIG.md</a>.</td></tr>
     <tr><td><code>xfetch --clean-cache</code></td><td>Clear the module cache.</td></tr>
     <tr><td><code>xfetch --benchmark</code></td><td>Print benchmarking info for the info gathering step.</td></tr>
     <tr><td><code>xfetch plugin install|list|remove &lt;name&gt;</code></td><td>Manage plugins. See <a href="PLUGINS.md">PLUGINS.md</a>.</td></tr>

@@ -248,6 +248,7 @@ rm -rf ~/.config/xfetch</code></pre>
 
 <ul>
   <li><a href="CONFIGURATION.md">Configuration Guide</a> — customize modules, logos, colors, and layouts</li>
+  <li><a href="GEN_CONFIG.md">Config Generation Guide</a> — generate a starter config with the distro logo and your layout</li>
   <li><a href="LAYOUTS.md">Layouts Guide</a> — explore built-in display layouts</li>
   <li><a href="PLUGINS.md">Plugins Guide</a> — extend xfetch with external plugins</li>
 </ul>

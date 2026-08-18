@@ -568,13 +568,6 @@ install_config() {
         fi
     fi
 
-    # Install logos (including dotfiles)
-    if [ -d "${src_dir}/logos" ]; then
-        mkdir -p "${CONFIG_DIR}/logos"
-        cp -r "${src_dir}/logos/." "${CONFIG_DIR}/logos/" 2>/dev/null || true
-        ok "Installed logos to ${CONFIG_DIR}/logos/"
-    fi
-
     # macOS: create symlink for Library/Application Support
     local os
     os="$(detect_os)"

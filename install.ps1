@@ -90,15 +90,6 @@ if (-not (Test-Path $ConfigFile)) {
     Copy-Item "configs\config.jsonc" $ConfigFile
 }
 
-# Copy logos
-$LogosDir = Join-Path $ConfigDir "logos"
-if (-not (Test-Path $LogosDir)) {
-    New-Item -ItemType Directory -Path $LogosDir -Force | Out-Null
-}
-if (Test-Path "logos") {
-    Copy-Item "logos\*" $LogosDir -Recurse -Force
-}
-
 # Cleanup
 Set-Location $env:USERPROFILE
 Remove-Item -Path $TempDir -Recurse -Force -ErrorAction SilentlyContinue

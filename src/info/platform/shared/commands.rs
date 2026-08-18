@@ -1,4 +1,5 @@
 use std::io::Read as _;
+#[cfg(unix)]
 use std::path::Path;
 use std::process::{Output, Stdio};
 use std::thread;

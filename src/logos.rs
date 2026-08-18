@@ -70,6 +70,7 @@ pub fn detect_os_ids() -> (String, Vec<String>) {
 }
 
 /// Parses `ID` and `ID_LIKE` out of an os-release file.
+#[cfg(target_os = "linux")]
 fn parse_os_release(content: &str) -> (String, Vec<String>) {
     let mut id = "linux".to_string();
     let mut id_like = Vec::new();
@@ -250,6 +251,7 @@ mod tests {
         .unwrap()
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn test_parse_os_release() {
         let (id, like) =
