@@ -15,6 +15,7 @@ mod renders;
 mod x;
 #[cfg(unix)]
 pub use daemon::{draw_daemon, stop_daemon};
+pub use layout::is_known_layout;
 
 #[cfg(not(unix))]
 pub fn draw_daemon(_info: &Info, _config: &Config) {}

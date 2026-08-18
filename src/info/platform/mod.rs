@@ -13,6 +13,9 @@ pub mod linux;
 pub mod macos;
 #[cfg(target_os = "windows")]
 pub mod windows;
+/// Compiled on Linux too (WSL *is* Linux); dispatched at runtime.
+#[cfg(target_os = "linux")]
+pub mod wsl;
 
 #[cfg(target_os = "linux")]
 pub use linux::*;

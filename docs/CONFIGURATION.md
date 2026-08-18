@@ -394,6 +394,10 @@
       <td><code>disable_cache</code></td><td>boolean</td>
       <td>Disable the on-disk cache used for slow probes (e.g. package counts).</td>
     </tr>
+    <tr>
+      <td><code>os_wsl_style</code></td><td>string</td>
+      <td>WSL OS presentation (Linux only): <code>off</code> (plain name), <code>minimal</code> (appends <code>(WSL)</code>), <code>full</code> (appends WSL version and WSLg). Default: <code>minimal</code>.</td>
+    </tr>
   </tbody>
 </table>
 

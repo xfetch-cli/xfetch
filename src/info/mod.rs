@@ -9,7 +9,7 @@ use crate::plugins::run_info_plugin;
 use std::collections::{HashMap, HashSet};
 use std::thread;
 use std::time::{Duration, Instant};
-use sysinfo::{Disks, Networks, System};
+use sysinfo::{CpuRefreshKind, Disks, MemoryRefreshKind, Networks, RefreshKind, System};
 
 pub use platform::shared::packages::packages_info_from_breakdown;
 pub use platform::{get_battery_info, get_datetime_info, get_gpu_info, get_packages_breakdown};
@@ -42,15 +42,10 @@ fn collect_module_keys(modules: &[ModuleConfig]) -> HashSet<String> {
     keys
 }
 
-fn needs_sysinfo(keys: &HashSet<String>) -> bool {
-    keys.contains("os")
-        || keys.contains("kernel")
-        || keys.contains("hostname")
-        || keys.contains("host")
-        || keys.contains("uptime")
-        || keys.contains("cpu")
-        || keys.contains("memory")
-        || keys.contains("swap")
+/// Whether a `System` instance is needed: only the CPU/memory/swap probes
+/// read from it (os, kernel, hostname and uptime are sysinfo statics).
+fn needs_cpu_mem(keys: &HashSet<String>) -> bool {
+    keys.contains("cpu") || keys.contains("memory") || keys.contains("swap")
 }
 
 fn needs_network(keys: &HashSet<String>) -> bool {
@@ -91,25 +86,32 @@ impl Info {
         let _total_start = Instant::now();
         let needed = collect_module_keys(&config.modules);
 
-        let sys = if needs_sysinfo(&needed) {
-            let mut s = System::new_all();
-            s.refresh_all();
-            Some(s)
-        } else {
-            None
-        };
-
-        let disks = if needed.contains("disk") {
-            Some(Disks::new_with_refreshed_list())
-        } else {
-            None
-        };
-
-        let networks = if needs_network(&needed) {
-            Some(Networks::new_with_refreshed_list())
-        } else {
-            None
-        };
+        // The three sysinfo containers are independent: initialize them
+        // concurrently instead of serially. Only CPU/memory/swap need a
+        // `System` instance, and only those resources: `new_all() +
+        // refresh_all()` also walks every process, which xfetch never reads
+        // (measured ~40x slower on WSL).
+        let (sys, disks, networks) = thread::scope(|s| {
+            let sys_h = needs_cpu_mem(&needed).then(|| {
+                s.spawn(|| {
+                    System::new_with_specifics(
+                        RefreshKind::nothing()
+                            .with_cpu(CpuRefreshKind::everything())
+                            .with_memory(MemoryRefreshKind::everything()),
+                    )
+                })
+            });
+            let disks_h = needed
+                .contains("disk")
+                .then(|| s.spawn(Disks::new_with_refreshed_list));
+            let networks_h =
+                needs_network(&needed).then(|| s.spawn(Networks::new_with_refreshed_list));
+            (
+                sys_h.and_then(|h| h.join().ok()),
+                disks_h.and_then(|h| h.join().ok()),
+                networks_h.and_then(|h| h.join().ok()),
+            )
+        });
 
         let cache_enabled = !config.disable_cache.unwrap_or(false);
 
@@ -129,9 +131,15 @@ impl Info {
 
         let mut _parallel_elapsed = None;
 
-        let (gpu, pkg_opt, ip_opt) = thread::scope(|s| {
+        let (gpu, battery, datetime, pkg_opt, ip_opt, plugin_info_opt) = thread::scope(|s| {
             let _ps = Instant::now();
             let gpu_h = needed.contains("gpu").then(|| s.spawn(get_gpu_info));
+            let battery_h = needed
+                .contains("battery")
+                .then(|| s.spawn(get_battery_info));
+            let datetime_h = needed
+                .contains("datetime")
+                .then(|| s.spawn(get_datetime_info));
             let pkg_h = (needs_any_packages(&needed) && cached_packages.is_none()).then(|| {
                 s.spawn(|| {
                     let breakdown = get_packages_breakdown();
@@ -141,14 +149,21 @@ impl Info {
             });
             let ip_h = (ip_enabled && cached_ip.is_none())
                 .then(|| s.spawn(|| system::get_public_ip_info(true)));
+            let plugins_h = (!config.info_plugins.is_empty())
+                .then(|| s.spawn(|| load_plugin_info(&config.info_plugins)));
 
             let gpu = gpu_h.and_then(|h| h.join().ok()).unwrap_or_default();
+            let battery = battery_h
+                .and_then(|h| h.join().ok())
+                .unwrap_or_else(|| "N/A".to_string());
+            let datetime = datetime_h.and_then(|h| h.join().ok()).unwrap_or_default();
             let pkg = pkg_h.and_then(|h| h.join().ok());
             let ip = ip_h.and_then(|h| h.join().ok());
+            let plugin_info = plugins_h.and_then(|h| h.join().ok()).unwrap_or_default();
             if benchmark {
                 _parallel_elapsed = Some(_ps.elapsed());
             }
-            (gpu, pkg, ip)
+            (gpu, battery, datetime, pkg, ip, plugin_info)
         });
 
         let (packages, packages_breakdown) = match cached_packages {
@@ -177,13 +192,13 @@ impl Info {
             },
         };
 
-        let plugin_info = load_plugin_info(&config.info_plugins);
+        let plugin_info = plugin_info_opt;
 
         let bench_lines = if benchmark {
             let total = _total_start.elapsed();
             vec![
                 format!(
-                    "  Parallel (GPU+packages+IP): {:>6}.{:03}s",
+                    "  Parallel (probes):           {:>6}.{:03}s",
                     _parallel_elapsed.unwrap().as_secs(),
                     _parallel_elapsed.unwrap().subsec_millis()
                 ),
@@ -199,6 +214,9 @@ impl Info {
 
         (
             Self {
+                #[cfg(target_os = "linux")]
+                os: platform::wsl::decorate_os(get_os_info(), config.os_wsl_style.as_deref()),
+                #[cfg(not(target_os = "linux"))]
                 os: get_os_info(),
                 kernel: get_kernel_info(),
                 host_name: get_host_name(),
@@ -218,17 +236,13 @@ impl Info {
                     .as_ref()
                     .map(hardware::get_disk_info)
                     .unwrap_or_default(),
-                battery: if needed.contains("battery") {
-                    get_battery_info()
-                } else {
-                    "N/A".to_string()
-                },
+                battery,
                 uptime: get_uptime_info(),
                 packages,
                 packages_breakdown,
                 desktop: software::get_desktop_info(),
                 user: software::get_user_info(),
-                datetime: get_datetime_info(),
+                datetime,
                 local_ip: networks
                     .as_ref()
                     .map(system::get_local_ip_info)
@@ -250,19 +264,26 @@ impl Info {
 }
 
 fn load_plugin_info(plugins: &[InfoPluginConfig]) -> HashMap<String, Vec<String>> {
-    let mut result = HashMap::new();
-    for plugin_cfg in plugins {
-        match run_info_plugin(plugin_cfg) {
-            Ok(lines) => {
-                let key = format!("plugin:{}", plugin_cfg.plugin);
-                result.insert(key, lines);
-            }
-            Err(err) => {
-                eprintln!("Plugin '{}' error: {}", plugin_cfg.plugin, err);
-            }
-        }
-    }
-    result
+    // Each plugin is an independent subprocess: run them all at once instead
+    // of serially (the plugin API protocol is untouched).
+    thread::scope(|s| {
+        let handles: Vec<_> = plugins
+            .iter()
+            .map(|plugin_cfg| {
+                s.spawn(move || {
+                    let key = format!("plugin:{}", plugin_cfg.plugin);
+                    match run_info_plugin(plugin_cfg) {
+                        Ok(lines) => Some((key, lines)),
+                        Err(err) => {
+                            eprintln!("Plugin '{}' error: {}", plugin_cfg.plugin, err);
+                            None
+                        }
+                    }
+                })
+            })
+            .collect();
+        handles.into_iter().filter_map(|h| h.join().ok()?).collect()
+    })
 }
 
 #[cfg(test)]

@@ -17,6 +17,29 @@ const MINIMAL_LAYOUT: &str = "minimal";
 const CLASSIC_VARIANTS: &[&str] = &["pacman", "box", "line", "dots", "bottom_line"];
 const VERTICAL_LAYOUTS: &[&str] = &["horizontal", "bottom"];
 
+/// Every layout name accepted in the `layout` config key.
+pub const LAYOUT_NAMES: &[&str] = &[
+    "default",
+    "side-block",
+    "tree",
+    "section",
+    "section-box",
+    "custom-x",
+    "compact",
+    "minimal",
+    "pacman",
+    "box",
+    "line",
+    "dots",
+    "bottom_line",
+    "horizontal",
+    "bottom",
+];
+
+pub fn is_known_layout(name: &str) -> bool {
+    LAYOUT_NAMES.contains(&name)
+}
+
 pub fn get_content_lines(
     nodes: &[RenderNode],
     config: &Config,

@@ -3,6 +3,7 @@ mod cli;
 mod config;
 mod extensions;
 mod info;
+mod logos;
 mod plugins;
 mod themes;
 mod ui;
@@ -43,7 +44,11 @@ fn main() {
     }
 
     if cli.gen_config {
-        match generate_config(cli.config.clone()) {
+        match generate_config(
+            cli.config.clone(),
+            cli.logo.as_deref(),
+            cli.layout.as_deref(),
+        ) {
             Ok(path) => {
                 println!("Generated config: {}", path.display());
                 println!("Run xfetch to see the new layout.");

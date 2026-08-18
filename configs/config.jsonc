@@ -1,5 +1,6 @@
 {
     "layout": "section",
+    "os_wsl_style": "minimal",
     "modules": [
         {
             "type": "group",

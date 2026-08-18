@@ -37,6 +37,8 @@ pub struct Config {
     pub config_providers: Vec<ConfigProviderConfig>,
     pub disable_ip_fetching: Option<bool>,
     pub disable_cache: Option<bool>,
+    /// WSL OS presentation: "off" | "minimal" | "full" (Linux only).
+    pub os_wsl_style: Option<String>,
     pub logo_width: Option<u32>,
     pub logo_height: Option<u32>,
     pub logo_gap: Option<u32>,
@@ -136,6 +138,7 @@ impl Default for Config {
             config_providers: Vec::new(),
             disable_ip_fetching: None,
             disable_cache: None,
+            os_wsl_style: None,
             logo_width: None,
             logo_height: None,
             logo_gap: None,
@@ -280,7 +283,11 @@ pub fn default_themes_dir() -> PathBuf {
     config_dir().join("xfetch").join("themes")
 }
 
-pub fn generate_config(path: Option<String>) -> std::io::Result<PathBuf> {
+pub fn generate_config(
+    path: Option<String>,
+    logo: Option<&str>,
+    layout: Option<&str>,
+) -> std::io::Result<PathBuf> {
     let config_path = if let Some(p) = path {
         PathBuf::from(p)
     } else {
@@ -292,7 +299,47 @@ pub fn generate_config(path: Option<String>) -> std::io::Result<PathBuf> {
     }
 
     let template = include_str!("../configs/layout_pacman.jsonc");
-    fs::write(&config_path, template)?;
+    let mut out = template.to_string();
+
+    // `--layout`: swap the layout key for a known layout name. The template
+    // ships as `pacman`, so that stays the default.
+    if let Some(layout_name) = layout {
+        if crate::ui::is_known_layout(layout_name) {
+            out = out.replacen(
+                "\"layout\": \"pacman\"",
+                &format!("\"layout\": \"{}\"", layout_name),
+                1,
+            );
+        } else {
+            eprintln!(
+                "Warning: unknown layout '{}'; keeping 'pacman'.",
+                layout_name
+            );
+        }
+    }
+
+    // Best-effort: fetch the ASCII logo of the detected OS/distro (or the
+    // explicit `--logo` choice) from the xfetch-cli/logos catalog, persist it
+    // locally and point `ascii` at it. On any failure (no network, catalog
+    // error, invalid art) the template is written unchanged, keeping the
+    // previous behavior — with a warning when the failure was an explicit
+    // user request.
+    if let Some((distro_id, art)) = crate::logos::fetch_distro_logo(logo) {
+        let logos_dir = config_dir().join("xfetch").join("logos");
+        fs::create_dir_all(&logos_dir)?;
+        let art_path = logos_dir.join(format!("{distro_id}.txt"));
+        fs::write(&art_path, art)?;
+        if let Ok(art_json) = serde_json::to_string(&art_path.to_string_lossy()) {
+            out = out.replacen('{', &format!("{{\n    \"ascii\": {art_json},"), 1);
+        }
+    } else if let Some(logo_id) = logo {
+        eprintln!(
+            "Warning: could not fetch logo '{}' (no network or unknown id); using the default config.",
+            logo_id
+        );
+    }
+
+    fs::write(&config_path, out)?;
 
     Ok(config_path)
 }

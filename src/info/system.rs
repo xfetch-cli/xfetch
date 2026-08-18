@@ -1,7 +1,10 @@
 use std::io::{BufReader, Read, Write};
 use std::net::{TcpStream, ToSocketAddrs};
+use std::thread;
 use std::time::Duration;
 use sysinfo::{Networks, System};
+
+const PUBLIC_IP_HOSTS: [&str; 3] = ["ifconfig.me", "api.ipify.org", "icanhazip.com"];
 
 pub fn get_os_info() -> String {
     let name = System::name().unwrap_or_else(super::unknown);
@@ -84,12 +87,16 @@ pub fn get_public_ip_info(enabled: bool) -> String {
     if !enabled {
         return "N/A".to_string();
     }
-    for host in &["ifconfig.me", "api.ipify.org", "icanhazip.com"] {
-        if let Some(ip) = fetch_public_ip_from(host) {
-            return ip;
-        }
-    }
-    "N/A".to_string()
+    // All hosts in parallel: offline systems used to pay 3 s per host
+    // sequentially (up to 9 s), now the timeout applies once.
+    let ip = thread::scope(|s| {
+        let handles: Vec<_> = PUBLIC_IP_HOSTS
+            .iter()
+            .map(|host| s.spawn(move || fetch_public_ip_from(host)))
+            .collect();
+        handles.into_iter().find_map(|h| h.join().ok().flatten())
+    });
+    ip.unwrap_or_else(|| "N/A".to_string())
 }
 
 fn is_link_local(ipv6: &std::net::Ipv6Addr) -> bool {

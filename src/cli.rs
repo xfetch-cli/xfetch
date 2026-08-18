@@ -18,6 +18,17 @@ pub struct Cli {
     #[arg(long, global = true)]
     pub gen_config: bool,
 
+    /// Logo to embed in the generated config, overriding the detected
+    /// OS/distro (e.g. `--logo arch`, `--logo windows-11`). Only used with
+    /// `--gen-config`; requires network access to the logos catalog.
+    #[arg(long, global = true)]
+    pub logo: Option<String>,
+
+    /// Layout for the generated config (e.g. `section`, `tree`, `compact`).
+    /// Only used with `--gen-config`; defaults to `pacman`.
+    #[arg(long, global = true)]
+    pub layout: Option<String>,
+
     #[arg(long, global = true)]
     pub clean_cache: bool,
 
