@@ -1,5 +1,0 @@
-{
-    "layout": "compact",
-    "modules": ["os", "kernel", "uptime", "packages", "shell", "cpu", "gpu", "memory", "disk", "battery"],
-    "show_colors": true
-}

@@ -560,11 +560,16 @@ install_config() {
         EXISTING_CONFIG=1
         warn "Config already exists at ${CONFIG_DIR}/config.jsonc — not overwriting."
     else
-        if [ -f "${src_dir}/configs/config.jsonc" ]; then
-            cp "${src_dir}/configs/config.jsonc" "${CONFIG_DIR}/config.jsonc"
-            ok "Installed default config to ${CONFIG_DIR}/config.jsonc"
+        # Generate the first config with the freshly installed binary
+        # (adds the distro ASCII logo when online; falls back offline).
+        if command -v "${PROJECT}" >/dev/null 2>&1; then
+            if "${PROJECT}" --gen-config >/dev/null 2>&1; then
+                ok "Generated config at ${CONFIG_DIR}/config.jsonc"
+            else
+                warn "Could not generate config; skipping."
+            fi
         else
-            warn "No default config found in source; skipping."
+            warn "Binary not found on PATH; skipping config generation."
         fi
     fi
 

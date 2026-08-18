@@ -149,10 +149,8 @@ cargo build --release
 # Install it manually:
 cp target/release/xfetch ~/.local/bin/
 
-# Set up config
-mkdir -p ~/.config/xfetch
-cp configs/config.jsonc ~/.config/xfetch/config.jsonc
-cp -r logos/* ~/.config/xfetch/logos/</code></pre>
+# Generate a starter config (adds the distro ASCII logo when online)
+xfetch --gen-config</code></pre>
 
 <p>
   Additional presets are available in

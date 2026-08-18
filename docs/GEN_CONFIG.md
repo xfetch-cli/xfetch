@@ -90,11 +90,12 @@ xfetch --gen-config --logo macos-ventura</code></pre>
 <h2>Layout (<code>--layout</code>)</h2>
 
 <p>
-  The template ships with the <code>pacman</code> layout. Use <code>--layout</code> to generate
-  it with any of the built-in layouts (see <a href="LAYOUTS.md">LAYOUTS.md</a>):
+  The template ships with the <code>section</code> layout (grouped Hardware/Software/Session
+  modules). Use <code>--layout</code> to generate it with any of the built-in layouts (see
+  <a href="LAYOUTS.md">LAYOUTS.md</a>):
 </p>
 
-<pre><code>xfetch --gen-config --layout section
+<pre><code>xfetch --gen-config --layout pacman
 xfetch --gen-config --layout tree
 xfetch --gen-config --layout compact</code></pre>
 

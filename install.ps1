@@ -87,7 +87,14 @@ if (-not (Test-Path $ConfigDir)) {
 
 $ConfigFile = Join-Path $ConfigDir "config.jsonc"
 if (-not (Test-Path $ConfigFile)) {
-    Copy-Item "configs\config.jsonc" $ConfigFile
+    # Generate the first config with the freshly installed binary
+    # (adds the distro ASCII logo when online; falls back offline).
+    & xfetch --gen-config 2>$null
+    if (Test-Path $ConfigFile) {
+        Write-Host "Generated config at $ConfigFile" -ForegroundColor Green
+    } else {
+        Write-Host "Could not generate config; skipping." -ForegroundColor Yellow
+    }
 }
 
 # Cleanup

@@ -2,9 +2,15 @@
 
 ## 2026-08-18 — v0.5.0
 
+### No More `configs/` Folder
+
+- The `configs/` directory was removed from the repo: the `--gen-config` template is now embedded in the binary (`GEN_CONFIG_TEMPLATE` const), and the installers (`install.sh` / `install.ps1`) generate the first config by running `xfetch --gen-config` instead of copying a file.
+- `--gen-config` now ships the **`section`** layout by default (the same default the installers used to copy: grouped Hardware/Software/Session modules); `--layout pacman` and any other layout remain available via the flag. Offline installs fall back to the template without logo, and existing configs are never overwritten.
+- `docs/INSTALLATION.md` manual setup example updated to `xfetch --gen-config`.
+
 ### Layout Flag in `--gen-config`
 
-- New `--layout <name>` flag: generates the config with a different layout, e.g. `xfetch --gen-config --layout section` or `--layout tree`. Accepts any known layout (`default`, `side-block`, `tree`, `section`, `section-box`, `custom-x`, `compact`, `minimal`, `pacman`, `box`, `line`, `dots`, `bottom_line`, `horizontal`, `bottom`); the template ships as `pacman`, so that remains the default.
+- New `--layout <name>` flag: generates the config with a different layout, e.g. `xfetch --gen-config --layout pacman` or `--layout tree`. Accepts any known layout (`default`, `side-block`, `tree`, `section`, `section-box`, `custom-x`, `compact`, `minimal`, `pacman`, `box`, `line`, `dots`, `bottom_line`, `horizontal`, `bottom`); the template ships as `section` (see the `configs/` removal entry above), so that remains the default.
 - Unknown layout name: warns and keeps `pacman`. Composable with `--logo` (`--gen-config --layout tree --logo arch`).
 - `LAYOUT_NAMES`/`is_known_layout()` exported from `ui/layout.rs` as the single source of truth for valid names.
 - 78 tests, fmt and clippy `-D warnings` clean.

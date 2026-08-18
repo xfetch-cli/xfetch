@@ -283,6 +283,15 @@ pub fn default_themes_dir() -> PathBuf {
     config_dir().join("xfetch").join("themes")
 }
 
+/// Template for `--gen-config`, embedded so the binary has no file
+/// dependencies. Ships as the `section` layout (the same default the
+/// installers used to copy); `--layout` swaps the layout key.
+/// Template for `--gen-config`, embedded so the binary has no file
+/// dependencies. Ships as the `section` layout (the same default the
+/// installers used to copy); `--layout` swaps the layout key. The
+/// template file lives in `src/templates/`.
+const GEN_CONFIG_TEMPLATE: &str = include_str!("templates/config.jsonc");
+
 pub fn generate_config(
     path: Option<String>,
     logo: Option<&str>,
@@ -298,21 +307,20 @@ pub fn generate_config(
         fs::create_dir_all(parent)?;
     }
 
-    let template = include_str!("../configs/layout_pacman.jsonc");
-    let mut out = template.to_string();
+    let mut out = GEN_CONFIG_TEMPLATE.to_string();
 
     // `--layout`: swap the layout key for a known layout name. The template
-    // ships as `pacman`, so that stays the default.
+    // ships as `section`, so that stays the default.
     if let Some(layout_name) = layout {
         if crate::ui::is_known_layout(layout_name) {
             out = out.replacen(
-                "\"layout\": \"pacman\"",
+                "\"layout\": \"section\"",
                 &format!("\"layout\": \"{}\"", layout_name),
                 1,
             );
         } else {
             eprintln!(
-                "Warning: unknown layout '{}'; keeping 'pacman'.",
+                "Warning: unknown layout '{}'; keeping 'section'.",
                 layout_name
             );
         }
