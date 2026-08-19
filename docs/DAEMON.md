@@ -95,3 +95,69 @@
   <li>If the PID file is missing or stale, <code>xfetch --daemon-stop</code> reports "No daemon running" and cleans up the stale file.</li>
   <li>Orphaned daemons can accumulate if <code>--daemon-stop</code> is not used (e.g. after killing the terminal abruptly); clean them up with <code>pkill xfetch</code>.</li>
 </ul>
+
+<h2>Live Stats Daemon</h2>
+
+<p>
+  The <strong>live stats daemon</strong> (<code>daemon_live</code>) is a sibling of the
+  animated-logo daemon: it pins the fetch block at the top of the terminal and
+  <strong>re-probes a lightweight subset of modules every few seconds</strong>, re-rendering
+  the block with fresh values (cpu, memory, swap, disks, battery, uptime, datetime).
+  Your fetch stops being a static snapshot and becomes a live panel — think
+  "conky pinned at the top", not an interactive btop.
+</p>
+
+<p>
+  The existing animated daemon is untouched: the two modes are independent and share
+  the same pinning/scroll-region machinery.
+</p>
+
+<h3>Activation</h3>
+
+<pre><code class="language-jsonc">{
+    "daemon_live": true,
+    "daemon_live_refresh": 2
+}</code></pre>
+
+<p>Activation is config-only; the terminal flags only disable/stop/force:</p>
+
+<pre><code class="language-bash">xfetch --no-daemon-live       # disable even if the config enables it
+xfetch --daemon-live-stop     # stop the running live daemon
+xfetch --daemon-live-reload   # force hot reload (same as "daemon_live_reload": true)</code></pre>
+
+<h3>Configuration</h3>
+
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>daemon_live</code></td><td>boolean</td><td><code>false</code></td>
+      <td>Enable the live stats daemon.</td>
+    </tr>
+    <tr>
+      <td><code>daemon_live_refresh</code></td><td>number</td><td>per-platform</td>
+      <td>Seconds between refreshes. Defaults to the platform policy (<code>platform/&lt;os&gt;/live.rs</code>): Linux 2, macOS 3, Windows 5.</td>
+    </tr>
+    <tr>
+      <td><code>daemon_live_modules</code></td><td>array</td><td>per-platform</td>
+      <td>Modules shown (and refreshed). Defaults to the platform's live set: Linux/macOS <code>cpu, memory, swap, disks, battery, uptime, datetime</code>; Windows excludes <code>battery</code> (it spawns <code>wmic</code>/PowerShell every tick) unless you add it back.</td>
+    </tr>
+    <tr>
+      <td><code>daemon_live_reload</code></td><td>boolean</td><td><code>false</code></td>
+      <td>Hot reload: watch the config file (and the active theme) and re-apply changes — modules, colors, icons, layout, logo, refresh cadence — without restarting the daemon. Equivalent CLI flag: <code>--daemon-live-reload</code>.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Behavior details</h3>
+
+<ul>
+  <li>If <code>logo_animation</code> is configured, the logo keeps animating while the content refreshes live; otherwise the logo is static.</li>
+  <li>Only the modules in <code>daemon_live_modules</code> are probed on each tick — heavy work (packages, public IP, plugins) is never re-run.</li>
+  <li>The PID file is <code>~/.config/xfetch/daemon_live.pid</code>, separate from the animated daemon's; <code>--daemon-live-stop</code> targets it.</li>
+  <li>Resizes are handled like the animated daemon; <code>daemon_min_rows</code> applies to both.</li>
+  <li>Hot reload checks file mtimes (config + theme) on a light poll; edits are picked up within ~100 ms. Re-applying also re-runs config providers (extensions) and, when the animation settings changed, re-spawns the logo plugin. To stop the daemon, still use <code>--daemon-live-stop</code> — setting <code>daemon_live</code> back to <code>false</code> does not stop a running daemon.</li>
+</ul>
+

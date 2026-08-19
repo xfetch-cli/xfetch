@@ -70,3 +70,29 @@ pub fn detect_os_ids() -> (String, Vec<String>) {
         ("windows".to_string(), ids)
     }
 }
+
+/// Refresh policy for the live daemon (`daemon_live` in config): which module
+/// keys are cheap to re-probe and the default interval in seconds. Each OS
+/// folder picks its own — e.g. Windows battery runs `wmic`/PowerShell, so it
+/// is excluded from the defaults there.
+pub struct LivePolicy {
+    pub modules: &'static [&'static str],
+    pub default_refresh_secs: u64,
+}
+
+/// Per-OS live-refresh policy, used by `ui::live`. The live daemon itself is
+/// platform-agnostic; only this cadence/module choice is per-OS.
+pub fn live_policy() -> LivePolicy {
+    #[cfg(target_os = "linux")]
+    {
+        linux::live::live_policy()
+    }
+    #[cfg(target_os = "macos")]
+    {
+        macos::live::live_policy()
+    }
+    #[cfg(target_os = "windows")]
+    {
+        windows::live::live_policy()
+    }
+}

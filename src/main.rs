@@ -44,6 +44,15 @@ fn main() {
         return;
     }
 
+    if cli.daemon_live_stop {
+        if crate::ui::stop_live_daemon() {
+            println!("Live daemon stopped.");
+        } else {
+            println!("No live daemon running.");
+        }
+        return;
+    }
+
     if cli.gen_config {
         match generate_config(
             cli.config.clone(),
@@ -205,6 +214,13 @@ fn main() {
             let (info, bench_lines) = Info::with_config(&config, cli.benchmark);
             if cli.daemon || config.daemon {
                 crate::ui::draw_daemon(&info, &config);
+            } else if config.daemon_live && !cli.no_daemon_live {
+                let config_path = cli.config.clone().or_else(|| {
+                    let d = config::default_config_path();
+                    d.exists().then(|| d.to_string_lossy().into_owned())
+                });
+                let reload = config.daemon_live_reload || cli.daemon_live_reload;
+                crate::ui::draw_live_daemon(&info, &config, config_path, reload);
             } else {
                 draw(&info, &config);
             }

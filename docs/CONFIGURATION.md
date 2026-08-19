@@ -38,6 +38,9 @@
     <tr><td><code>xfetch --config &lt;path&gt;</code></td><td>Use a custom config file.</td></tr>
     <tr><td><code>xfetch --daemon</code></td><td>Run in daemon mode: pin an animated fetch at the top of the terminal while keeping the prompt usable below. See <a href="DAEMON.md">DAEMON.md</a>.</td></tr>
     <tr><td><code>xfetch --daemon-stop</code></td><td>Stop the running daemon.</td></tr>
+    <tr><td><code>xfetch --no-daemon-live</code></td><td>Disable the live stats daemon (<code>daemon_live</code>) even if it is enabled in the config.</td></tr>
+    <tr><td><code>xfetch --daemon-live-stop</code></td><td>Stop the running live stats daemon.</td></tr>
+    <tr><td><code>xfetch --daemon-live-reload</code></td><td>Force hot reload in the live stats daemon (same as <code>"daemon_live_reload": true</code>).</td></tr>
     <tr><td><code>xfetch --gen-config</code></td><td>Generate a starter config at the default location. See <a href="GEN_CONFIG.md">GEN_CONFIG.md</a>.</td></tr>
     <tr><td><code>xfetch --clean-cache</code></td><td>Clear the module cache.</td></tr>
     <tr><td><code>xfetch --benchmark</code></td><td>Print benchmarking info for the info gathering step.</td></tr>
@@ -415,6 +418,51 @@
 
 <p>
   Full reference, usage and troubleshooting: see <a href="DAEMON.md">DAEMON.md</a>.
+</p>
+
+<h3>Live Stats Daemon</h3>
+
+<p>
+  <code>daemon_live</code> pins the fetch block at the top of the terminal and
+  re-probes a lightweight module subset every <code>daemon_live_refresh</code> seconds
+  (cpu, memory, battery, datetime, ...), so the pinned fetch stays live. Activation is
+  config-only; disable it from the terminal with <code>--no-daemon-live</code> and stop
+  it with <code>--daemon-live-stop</code>. The animated-logo daemon is unaffected.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>daemon_live</code></td><td>boolean</td><td><code>false</code></td>
+      <td>Enable the live stats daemon.</td>
+    </tr>
+    <tr>
+      <td><code>daemon_live_refresh</code></td><td>number</td><td>per-platform</td>
+      <td>Seconds between refreshes (Linux 2, macOS 3, Windows 5).</td>
+    </tr>
+    <tr>
+      <td><code>daemon_live_modules</code></td><td>array</td><td>per-platform</td>
+      <td>Modules shown/refreshed; defaults to the platform's live set from <code>platform/&lt;os&gt;/live.rs</code>.</td>
+    </tr>
+    <tr>
+      <td><code>daemon_live_reload</code></td><td>boolean</td><td><code>false</code></td>
+      <td>Hot reload: watches the config (and active theme) and re-applies changes without restarting. Equivalent CLI flag: <code>--daemon-live-reload</code>.</td>
+    </tr>
+  </tbody>
+</table>
+
+<pre><code class="language-jsonc">{
+    "daemon_live": true,
+    "daemon_live_refresh": 2,
+    "daemon_live_reload": true,
+    "daemon_live_modules": ["cpu", "memory", "battery", "datetime"]
+}</code></pre>
+
+<p>
+  Full reference: see the Live Stats Daemon section in <a href="DAEMON.md">DAEMON.md</a>.
 </p>
 
 <h2>Config Providers (Extensions)</h2>

@@ -53,6 +53,23 @@ pub struct Config {
     pub key_width: Option<usize>,
     pub daemon: bool,
     pub daemon_min_rows: Option<u32>,
+    /// Live stats daemon: pins the fetch block at the top of the terminal and
+    /// re-probes a lightweight module subset every `daemon_live_refresh`
+    /// seconds. Sibling of `daemon` (the animated-logo daemon); the existing
+    /// daemon is untouched. Disable from the terminal with `--no-daemon-live`,
+    /// stop it with `--daemon-live-stop`.
+    pub daemon_live: bool,
+    /// Seconds between live refreshes (0 disables the interval floor; the
+    /// platform policy supplies the default).
+    pub daemon_live_refresh: Option<u64>,
+    /// Modules shown by the live daemon. Defaults to the platform's live set
+    /// (`platform/<os>/live.rs`).
+    pub daemon_live_modules: Option<Vec<String>>,
+    /// Hot reload for the live daemon: watch the config (and the active theme)
+    /// and re-apply changes — modules, colors, layout, logo, refresh cadence —
+    /// without restarting. Force-enable from the terminal with
+    /// `--daemon-live-reload`.
+    pub daemon_live_reload: bool,
     pub custom_x: Option<CustomX>,
 }
 
@@ -166,6 +183,10 @@ impl Default for Config {
             key_width: None,
             daemon: false,
             daemon_min_rows: None,
+            daemon_live: false,
+            daemon_live_refresh: None,
+            daemon_live_modules: None,
+            daemon_live_reload: false,
             custom_x: None,
         }
     }
@@ -406,4 +427,3 @@ mod tests {
         assert_eq!(config.info_plugins[0].timeout_secs, None);
     }
 }
-

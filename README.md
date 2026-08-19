@@ -95,6 +95,7 @@ irm https://raw.githubusercontent.com/xfetch-cli/xfetch/main/install.ps1 | iex
 - **Fast**: Written in Rust for performance.
 - **Animated logos**: Animate the ASCII logo with plugins (e.g. `animate-logo`).
 - **Daemon mode**: Pin an animated fetch at the top of the terminal and keep using the shell below.
+- **Live stats daemon**: Turn the pinned fetch into a live panel — re-probes cpu/memory/battery/... every few seconds (`daemon_live`), with hot reload of the config on the fly (`daemon_live_reload`).
 - **Themes, plugins & extensions**: Switch visual themes, extend info with plugins, and transform the config with extensions.
 
 <h2 id="configuration" align="center"> Configuration </h2>
@@ -143,6 +144,9 @@ Simply run `xfetch` in your terminal.
 xfetch                          # render the fetch
 xfetch --daemon                 # pin an animated fetch at the top (daemon mode)
 xfetch --daemon-stop            # stop the daemon
+xfetch --no-daemon-live         # disable the live stats daemon (config: "daemon_live": true)
+xfetch --daemon-live-stop       # stop the live stats daemon
+xfetch --daemon-live-reload     # hot reload the live stats daemon ("daemon_live_reload": true)
 xfetch --config path/to/config.jsonc
 xfetch --gen-config             # generate a starter config
 xfetch --clean-cache            # clear the module cache

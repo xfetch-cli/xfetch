@@ -31,6 +31,14 @@
 - `get_local_ip_info` is dispatched through `platform::get_local_ip_info` like the other probes; `info/system.rs` no longer carries per-OS `#[cfg]` blocks. Windows behavior is untouched.
 - 94 tests, clippy clean (Linux CI unchanged).
 
+### Live Stats Daemon (`daemon_live`)
+
+- New live stats daemon, sibling of the animated-logo daemon (`ui/daemon.rs` is untouched): pins the fetch at the top of the terminal and re-probes a lightweight module subset every `daemon_live_refresh` seconds, re-rendering with fresh values. Activation is config-only (`"daemon_live": true`); `--no-daemon-live` disables it from the terminal and `--daemon-live-stop` stops it (own pid file `daemon_live.pid`).
+- Per-OS refresh policy lives in the new `platform/<os>/live.rs`: Linux refreshes 7 modules every 2 s, macOS every 3 s, Windows every 5 s (battery excluded by default — it spawns `wmic`/PowerShell). `daemon_live_modules` overrides the set.
+- When `logo_animation` is configured the logo keeps animating while the content refreshes live; otherwise it is static. The engine lives in `ui/live.rs` and reuses the existing `print.rs` builders and probes — no existing rendering/probe code changed.
+- **Hot reload**: `daemon_live_reload` (or `--daemon-live-reload`) watches the config file and the active theme (mtime) and re-applies modules, colors, layout, logo and refresh cadence without restarting; config providers (extensions) re-run on each reload. Disabled by default.
+- 103 tests, clippy clean.
+
 ## 2026-08-18 — v0.5.0
 
 ### Per-Platform Package Counters

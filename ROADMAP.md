@@ -134,8 +134,8 @@
 - [x] Implement theme system with variables (#128)
 - [ ] Add animation support for transitional elements (#129)
 - [x] Implement daemon mode (`--daemon`) for persistent animation rendering (#130)
-- [ ] Implement real-time stats updates in daemon mode (#130)
-- [ ] Add config hot-reload capability (#131)
+- [x] Implement real-time stats updates in daemon mode (#130)
+- [x] Add config hot-reload capability (#131)
 - [x] Implement telemetry (optional, privacy-respecting) (#132)
 - [ ] Add accessibility features (high contrast themes) (#133)
 

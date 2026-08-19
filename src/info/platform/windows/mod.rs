@@ -6,6 +6,7 @@
 pub mod battery;
 pub mod datetime;
 pub mod gpu;
+pub mod live;
 pub mod network;
 pub mod packages;
 pub mod process;

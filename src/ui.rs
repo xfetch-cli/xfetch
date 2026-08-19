@@ -8,6 +8,8 @@ pub mod custom_x;
 mod daemon;
 mod frames;
 mod layout;
+#[cfg(unix)]
+mod live;
 mod logo;
 mod nodes;
 mod print;
@@ -16,6 +18,8 @@ mod x;
 #[cfg(unix)]
 pub use daemon::{draw_daemon, stop_daemon};
 pub use layout::is_known_layout;
+#[cfg(unix)]
+pub use live::{draw_live_daemon, stop_live_daemon};
 
 #[cfg(not(unix))]
 pub fn draw_daemon(_info: &Info, _config: &Config) {
@@ -25,6 +29,22 @@ pub fn draw_daemon(_info: &Info, _config: &Config) {
 #[cfg(not(unix))]
 pub fn stop_daemon() -> bool {
     eprintln!("Daemon mode is not supported on Windows.");
+    false
+}
+
+#[cfg(not(unix))]
+pub fn draw_live_daemon(
+    _info: &Info,
+    _config: &Config,
+    _config_path: Option<String>,
+    _reload: bool,
+) {
+    eprintln!("Live daemon mode is not supported on Windows.");
+}
+
+#[cfg(not(unix))]
+pub fn stop_live_daemon() -> bool {
+    eprintln!("Live daemon mode is not supported on Windows.");
     false
 }
 use frames::load_animation_frames;
