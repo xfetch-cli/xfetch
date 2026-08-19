@@ -6,6 +6,8 @@ use crate::info::platform::shared::packages::{
 };
 
 const PACMAN_CMD: &str = "pacman";
+const YAY_CMD: &str = "yay";
+const PARU_CMD: &str = "paru";
 const DPKG_CMD: &str = "dpkg";
 const RPM_CMD: &str = "rpm";
 const FLATPAK_CMD: &str = "flatpak";
@@ -32,6 +34,8 @@ const PORTAGE_DB_DIR: &str = "/var/db/pkg";
 /// forever on the snapd socket instead of failing.
 const CHECKS: &[PackageCheck] = &[
     (PACMAN_CMD, &["-Qq"], PACKAGE_CHECK_TIMEOUT),
+    (YAY_CMD, &["-Qq"], PACKAGE_CHECK_TIMEOUT),
+    (PARU_CMD, &["-Qq"], PACKAGE_CHECK_TIMEOUT),
     (DPKG_CMD, &["--get-selections"], PACKAGE_CHECK_TIMEOUT),
     (RPM_CMD, &["-qa"], PACKAGE_CHECK_TIMEOUT),
     (FLATPAK_CMD, &["list", "--app"], PACKAGE_CHECK_TIMEOUT),

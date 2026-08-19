@@ -1,13 +1,23 @@
 use crate::info::platform::shared::packages::{
-    PACKAGE_CHECK_TIMEOUT, PackageCheck, run_package_checks,
+    PACKAGE_CHECK_TIMEOUT, count_brew_output, format_package_count, run_package_check_stdout,
 };
 
 const BREW_CMD: &str = "brew";
 
-const CHECKS: &[PackageCheck] = &[(BREW_CMD, &["list", "--formula"], PACKAGE_CHECK_TIMEOUT)];
+const CHECKS: &[(&str, &[&str])] = &[(BREW_CMD, &["list", "--formula"])];
 
 pub fn get_packages_breakdown() -> Vec<(String, String)> {
-    run_package_checks(CHECKS)
+    CHECKS
+        .iter()
+        .filter_map(|(cmd, args)| {
+            run_package_check_stdout(cmd, args, PACKAGE_CHECK_TIMEOUT).map(|out| {
+                (
+                    cmd.to_string(),
+                    format_package_count(count_brew_output(&out), cmd),
+                )
+            })
+        })
+        .collect()
 }
 
 #[cfg(test)]

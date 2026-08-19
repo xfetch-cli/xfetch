@@ -2,6 +2,16 @@
 
 ## 2026-08-18 — v0.5.0
 
+### Per-Platform Package Counters
+
+- **Windows**: `winget` support added (`winget list --include-unknown --disable-interactivity --accept-source-agreements`, 20 s timeout for slow first runs); `choco list --local-only` no longer miscounts — its "X packages installed." summary line is skipped; `scoop list` counts rows instead of subtracting a fixed header offset.
+- **macOS**: `brew list --formula` output is parsed defensively (empty lines, `==> ...` notices and any whitespace noise are ignored), fixing counts that broke on Homebrew output variations.
+- **Linux**: `yay` and `paru` (Arch AUR helpers) added to the probes, alongside `pacman`.
+- Separation is kept per OS folder (`platform/{linux,macos,windows}/packages.rs`), each deciding commands, args and timeouts; the pure output parsers moved to `shared/packages.rs` (`count_scoop_output`, `count_choco_output`, `count_winget_output`, `count_brew_output`) so their tests run on any platform's local CI — +4 tests, 82 total.
+- Cleaned up cfg gating so the cross-target checks (`cargo check --target` for Windows and macOS) are warning-free: Linux-only machinery (`PackageCheck`, `run_package_checks`, `run_package_check_with_timeout`) is `cfg(target_os = "linux")`.
+
+## 2026-08-18 — v0.5.0
+
 ### No More `configs/` Folder
 
 - The `configs/` directory was removed from the repo: the `--gen-config` template is now embedded in the binary (`GEN_CONFIG_TEMPLATE` const), and the installers (`install.sh` / `install.ps1`) generate the first config by running `xfetch --gen-config` instead of copying a file.

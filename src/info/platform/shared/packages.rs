@@ -1,5 +1,5 @@
 use super::commands::run_cmd_with_timeout;
-#[cfg(unix)]
+#[cfg(target_os = "linux")]
 use std::thread;
 use std::time::Duration;
 
@@ -7,28 +7,105 @@ use std::time::Duration;
 ///
 /// Timeouts are per command so each platform tunes its probes independently
 /// (e.g. `snap` gets a short timeout because it hangs forever when the snapd
-/// daemon is not running).
+/// daemon is not running). Used by the Linux runner; macOS and Windows keep
+/// their own.
+#[cfg(target_os = "linux")]
 pub type PackageCheck<'a> = (&'a str, &'a [&'a str], Duration);
 
 pub const PACKAGE_CHECK_TIMEOUT: Duration = Duration::from_secs(10);
 #[cfg(target_os = "linux")]
 pub const SNAP_CHECK_TIMEOUT: Duration = Duration::from_secs(3);
 
+/// Runs a package probe and returns its stdout when the command succeeds.
+/// Per-OS counters parse this raw output (e.g. choco's summary line,
+/// winget's table header, brew's notices) instead of naively counting lines.
+pub fn run_package_check_stdout(cmd: &str, args: &[&str], timeout: Duration) -> Option<String> {
+    run_cmd_with_timeout(cmd, args, timeout)
+        .filter(|o| o.status.success())
+        .map(|o| String::from_utf8_lossy(&o.stdout).into_owned())
+}
+
+#[cfg(target_os = "linux")]
 pub fn run_package_check_with_timeout(
     cmd: &str,
     args: &[&str],
     timeout: Duration,
 ) -> Option<usize> {
-    run_cmd_with_timeout(cmd, args, timeout)
-        .filter(|o| o.status.success())
-        .map(|o| String::from_utf8_lossy(&o.stdout).lines().count())
+    run_package_check_stdout(cmd, args, timeout).map(|out| out.lines().count())
+}
+
+/// Parsers for package-manager output. They are pure text logic so they live
+/// here (testable on any platform via `cfg(test)`); each OS folder decides
+/// which commands to run and maps them to the matching parser.
+///
+/// `scoop list` prints a header block ("Installed apps:", "Name Version ...",
+/// a dashes row) before the actual apps — counts "name version ..." rows.
+#[cfg(any(target_os = "windows", test))]
+pub fn count_scoop_output(stdout: &str) -> usize {
+    stdout
+        .lines()
+        .filter(|line| {
+            let tokens: Vec<&str> = line.split_whitespace().collect();
+            tokens.len() >= 2
+                && tokens[0] != "Name"
+                && tokens[0] != "Installed"
+                && !tokens[0].chars().all(|c| c == '-')
+        })
+        .count()
+}
+
+/// `choco list --local-only` prints one "name version" row per package and
+/// ends with a "X packages installed." summary line, which must not count.
+#[cfg(any(target_os = "windows", test))]
+pub fn count_choco_output(stdout: &str) -> usize {
+    stdout
+        .lines()
+        .filter(|line| {
+            let tokens: Vec<&str> = line.split_whitespace().collect();
+            tokens.len() == 2 && !line.contains("packages installed")
+        })
+        .count()
+}
+
+/// `winget list` prints a table with a header row ("Name Id Version ...") and
+/// a dashes separator before the actual entries.
+#[cfg(any(target_os = "windows", test))]
+pub fn count_winget_output(stdout: &str) -> usize {
+    let mut rows = 0;
+    let mut seen_dashes = false;
+    for line in stdout.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        if trimmed.chars().all(|c| c == '-') {
+            seen_dashes = true;
+            continue;
+        }
+        let tokens: Vec<&str> = trimmed.split_whitespace().collect();
+        if tokens.len() >= 2 && (seen_dashes || tokens[0] != "Name") {
+            rows += 1;
+        }
+    }
+    rows
+}
+
+/// `brew list --formula` output — counts package names, ignoring empty lines,
+/// `==> ...` notices and any header/whitespace noise Homebrew may emit.
+#[cfg(any(target_os = "macos", test))]
+pub fn count_brew_output(stdout: &str) -> usize {
+    stdout
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty() && !l.starts_with("==>") && !l.contains(char::is_whitespace))
+        .count()
 }
 
 pub fn format_package_count(count: usize, cmd: &str) -> String {
     format!("{} ({})", count, cmd)
 }
 
-#[cfg(unix)]
+#[cfg(target_os = "linux")]
 pub fn run_package_checks(checks: &[PackageCheck]) -> Vec<(String, String)> {
     thread::scope(|s| {
         let handles: Vec<_> = checks
@@ -60,6 +137,7 @@ pub fn packages_info_from_breakdown(breakdown: &[(String, String)]) -> String {
 mod tests {
     use super::*;
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn test_run_package_check_missing_cmd() {
         assert_eq!(
@@ -78,7 +156,35 @@ mod tests {
         assert_eq!(format_package_count(0, "brew"), "0 (brew)");
     }
 
-    #[cfg(unix)]
+    #[test]
+    fn test_count_scoop_output() {
+        let stdout = "\nInstalled apps:\n\nName Version Source Updated Info\n---- ------- ------ ------- ----\nfoo 1.0     main\ngit 2.45.0  main\n";
+        assert_eq!(count_scoop_output(stdout), 2);
+        assert_eq!(count_scoop_output(""), 0);
+    }
+
+    #[test]
+    fn test_count_choco_output_skips_summary_line() {
+        let stdout = "git 2.45.0\nnodejs 20.11.0\n2 packages installed.\n";
+        assert_eq!(count_choco_output(stdout), 2);
+        assert_eq!(count_choco_output("0 packages installed.\n"), 0);
+    }
+
+    #[test]
+    fn test_count_winget_output() {
+        let stdout = "Name             Id                       Version\n-----------------------------------------------------\ngit              Git.Git                  2.45.0\nPowerShell       Microsoft.PowerShell    7.5.0\n";
+        assert_eq!(count_winget_output(stdout), 2);
+        assert_eq!(count_winget_output("Name Id Version\n"), 0);
+    }
+
+    #[test]
+    fn test_count_brew_output_ignores_noise() {
+        let stdout = "\n==> Updating Homebrew...\n\nvim\n\npython@3.12\ngh\n";
+        assert_eq!(count_brew_output(stdout), 3);
+        assert_eq!(count_brew_output("==> notice only\n\n"), 0);
+    }
+
+    #[cfg(target_os = "linux")]
     #[test]
     fn test_multi_manager_format() {
         let checks: &[PackageCheck] = &[
