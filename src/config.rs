@@ -33,6 +33,11 @@ pub struct Config {
     pub footer_text: Option<String>,
     pub palette_style: Option<String>,
     pub logo_animation: Option<LogoAnimationConfig>,
+    /// Intro effects applied to the content lines when the fetch starts
+    /// (opt-in: no-op when the effect binary is not installed). Accepts a
+    /// single effect or a list — effects play in sequence. Installed as
+    /// `xfetch-effect-<plugin>` under the config dir or PATH.
+    pub effects: Option<EffectConfigList>,
     pub info_plugins: Vec<InfoPluginConfig>,
     pub config_providers: Vec<ConfigProviderConfig>,
     pub disable_ip_fetching: Option<bool>,
@@ -107,6 +112,42 @@ pub struct InfoPluginConfig {
     pub timeout_secs: Option<u64>,
 }
 
+/// Intro effect applied to the content lines (`"effects"` in config). The
+/// effect plugin receives the rendered lines and returns per-frame variants
+/// (`xfetch-effect-api`); opt-in — nothing happens when the binary is missing.
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
+pub struct EffectConfig {
+    pub plugin: Option<String>,
+    pub style: Option<String>,
+    pub duration_ms: Option<u64>,
+    pub fps: Option<u64>,
+    pub args: Option<Value>,
+    /// Safety net in seconds: the core kills the effect process if it runs
+    /// longer. The effect's own `with_timeout` budget is the primary control.
+    pub timeout_secs: Option<u64>,
+}
+
+/// The `"effects"` config value: a single effect or a list of effects played
+/// in sequence. Kept untagged so existing single-object configs keep working.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(untagged)]
+pub enum EffectConfigList {
+    Single(EffectConfig),
+    Multiple(Vec<EffectConfig>),
+}
+
+impl Config {
+    /// The configured effects in play order (empty when none configured).
+    pub fn effects_list(&self) -> Vec<&EffectConfig> {
+        match &self.effects {
+            None => Vec::new(),
+            Some(EffectConfigList::Single(cfg)) => vec![cfg],
+            Some(EffectConfigList::Multiple(list)) => list.iter().collect(),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[serde(default)]
 pub struct ConfigProviderConfig {
@@ -166,6 +207,7 @@ impl Default for Config {
             footer_text: None,
             palette_style: None,
             logo_animation: None,
+            effects: None,
             info_plugins: Vec::new(),
             config_providers: Vec::new(),
             disable_ip_fetching: None,

@@ -1,6 +1,7 @@
 mod cache;
 mod cli;
 mod config;
+mod effects;
 mod extensions;
 mod info;
 mod logos;
@@ -10,13 +11,14 @@ mod themes;
 mod ui;
 
 use crate::config::{generate_config, load_config};
+use crate::effects::{install_effect, list_effects, remove_effect};
 use crate::extensions::{install_extension, list_extensions, remove_extension};
 use crate::info::Info;
 use crate::plugins::{install_plugin, list_plugins, remove_plugin};
 use crate::themes::{export_current_theme, list_themes, remove_theme, set_active_theme};
 use crate::ui::draw;
 use clap::Parser;
-use cli::{Cli, Commands, ExtensionCommands, PluginCommands, ThemeCommands};
+use cli::{Cli, Commands, EffectCommands, ExtensionCommands, PluginCommands, ThemeCommands};
 use std::path::PathBuf;
 
 fn main() {
@@ -208,6 +210,44 @@ fn main() {
                     }
                 }
             }
+        },
+        Some(Commands::Effects { action }) => match action {
+            EffectCommands::Install { path, repo } => {
+                match install_effect(&path, repo.as_deref()) {
+                    Ok(()) => {}
+                    Err(err) => {
+                        eprintln!("Error: {}", err);
+                        std::process::exit(1);
+                    }
+                }
+            }
+            EffectCommands::List => match list_effects() {
+                Ok(effects) => {
+                    if effects.is_empty() {
+                        println!("No effects installed.");
+                        println!(
+                            "Effect directory: {}",
+                            effects::default_effect_dir().display()
+                        );
+                    } else {
+                        println!("Installed effects:");
+                        for (name, path) in &effects {
+                            println!("  {}  ({})", name, path.display());
+                        }
+                    }
+                }
+                Err(err) => {
+                    eprintln!("Error: {}", err);
+                    std::process::exit(1);
+                }
+            },
+            EffectCommands::Remove { name } => match remove_effect(&name) {
+                Ok(()) => {}
+                Err(err) => {
+                    eprintln!("Error: {}", err);
+                    std::process::exit(1);
+                }
+            },
         },
         None => {
             let config = load_config(cli.config.clone());

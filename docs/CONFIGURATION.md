@@ -502,6 +502,61 @@
     ]
 }</code></pre>
 
+<h2>Effects (Intro Animations)</h2>
+
+<p>
+  <strong>Effects</strong> animate the way the info appears when xfetch starts. The core renders the module lines, hands them to an effect binary, and plays the returned frames before settling on the final content — e.g. a &quot;decrypt&quot; intro that unscrambles each line.
+</p>
+
+<p>
+  Effects are <strong>opt-in</strong>: nothing happens when the effect binary is not installed, and the fetch renders normally. Multiple effects can be chained — they play in sequence.
+</p>
+
+<pre><code class="language-jsonc">{
+    &quot;effects&quot;: [
+        { &quot;plugin&quot;: &quot;glitch&quot;, &quot;duration_ms&quot;: 700, &quot;fps&quot;: 30 },
+        { &quot;plugin&quot;: &quot;decrypt&quot;, &quot;duration_ms&quot;: 1500, &quot;fps&quot;: 30 }
+    ]
+}</code></pre>
+
+<p><strong>Installation:</strong> drop the effect binary (<code>xfetch-effect-&lt;name&gt;</code>) in <code>~/.config/xfetch/effects/</code> (or anywhere in PATH). Effect implementations are collected in the <code>xfetch-cli/effects</code> repository.</p>
+
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>plugin</code></td><td>string</td><td>—</td>
+      <td>Effect name (binary <code>xfetch-effect-&lt;name&gt;</code>).</td>
+    </tr>
+    <tr>
+      <td><code>style</code></td><td>string</td><td>none</td>
+      <td>Effect-specific style selector, passed to the effect.</td>
+    </tr>
+    <tr>
+      <td><code>duration_ms</code></td><td>number</td><td>effect default</td>
+      <td>Total animation length in milliseconds.</td>
+    </tr>
+    <tr>
+      <td><code>fps</code></td><td>number</td><td>effect default</td>
+      <td>Frames per second.</td>
+    </tr>
+    <tr>
+      <td><code>args</code></td><td>object</td><td>none</td>
+      <td>Free-form parameters passed to the effect.</td>
+    </tr>
+    <tr>
+      <td><code>timeout_secs</code></td><td>number</td><td>none</td>
+      <td>Safety net: kills the effect process if it runs longer.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>
+  The effect protocol lives in <code>xfetch-effect-api</code> (<code>xfetch-cli/api</code>). Effect implementations are collected in <a href="https://github.com/xfetch-cli/effects">xfetch-cli/effects</a>; install them with <code>xfetch effects install &lt;name&gt;</code>. See <a href="EFFECTS.md">EFFECTS.md</a>.
+</p>
+
 <h2>Palette Style</h2>
 
 <p>

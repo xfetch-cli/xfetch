@@ -3,6 +3,7 @@ use crate::info::Info;
 use crate::plugins::run_logo_animation_plugin;
 use console::strip_ansi_codes;
 use std::io::{IsTerminal, stdout};
+use xfetch_effect_api::EffectFrame;
 pub mod custom_x;
 #[cfg(unix)]
 mod daemon;
@@ -68,6 +69,41 @@ pub fn draw(info: &Info, config: &Config) {
     }
 
     let content_lines = layout::get_content_lines(&nodes, config, Some(available_width));
+
+    // Intro effects over the content lines (opt-in; skipped when an effect
+    // binary is missing or fails, so the plain fetch is unaffected). Multiple
+    // effects play in sequence.
+    let effects = config.effects_list();
+    if !image_printed && stdout().is_terminal() && !effects.is_empty() {
+        let mut played: Vec<Vec<EffectFrame>> = Vec::new();
+        for effect_cfg in &effects {
+            match crate::effects::run_effect(effect_cfg, &content_lines) {
+                Ok(frames) if !frames.is_empty() => played.push(frames),
+                Ok(_) => eprintln!(
+                    "Effect '{}' returned no frames; skipped.",
+                    effect_cfg.plugin.as_deref().unwrap_or("?")
+                ),
+                Err(err) => eprintln!(
+                    "Effect '{}' skipped: {}",
+                    effect_cfg.plugin.as_deref().unwrap_or("?"),
+                    err
+                ),
+            }
+        }
+        if !played.is_empty() {
+            let (logo_frames, _) = logo::build_logo_frames(config, &ascii_lines, image_printed);
+            let force_plain = logo_frames.len() > 1;
+            print::print_effect_output(
+                &logo_frames,
+                ascii_width,
+                &played,
+                &content_lines,
+                config,
+                force_plain,
+            );
+            return;
+        }
+    }
 
     if !image_printed
         && !ascii_lines.is_empty()

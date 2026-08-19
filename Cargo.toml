@@ -1,6 +1,6 @@
 [package]
 name = "xfetch"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2024"
 
 [dependencies]
@@ -17,3 +17,4 @@ sysinfo = "0.37.2"
 viuer = { version = "0.11.0", features = ["print-file"] }
 xfetch-plugin-api = { git = "https://github.com/xfetch-cli/api", package = "xfetch-plugin-api" }
 xfetch-extension-api = { git = "https://github.com/xfetch-cli/api", package = "xfetch-extension-api" }
+xfetch-effect-api = { git = "https://github.com/xfetch-cli/api", package = "xfetch-effect-api" }

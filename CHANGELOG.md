@@ -1,6 +1,6 @@
 # Changelog
 
-## 2026-08-19
+## 2026-08-19 — v0.6.0
 
 ### Themes
 
@@ -38,6 +38,26 @@
 - When `logo_animation` is configured the logo keeps animating while the content refreshes live; otherwise it is static. The engine lives in `ui/live.rs` and reuses the existing `print.rs` builders and probes — no existing rendering/probe code changed.
 - **Hot reload**: `daemon_live_reload` (or `--daemon-live-reload`) watches the config file and the active theme (mtime) and re-applies modules, colors, layout, logo and refresh cadence without restarting; config providers (extensions) re-run on each reload. Disabled by default.
 - 103 tests, clippy clean.
+
+### Effects (Intro Animations)
+
+- New **effects** category: installable intro animations over the info lines. The core renders the content, sends it to an effect binary (`xfetch-effect-<name>`, protocol `xfetch-effect-api`), and plays the returned frames before settling on the final content. Opt-in via `"effects"` in the config — a missing binary or bad response falls back to the plain fetch (no behavior change).
+- New `xfetch-effect-api` crate in `xfetch-cli/api` (`EffectRequest`/`EffectResponse`, validation, IO/timeout helpers) + a reference `decrypt` effect in `crates/effect-api/examples/decrypt-effect.rs`. The `xfetch-cli/effects` repo will host effect implementations.
+- Core wiring: `src/effects/` (binary resolution + runner), `"effects"` config block, `print_effect_output` (plays effect frames over the content, then settles), and `ui/logo.rs::build_logo_frames` (shared logo-frame builder, also used by the live daemon). Nothing existing was removed.
+- 106 tests, clippy clean.
+
+### Effects Repository
+
+- New `xfetch-cli/effects` repository: workspace mirroring `plugins` (one crate per effect, binary `xfetch-effect-<name>`). The `decrypt` effect lives there (`effects/decrypt`) as the reference implementation of the protocol.
+- New CLI subcommand `xfetch effects install|list|remove` (mirrors `plugin`): `install` builds from a local path or clones the effects repo (default `github.com/xfetch-cli/effects`, override with `--repo`/`XFETCH_EFFECT_REPO`) and copies the binary to `~/.config/xfetch/effects/`.
+- Docs: `docs/EFFECTS.md` (install, config, protocol, writing effects).
+
+### Effects: Chaining + Glitch + Shared Lib
+
+- `"effects"` now accepts a **single effect or a list** — effects play in sequence (glitch → decrypt → ...). The core runs each effect on the rendered lines and plays the frames one after another before settling (untagged deserialization keeps existing single-object configs working).
+- New `glitch` effect in `xfetch-cli/effects` (`effects/glitch`): stuttery scrambled flicker with deterministic "corruption bursts", settling on the real text.
+- New shared crate `effects/effects-lib` (`xfetch-effects-lib`) in the effects repo: ANSI-safe tokenizer + reveal helpers, used by `decrypt` and `glitch` (no effect reimplements the tokenizer).
+- 106 tests core + effects tests, clippy clean.
 
 ## 2026-08-18 — v0.5.0
 

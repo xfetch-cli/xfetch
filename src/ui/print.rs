@@ -14,6 +14,7 @@ use crossterm::terminal::{Clear, ClearType};
 use std::io::Write;
 use std::io::{Stdout, stdout};
 use std::time::{Duration, Instant};
+use xfetch_effect_api::EffectFrame;
 
 pub(crate) const LOGO_INFO_GAP: &str = "  ";
 
@@ -304,6 +305,76 @@ pub(crate) fn print_animated_output(
         frame_index = (frame_index + 1) % frames.len();
         first_frame = false;
     }
+
+    let _ = execute!(out, Show);
+}
+
+/// Plays intro effects over the content column, then settles on the real
+/// content. `logo_frames` holds the logo (animate when more than one frame);
+/// `effect_sequences` are the per-frame content states returned by each effect
+/// plugin, played in order; `final_content` is the real rendered lines shown
+/// at the end.
+pub(crate) fn print_effect_output(
+    logo_frames: &[AnimationFrame],
+    ascii_width: usize,
+    effect_sequences: &[Vec<EffectFrame>],
+    final_content: &[String],
+    config: &Config,
+    force_plain_logo: bool,
+) {
+    let total_frames: usize = effect_sequences.iter().map(|seq| seq.len()).sum();
+    if total_frames == 0 {
+        return;
+    }
+
+    let mut out = stdout();
+    let geometry = compute_frame_geometry(logo_frames, ascii_width, final_content, config);
+    let scroll_margin = geometry.scroll_margin as u16;
+    let mut first = true;
+    let mut frame_index = 0usize;
+
+    let _ = execute!(out, Hide);
+    for _ in 0..scroll_margin {
+        let _ = execute!(out, Print("\n"));
+    }
+    let _ = execute!(out, MoveUp(scroll_margin));
+
+    for effect_frames in effect_sequences {
+        for effect_frame in effect_frames {
+            if !first {
+                let _ = execute!(out, MoveUp(scroll_margin));
+                let _ = execute!(out, Clear(ClearType::FromCursorDown));
+            }
+
+            let logo_frame = &logo_frames[frame_index % logo_frames.len()];
+            render_frame(
+                &mut out,
+                logo_frame,
+                &geometry,
+                &effect_frame.lines,
+                config,
+                force_plain_logo,
+            );
+
+            let delay = std::cmp::max(MIN_FRAME_DELAY_MS, effect_frame.delay_ms);
+            std::thread::sleep(Duration::from_millis(delay));
+            first = false;
+            frame_index += 1;
+        }
+    }
+
+    // Settle: re-render the exact final content so the result is identical to
+    // a plain fetch (the last effect may end slightly off).
+    let _ = execute!(out, MoveUp(scroll_margin));
+    let _ = execute!(out, Clear(ClearType::FromCursorDown));
+    render_frame(
+        &mut out,
+        &logo_frames[0],
+        &geometry,
+        final_content,
+        config,
+        force_plain_logo,
+    );
 
     let _ = execute!(out, Show);
 }

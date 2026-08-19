@@ -1689,7 +1689,7 @@ checksum = "f17a85883d4e6d00e8a97c586de764dabcc06133f7f1d55dce5cdc070ad7fe59"
 
 [[package]]
 name = "xfetch"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "clap",
  "console",
@@ -1702,14 +1702,24 @@ dependencies = [
  "serde_json",
  "sysinfo",
  "viuer",
+ "xfetch-effect-api",
  "xfetch-extension-api",
  "xfetch-plugin-api",
 ]
 
 [[package]]
+name = "xfetch-effect-api"
+version = "0.1.0"
+source = "git+https://github.com/xfetch-cli/api#8a63f2d6693c9a1eb7fde248e7ca54e25ccbded3"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "xfetch-extension-api"
 version = "0.1.0"
-source = "git+https://github.com/xfetch-cli/api#673e86bd0fbedce894ecdc9a5e7d25ae99da9c36"
+source = "git+https://github.com/xfetch-cli/api#8a63f2d6693c9a1eb7fde248e7ca54e25ccbded3"
 dependencies = [
  "serde",
  "serde_json",
@@ -1718,7 +1728,7 @@ dependencies = [
 [[package]]
 name = "xfetch-plugin-api"
 version = "0.1.0"
-source = "git+https://github.com/xfetch-cli/api#673e86bd0fbedce894ecdc9a5e7d25ae99da9c36"
+source = "git+https://github.com/xfetch-cli/api#8a63f2d6693c9a1eb7fde248e7ca54e25ccbded3"
 dependencies = [
  "serde",
  "serde_json",

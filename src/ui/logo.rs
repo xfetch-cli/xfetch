@@ -1,6 +1,8 @@
 use super::renders::color_sgr;
 use super::x::{expand_path, get_default_ascii};
 use crate::config::Config;
+use crate::plugins::{AnimationFrame, run_logo_animation_plugin};
+use crate::ui::frames::load_animation_frames;
 use console::strip_ansi_codes;
 use crossterm::execute;
 use crossterm::terminal::size;
@@ -154,6 +156,44 @@ pub fn apply_logo_style(frames: &mut [xfetch_plugin_api::AnimationFrame], config
     }
 }
 
+/// Logo frames for a render pass: the configured `logo_animation` frames when
+/// present, otherwise a single static frame. Returns `(frames,
+/// force_plain_logo)` where `force_plain_logo` mirrors `image_printed`.
+pub fn build_logo_frames(
+    config: &Config,
+    ascii_lines: &[String],
+    image_printed: bool,
+) -> (Vec<AnimationFrame>, bool) {
+    if !image_printed
+        && !ascii_lines.is_empty()
+        && let Some(animation_config) = &config.logo_animation
+        && let Some(plugin_name) = animation_config.plugin.as_deref()
+    {
+        let frame_sets = load_animation_frames(animation_config);
+        if let Ok(mut frames) =
+            run_logo_animation_plugin(plugin_name, animation_config, ascii_lines, frame_sets)
+            && !frames.is_empty()
+        {
+            apply_logo_style(&mut frames, config);
+            if !config.show_colors {
+                for frame in &mut frames {
+                    frame.lines = frame
+                        .lines
+                        .iter()
+                        .map(|line| strip_ansi_codes(line).to_string())
+                        .collect();
+                }
+            }
+            return (frames, false);
+        }
+    }
+
+    (
+        vec![AnimationFrame::new(0, ascii_lines.to_vec())],
+        image_printed,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -248,5 +288,23 @@ mod tests {
         assert!(frames[0].lines[0].starts_with("\x1b[36m"));
         assert!(frames[0].lines[1].starts_with("\x1b[35m"));
         assert!(frames[0].lines[2].starts_with("\x1b[36m"), "cycles");
+    }
+
+    #[test]
+    fn test_build_logo_frames_static_fallback() {
+        let config = Config::default();
+        let lines = vec!["█".to_string(), "█".to_string()];
+        let (frames, force_plain) = build_logo_frames(&config, &lines, false);
+        assert_eq!(frames.len(), 1);
+        assert_eq!(frames[0].lines, lines);
+        assert!(!force_plain);
+    }
+
+    #[test]
+    fn test_build_logo_frames_image_forces_plain() {
+        let config = Config::default();
+        let (frames, force_plain) = build_logo_frames(&config, &[], true);
+        assert_eq!(frames.len(), 1);
+        assert!(force_plain);
     }
 }

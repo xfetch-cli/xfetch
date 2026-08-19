@@ -19,8 +19,7 @@
 use crate::config::{Config, ModuleConfig, config_dir, default_themes_dir, load_config};
 use crate::info::Info;
 use crate::info::platform::{LivePolicy, live_policy};
-use crate::plugins::{AnimationFrame, run_logo_animation_plugin};
-use crate::ui::frames::load_animation_frames;
+use crate::plugins::AnimationFrame;
 use crate::ui::layout;
 use crate::ui::logo;
 use crate::ui::nodes::prepare_render_tree;
@@ -28,7 +27,6 @@ use crate::ui::print::{
     DaemonState, LOGO_INFO_GAP, build_daemon_frame_buffer, daemon_move_to_prompt, daemon_prepare,
     restore_terminal,
 };
-use console::strip_ansi_codes;
 use crossterm::terminal::size;
 use std::io::{IsTerminal, Write, stdout};
 use std::path::{Path, PathBuf};
@@ -136,44 +134,6 @@ fn live_config(config: &Config, modules: &[String]) -> Config {
     live
 }
 
-/// Logo frames for the live block: the configured animation when
-/// `logo_animation` is present, otherwise a single static frame.
-/// Returns `(frames, force_plain_logo)`; the caller keeps `ascii_width`.
-fn prepare_logo(
-    config: &Config,
-    ascii_lines: &[String],
-    image_printed: bool,
-) -> (Vec<AnimationFrame>, bool) {
-    if !image_printed
-        && !ascii_lines.is_empty()
-        && let Some(animation_config) = &config.logo_animation
-        && let Some(plugin_name) = animation_config.plugin.as_deref()
-    {
-        let frame_sets = load_animation_frames(animation_config);
-        if let Ok(mut frames) =
-            run_logo_animation_plugin(plugin_name, animation_config, ascii_lines, frame_sets)
-            && !frames.is_empty()
-        {
-            logo::apply_logo_style(&mut frames, config);
-            if !config.show_colors {
-                for frame in &mut frames {
-                    frame.lines = frame
-                        .lines
-                        .iter()
-                        .map(|line| strip_ansi_codes(line).to_string())
-                        .collect();
-                }
-            }
-            return (frames, false);
-        }
-    }
-
-    (
-        vec![AnimationFrame::new(0, ascii_lines.to_vec())],
-        image_printed,
-    )
-}
-
 /// Renders the module tree into content lines, fitting the logo column and
 /// terminal width (same math as the regular draw path).
 fn build_content_lines(info: &Info, config: &Config, ascii_width: usize) -> Vec<String> {
@@ -240,7 +200,8 @@ impl LiveBlock {
         let modules = live_modules(config, &policy);
         let live_cfg = live_config(config, &modules);
         let (ascii_lines, image_printed, ascii_width, _) = logo::get_logo_data(&live_cfg);
-        let (frames, force_plain_logo) = prepare_logo(&live_cfg, &ascii_lines, image_printed);
+        let (frames, force_plain_logo) =
+            logo::build_logo_frames(&live_cfg, &ascii_lines, image_printed);
         // The initial render probes the *live* module set (the `Info` from
         // `main` probed the full config modules, which may not cover them —
         // e.g. the datetime probe only runs when the key is requested).
@@ -288,7 +249,8 @@ impl LiveBlock {
         let modules = live_modules(&fresh, &policy);
         let live_cfg = live_config(&fresh, &modules);
         let (ascii_lines, image_printed, ascii_width, _) = logo::get_logo_data(&live_cfg);
-        let (frames, force_plain_logo) = prepare_logo(&live_cfg, &ascii_lines, image_printed);
+        let (frames, force_plain_logo) =
+            logo::build_logo_frames(&live_cfg, &ascii_lines, image_printed);
         self.config = live_cfg;
         self.frames = frames;
         self.ascii_width = ascii_width;
@@ -512,24 +474,6 @@ mod tests {
                 _ => panic!("expected a Simple module"),
             }
         }
-    }
-
-    #[test]
-    fn test_prepare_logo_static_fallback() {
-        let config = Config::default();
-        let lines = vec!["█".to_string(), "█".to_string()];
-        let (frames, force_plain) = prepare_logo(&config, &lines, false);
-        assert_eq!(frames.len(), 1);
-        assert_eq!(frames[0].lines, lines);
-        assert!(!force_plain);
-    }
-
-    #[test]
-    fn test_prepare_logo_image_forces_plain() {
-        let config = Config::default();
-        let (frames, force_plain) = prepare_logo(&config, &[], true);
-        assert_eq!(frames.len(), 1);
-        assert!(force_plain);
     }
 
     #[test]
