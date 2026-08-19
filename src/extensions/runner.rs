@@ -1,38 +1,31 @@
+use crate::config::ConfigProviderConfig;
 use crate::extensions::find_extension_binary;
 use crate::extensions::types::{ConfigProviderRequest, ConfigProviderResponse};
-use serde_json::Value;
-use std::io::Write;
-use std::process::{Command, Stdio};
+use crate::subprocess::run_cmd_with_stdin_timeout;
+use std::time::Duration;
 
 pub fn run_config_provider(
-    extension_name: &str,
-    args: Option<Value>,
-    current_config: &Value,
-) -> Result<Value, String> {
-    let extension_path = find_extension_binary(extension_name)
-        .ok_or_else(|| format!("Extension not found: {}", extension_name))?;
+    config: &ConfigProviderConfig,
+    current_config: &serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let extension_path = find_extension_binary(&config.extension)
+        .ok_or_else(|| format!("Extension not found: {}", config.extension))?;
 
-    let request = ConfigProviderRequest::new(current_config.clone(), args);
+    let request = ConfigProviderRequest::new(current_config.clone(), config.args.clone());
 
     let payload = serde_json::to_vec(&request)
         .map_err(|err| format!("Failed to serialize extension request: {}", err))?;
 
-    let mut child = Command::new(&extension_path)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|err| format!("Failed to start extension: {}", err))?;
-
-    if let Some(mut stdin) = child.stdin.take() {
-        stdin
-            .write_all(&payload)
-            .map_err(|err| format!("Failed to send extension request: {}", err))?;
-    }
-
-    let output = child
-        .wait_with_output()
-        .map_err(|err| format!("Failed to read extension output: {}", err))?;
+    let timeout = config.timeout_secs.map(Duration::from_secs);
+    let output = run_cmd_with_stdin_timeout(&extension_path, &[], Some(&payload), timeout)
+        .ok_or_else(|| match timeout {
+            Some(d) => format!(
+                "Extension '{}' exceeded its timeout of {}s",
+                config.extension,
+                d.as_secs()
+            ),
+            None => format!("Failed to run extension '{}'", config.extension),
+        })?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);

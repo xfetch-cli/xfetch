@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-08-19
+
+### Themes
+
+- `theme set` no longer rewrites the whole config: it edits only the `theme` key, preserving comments, formatting and the rest of the file (single quotes and bare keys supported).
+- Theme format simplified: themes declare only what they change. Icons were removed from theme files and from `theme export` — they are a per-user font choice, filled from the defaults. New `logo_color` field colors the ASCII logo; `colors` already covers any module key, including `plugin:<name>` entries.
+- New `logo_colors` field: per-row logo coloring (array of colors, cycled by row) — works for static logos and animation frames.
+- 86 tests, clippy clean.
+
+### Windows: Package Counter and Probes
+
+- `winget` now counts only packages installed via winget (`--source winget`); before it counted every registered app (ARP/MSIX included). Chocolatey was removed from the core probes (it comes back as a plugin later).
+- Shell detection walks the parent process chain instead of trusting `PSModulePath`, so `cmd.exe` is no longer reported as PowerShell; `local_ip` prefers the physical adapter (vEthernet/WSL/Hyper-V skipped); Windows version → logo mapping uses build numbers (`10.0.17763` is no longer matched as Windows 7).
+- GPU/battery/datetime probes hardened (`-NoProfile -NonInteractive`, UTF-8 output, exit-status checks); `expand_path("~")` no longer panics; the localized winget "no packages" message is no longer counted; `--daemon` prints a warning on Windows; zero-capacity disks are skipped.
+
+### Plugin and Extension Timeouts
+
+- New top-level `subprocess.rs` (shared by probes, plugins and extensions): bounded pipe drains — grandchildren holding the pipe (winget COM server, etc.) can no longer hang xfetch — plus stdin support for the plugin protocol and process-tree kill (Windows via `taskkill` in `platform/windows/process.rs`).
+- Optional per-plugin `timeout_secs` in the config (`info_plugins`, `config_providers`, `logo_animation`): the core kills the process when exceeded. Opt-in — behavior is unchanged when unset. Plugins/extensions also declare their own budget via the new `with_timeout` API helper (see xfetch-cli/api).
+- All Windows-specific logic is consolidated under `src/info/platform/windows/` (`battery`, `datetime`, `gpu`, `network`, `packages`, `process`, `shell`, `software`, `version`); `info/software.rs` and `info/system.rs` dispatch to it.
+- 79 tests, clippy clean.
+
 ## 2026-08-18 — v0.5.0
 
 ### Per-Platform Package Counters

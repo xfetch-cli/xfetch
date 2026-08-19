@@ -66,6 +66,33 @@
   loops indefinitely and these fields are ignored. See <a href="DAEMON.md">DAEMON.md</a>.
 </blockquote>
 
+<h2>Timeouts</h2>
+
+<p>
+  Every plugin declares its own runtime budget in its code via
+  <code>xfetch_plugin_api::with_timeout</code> — this is the primary control
+  and is required by the official plugin standard (enforced in CI).
+  Plugins respond with fallback lines when the budget elapses, so the core
+  always gets a response.
+</p>
+
+<p>
+  As a safety net for uncooperative or third-party plugins, the core can also
+  kill the plugin process after a per-plugin deadline set in the config.
+  It is opt-in: without it, the current behavior is unchanged.
+</p>
+
+<pre><code class="language-jsonc">{
+  "info_plugins": [
+    { "plugin": "weather", "timeout_secs": 20 }
+  ],
+  "logo_animation": {
+    "plugin": "animate-logo",
+    "timeout_secs": 10
+  }
+}
+</code></pre>
+
 <h2>Protocol</h2>
 
 <p>

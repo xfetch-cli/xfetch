@@ -1,32 +1,29 @@
 use crate::config::{InfoPluginConfig, LogoAnimationConfig};
 use crate::plugins::find_plugin_binary;
-use std::io::Write;
-use std::process::{Command, Stdio};
+use crate::subprocess::run_cmd_with_stdin_timeout;
+use std::time::Duration;
 use xfetch_plugin_api::{
     AnimationFrame, InfoPluginRequest, InfoPluginResponse, LogoAnimationArgs, LogoAnimationRequest,
     LogoAnimationResponse, parse_json_slice, to_json_vec,
 };
 
-fn run_plugin_raw(plugin_name: &str, payload: &[u8]) -> Result<Vec<u8>, String> {
+fn run_plugin_raw(
+    plugin_name: &str,
+    payload: &[u8],
+    timeout: Option<Duration>,
+) -> Result<Vec<u8>, String> {
     let plugin_path = find_plugin_binary(plugin_name)
         .ok_or_else(|| format!("Plugin not found: {}", plugin_name))?;
 
-    let mut child = Command::new(plugin_path)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|err| format!("Failed to start plugin: {}", err))?;
-
-    if let Some(mut stdin) = child.stdin.take() {
-        stdin
-            .write_all(payload)
-            .map_err(|err| format!("Failed to send plugin request: {}", err))?;
-    }
-
-    let output = child
-        .wait_with_output()
-        .map_err(|err| format!("Failed to read plugin output: {}", err))?;
+    let output = run_cmd_with_stdin_timeout(&plugin_path, &[], Some(payload), timeout)
+        .ok_or_else(|| match timeout {
+            Some(d) => format!(
+                "Plugin '{}' exceeded its timeout of {}s",
+                plugin_name,
+                d.as_secs()
+            ),
+            None => format!("Failed to run plugin '{}'", plugin_name),
+        })?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -61,7 +58,8 @@ pub fn run_logo_animation_plugin(
     let payload = to_json_vec(&request)
         .map_err(|err| format!("Failed to serialize plugin request: {}", err))?;
 
-    let stdout = run_plugin_raw(plugin_name, &payload)?;
+    let timeout = config.timeout_secs.map(Duration::from_secs);
+    let stdout = run_plugin_raw(plugin_name, &payload, timeout)?;
 
     let response: LogoAnimationResponse = parse_json_slice(&stdout)
         .map_err(|err| format!("Failed to parse plugin output: {}", err))?;
@@ -79,7 +77,8 @@ pub fn run_info_plugin(config: &InfoPluginConfig) -> Result<Vec<String>, String>
     let payload = to_json_vec(&request)
         .map_err(|err| format!("Failed to serialize plugin request: {}", err))?;
 
-    let stdout = run_plugin_raw(&config.plugin, &payload)?;
+    let timeout = config.timeout_secs.map(Duration::from_secs);
+    let stdout = run_plugin_raw(&config.plugin, &payload, timeout)?;
 
     let response: InfoPluginResponse = parse_json_slice(&stdout)
         .map_err(|err| format!("Failed to parse plugin output: {}", err))?;

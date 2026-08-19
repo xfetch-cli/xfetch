@@ -5,6 +5,7 @@ mod extensions;
 mod info;
 mod logos;
 mod plugins;
+mod subprocess;
 mod themes;
 mod ui;
 

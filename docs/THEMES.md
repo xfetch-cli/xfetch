@@ -39,7 +39,7 @@
   <tbody>
     <tr><td>1. Core defaults</td><td>Hardcoded in <code>config.rs</code></td><td>Default icons, colors, layout, modules</td></tr>
     <tr><td>2. User config</td><td><code>config.jsonc</code></td><td><code>modules</code>, <code>info_plugins</code>, plus any visual overrides</td></tr>
-    <tr><td>3. Theme file</td><td><code>themes/&lt;name&gt;.jsonc</code></td><td><code>colors</code>, <code>icons</code>, <code>layout</code>, <code>palette_style</code>, <code>show_colors</code>, <code>header_icons</code>, <code>footer_text</code>, <code>logo_path</code></td></tr>
+    <tr><td>3. Theme file</td><td><code>themes/&lt;name&gt;.jsonc</code></td><td><code>colors</code>, <code>logo_color</code>, <code>layout</code>, <code>palette_style</code>, <code>show_colors</code>, <code>header_icons</code>, <code>footer_text</code>, <code>logo_path</code> (no <code>icons</code> — they belong to the user config)</td></tr>
   </tbody>
 </table>
 
@@ -70,6 +70,7 @@
     "layout": "section",
     "show_colors": true,
     "palette_style": "circles",
+    "logo_color": "Magenta",
     "colors": {
         "os": "Magenta",
         "cpu": "Red",
@@ -77,17 +78,18 @@
         "disk": "Cyan",
         "shell": "Green",
         "wm": "Blue"
-    },
-    "icons": {
-        "os": "\uf17c",
-        "cpu": "\uf2db",
-        "memory": "\ue266",
-        "disk": "\uf0a0",
-        "shell": "\uf0e7",
-        "wm": "\uf08e"
     }
 }
 </code></pre>
+
+<p>
+  Themes declare only what they want to change; everything else (icons,
+  modules, fonts) comes from the user's config and the defaults. <strong>Icons
+  are not part of themes</strong> — they are a per-user font choice, so
+  exported and registry themes never include an <code>icons</code> block.
+  <code>logo_color</code> colors the ASCII logo (any color name listed
+  below).
+</p>
 
 <h3>Supported Fields</h3>
 
@@ -97,8 +99,9 @@
   </thead>
   <tbody>
     <tr><td><code>layout</code></td><td><code>string</code> or <code>null</code></td><td>Layout style: <code>default</code>, <code>pacman</code>, <code>section</code>, <code>side-block</code>, <code>tree</code>, <code>compact</code>, <code>minimal</code>, <code>horizontal</code>, <code>bottom</code>, <code>box</code>, <code>line</code>, <code>dots</code>, <code>bottom-line</code></td></tr>
-    <tr><td><code>colors</code></td><td><code>object</code></td><td>Per-module color mapping. Keys are module names, values are color names: <code>Black</code>, <code>Red</code>, <code>Green</code>, <code>Yellow</code>, <code>Blue</code>, <code>Magenta</code>, <code>Cyan</code>, <code>White</code>, <code>Grey</code>/<code>Gray</code>, and dark variants.</td></tr>
-    <tr><td><code>icons</code></td><td><code>object</code></td><td>Per-module icon mapping. Values can be Nerd Font glyphs, emoji, or any text.</td></tr>
+    <tr><td><code>colors</code></td><td><code>object</code></td><td>Per-module color mapping (labels + icons). Keys are module names, values are color names: <code>Black</code>, <code>Red</code>, <code>Green</code>, <code>Yellow</code>, <code>Blue</code>, <code>Magenta</code>, <code>Cyan</code>, <code>White</code>, <code>Grey</code>/<code>Gray</code>, and dark variants. Any module key works, including <code>plugin:&lt;name&gt;</code> entries.</td></tr>
+    <tr><td><code>logo_color</code></td><td><code>string</code> or <code>null</code></td><td>Color for the ASCII logo (any color name listed above).</td></tr>
+    <tr><td><code>logo_colors</code></td><td><code>array</code> or <code>null</code></td><td>Per-row logo colors: row <code>i</code> uses <code>logo_colors[i % len]</code>, cycling for taller logos. Takes precedence over <code>logo_color</code>. Example: <code>["Red", "Yellow", "Green", "Cyan", "Blue", "Magenta"]</code>.</td></tr>
     <tr><td><code>palette_style</code></td><td><code>string</code> or <code>null</code></td><td>Palette display: <code>squares</code>, <code>circles</code>, <code>triangles</code>, <code>lines</code>, <code>dots</code></td></tr>
     <tr><td><code>show_colors</code></td><td><code>boolean</code></td><td>Show inline ANSI color swatches next to each module</td></tr>
     <tr><td><code>logo_path</code></td><td><code>string</code> or <code>null</code></td><td>Path to a logo file (ASCII, PNG, SVG)</td></tr>

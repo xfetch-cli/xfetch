@@ -103,7 +103,14 @@ pub fn get_logo_data(config: &Config) -> (Vec<String>, bool, usize, usize) {
                 *line = format!("{}{}", pad_str, line);
             }
         }
-        if let Some(color) = &config.logo_color {
+        if let Some(colors) = &config.logo_colors
+            && !colors.is_empty()
+        {
+            for (row, line) in ascii_lines.iter_mut().enumerate() {
+                let code = color_sgr(&colors[row % colors.len()]);
+                *line = format!("\x1b[{}m{}\x1b[0m", code, line);
+            }
+        } else if let Some(color) = &config.logo_color {
             let code = color_sgr(color);
             for line in &mut ascii_lines {
                 *line = format!("\x1b[{}m{}\x1b[0m", code, line);
@@ -118,17 +125,27 @@ pub fn get_logo_data(config: &Config) -> (Vec<String>, bool, usize, usize) {
     (ascii_lines, image_printed, ascii_width, image_height)
 }
 
-/// Applies `logo_padding` and `logo_color` to animation frames produced by a
-/// plugin. Lines that already contain ANSI styling are left untouched.
+/// Applies `logo_padding` and `logo_color`/`logo_colors` to animation frames
+/// produced by a plugin. Lines that already contain ANSI styling are left
+/// untouched.
 pub fn apply_logo_style(frames: &mut [xfetch_plugin_api::AnimationFrame], config: &Config) {
     let pad = config.logo_padding.unwrap_or(0);
-    let color = config.logo_color.as_deref().map(color_sgr);
+    let row_colors: Option<Vec<String>> = config
+        .logo_colors
+        .as_ref()
+        .filter(|c| !c.is_empty())
+        .map(|cs| cs.iter().map(|c| color_sgr(c)).collect());
+    let single_color = config.logo_color.as_ref().map(|c| color_sgr(c));
     for frame in frames {
-        for line in &mut frame.lines {
+        for (row, line) in frame.lines.iter_mut().enumerate() {
             if pad > 0 {
                 *line = format!("{}{}", " ".repeat(pad), line);
             }
-            if let Some(code) = &color
+            let code = row_colors
+                .as_ref()
+                .map(|cs| cs[row % cs.len()].clone())
+                .or_else(|| single_color.clone());
+            if let Some(code) = code
                 && !line.contains('\u{1b}')
             {
                 *line = format!("\x1b[{}m{}\x1b[0m", code, line);
@@ -162,6 +179,33 @@ mod tests {
     }
 
     #[test]
+    fn test_get_logo_data_row_colors_cycle() {
+        let config = Config {
+            logo_colors: Some(vec!["Cyan".to_string(), "Red".to_string()]),
+            ..Config::default()
+        };
+        let (ascii_lines, _, _, _) = get_logo_data(&config);
+        assert!(ascii_lines.len() >= 3);
+        assert!(ascii_lines[0].starts_with("\x1b[36m"), "row 0 cyan");
+        assert!(ascii_lines[1].starts_with("\x1b[31m"), "row 1 red");
+        assert!(
+            ascii_lines[2].starts_with("\x1b[36m"),
+            "row 2 cycles back to cyan"
+        );
+    }
+
+    #[test]
+    fn test_get_logo_data_empty_row_colors_falls_back() {
+        let config = Config {
+            logo_color: Some("Cyan".to_string()),
+            logo_colors: Some(Vec::new()),
+            ..Config::default()
+        };
+        let (ascii_lines, _, _, _) = get_logo_data(&config);
+        assert!(ascii_lines.iter().all(|l| l.starts_with("\x1b[36m")));
+    }
+
+    #[test]
     fn test_get_logo_data_padding() {
         let config = Config {
             logo_padding: Some(3),
@@ -187,5 +231,22 @@ mod tests {
         assert!(frames[0].lines[0].starts_with("\x1b[38;5;196m"));
         assert!(frames[0].lines[0].ends_with("\x1b[0m"));
         assert_eq!(frames[0].lines[1], "\x1b[31mstyled\x1b[0m");
+    }
+
+    #[test]
+    fn test_apply_logo_style_row_colors_frames() {
+        use xfetch_plugin_api::AnimationFrame;
+        let config = Config {
+            logo_colors: Some(vec!["Cyan".to_string(), "Magenta".to_string()]),
+            ..Config::default()
+        };
+        let mut frames = vec![AnimationFrame {
+            delay_ms: 10,
+            lines: vec!["a".to_string(), "b".to_string(), "c".to_string()],
+        }];
+        apply_logo_style(&mut frames, &config);
+        assert!(frames[0].lines[0].starts_with("\x1b[36m"));
+        assert!(frames[0].lines[1].starts_with("\x1b[35m"));
+        assert!(frames[0].lines[2].starts_with("\x1b[36m"), "cycles");
     }
 }

@@ -8,6 +8,7 @@ pub mod datetime;
 pub mod gpu;
 pub mod network;
 pub mod packages;
+pub mod process;
 pub mod shell;
 pub mod software;
 pub mod version;

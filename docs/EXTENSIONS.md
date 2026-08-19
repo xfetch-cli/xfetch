@@ -47,6 +47,19 @@ xfetch extension remove &lt;name&gt;</code></pre>
     ]
 }</code></pre>
 
+<p>
+  Extensions declare their own runtime budget via
+  <code>xfetch_extension_api::with_timeout</code> (required by the official
+  standard). As a safety net, the core can kill an extension after an
+  optional per-extension deadline:
+</p>
+
+<pre><code class="language-jsonc">{
+    "config_providers": [
+        { "extension": "config-roulette", "timeout_secs": 5 }
+    ]
+}</code></pre>
+
 <h2>Available Extensions</h2>
 
 <table>

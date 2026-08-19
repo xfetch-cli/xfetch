@@ -44,6 +44,9 @@ pub struct Config {
     pub logo_gap: Option<u32>,
     pub logo_kitty: Option<bool>,
     pub logo_color: Option<String>,
+    /// Per-row logo colors: row `i` uses `logo_colors[i % len]`; takes
+    /// precedence over `logo_color`.
+    pub logo_colors: Option<Vec<String>>,
     pub logo_padding: Option<usize>,
     pub logo_type: Option<String>,
     pub show_keys: bool,
@@ -70,6 +73,10 @@ pub struct LogoAnimationConfig {
     pub loop_enabled: Option<bool>,
     pub style: Option<String>,
     pub frames_path: Option<FramePaths>,
+    /// Safety net in seconds: the core kills the plugin process if it runs
+    /// longer. The plugin's own `with_timeout` budget is the primary control;
+    /// this caps even uncooperative plugins.
+    pub timeout_secs: Option<u64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -77,6 +84,10 @@ pub struct LogoAnimationConfig {
 pub struct InfoPluginConfig {
     pub plugin: String,
     pub args: Option<Value>,
+    /// Safety net in seconds: the core kills the plugin process if it runs
+    /// longer. The plugin's own `with_timeout` budget is the primary control;
+    /// this caps even uncooperative plugins.
+    pub timeout_secs: Option<u64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -84,6 +95,10 @@ pub struct InfoPluginConfig {
 pub struct ConfigProviderConfig {
     pub extension: String,
     pub args: Option<Value>,
+    /// Safety net in seconds: the core kills the extension process if it
+    /// runs longer. The extension's own `with_timeout` budget is the primary
+    /// control; this caps even uncooperative extensions.
+    pub timeout_secs: Option<u64>,
 }
 
 impl Default for Config {
@@ -144,6 +159,7 @@ impl Default for Config {
             logo_gap: None,
             logo_kitty: None,
             logo_color: None,
+            logo_colors: None,
             logo_padding: None,
             logo_type: None,
             show_keys: false,
@@ -156,11 +172,15 @@ impl Default for Config {
 }
 
 fn parse_jsonc_file(path: &Path) -> Option<Value> {
-    let file = fs::File::open(path).ok()?;
-    let mut stripped = StripComments::new(file);
-    let mut content = String::new();
-    stripped.read_to_string(&mut content).ok()?;
-    serde_json::from_str(&content).ok()
+    let content = fs::read_to_string(path).ok()?;
+    parse_jsonc_str(&content)
+}
+
+fn parse_jsonc_str(content: &str) -> Option<Value> {
+    let mut stripped = StripComments::new(content.as_bytes());
+    let mut clean = String::new();
+    stripped.read_to_string(&mut clean).ok()?;
+    serde_json::from_str(&clean).ok()
 }
 
 fn deep_merge(base: &mut Value, overlay: &Value) {
@@ -263,9 +283,7 @@ pub fn load_config(path: Option<String>) -> Config {
     if !config_providers.is_empty() {
         let mut current = serde_json::to_value(&config).unwrap_or_default();
         for provider in &config_providers {
-            if let Ok(modified) =
-                run_config_provider(&provider.extension, provider.args.clone(), &current)
-            {
+            if let Ok(modified) = run_config_provider(provider, &current) {
                 current = modified;
             }
         }
@@ -351,3 +369,41 @@ pub fn generate_config(
 
     Ok(config_path)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_timeout_secs_parses_from_jsonc() {
+        let jsonc = r#"{
+            // plugins declare their own budget via with_timeout; the core
+            // safety net is opt-in per plugin:
+            "info_plugins": [
+                { "plugin": "weather", "timeout_secs": 30 }
+            ],
+            "config_providers": [
+                { "extension": "layout-override", "timeout_secs": 5 }
+            ],
+            "logo_animation": {
+                "plugin": "animate-logo",
+                "timeout_secs": 10
+            }
+        }"#;
+        let parsed = parse_jsonc_str(jsonc).expect("parse jsonc");
+        let config: Config = serde_json::from_value(parsed).expect("deserialize config");
+        assert_eq!(config.info_plugins[0].timeout_secs, Some(30));
+        assert_eq!(config.config_providers[0].timeout_secs, Some(5));
+        let anim = config.logo_animation.as_ref().expect("logo animation");
+        assert_eq!(anim.timeout_secs, Some(10));
+    }
+
+    #[test]
+    fn test_timeout_secs_defaults_to_none() {
+        let jsonc = r#"{ "info_plugins": [ { "plugin": "weather" } ] }"#;
+        let parsed = parse_jsonc_str(jsonc).expect("parse jsonc");
+        let config: Config = serde_json::from_value(parsed).expect("deserialize config");
+        assert_eq!(config.info_plugins[0].timeout_secs, None);
+    }
+}
+
