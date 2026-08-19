@@ -20,7 +20,6 @@ const CHECKS: &[(&str, &[&str], Duration)] = &[
         WINGET_CMD,
         &[
             "list",
-            "--include-unknown",
             "--disable-interactivity",
             "--accept-source-agreements",
         ],

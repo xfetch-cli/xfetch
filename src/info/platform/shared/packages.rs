@@ -54,40 +54,46 @@ pub fn count_scoop_output(stdout: &str) -> usize {
         .count()
 }
 
-/// `choco list --local-only` prints one "name version" row per package and
-/// ends with a "X packages installed." summary line, which must not count.
+/// `choco list --local-only` / `choco list` prints one "name version" row per
+/// package and ends with a "X packages installed." summary line. The banner
+/// ("Chocolatey vX.Y.Z") is excluded by requiring the version to start with a
+/// digit (choco versions always do).
 #[cfg(any(target_os = "windows", test))]
 pub fn count_choco_output(stdout: &str) -> usize {
     stdout
         .lines()
         .filter(|line| {
             let tokens: Vec<&str> = line.split_whitespace().collect();
-            tokens.len() == 2 && !line.contains("packages installed")
+            tokens.len() == 2
+                && !line.contains("packages installed")
+                && tokens[1].starts_with(|c: char| c.is_ascii_digit())
         })
         .count()
 }
 
-/// `winget list` prints a table with a header row ("Name Id Version ...") and
-/// a dashes separator before the actual entries.
+/// `winget list` prints a table: header row (localized: "Name"/"Nombre"/...),
+/// a dashes separator, then the actual entries. Only rows after the separator
+/// count; when no separator is present (older winget), the first line is
+/// treated as the header.
 #[cfg(any(target_os = "windows", test))]
 pub fn count_winget_output(stdout: &str) -> usize {
-    let mut rows = 0;
-    let mut seen_dashes = false;
-    for line in stdout.lines() {
-        let trimmed = line.trim();
-        if trimmed.is_empty() {
-            continue;
-        }
-        if trimmed.chars().all(|c| c == '-') {
-            seen_dashes = true;
-            continue;
-        }
-        let tokens: Vec<&str> = trimmed.split_whitespace().collect();
-        if tokens.len() >= 2 && (seen_dashes || tokens[0] != "Name") {
-            rows += 1;
-        }
+    let lines: Vec<&str> = stdout
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty())
+        .collect();
+    if let Some(idx) = lines.iter().position(|l| l.chars().all(|c| c == '-')) {
+        lines[idx + 1..]
+            .iter()
+            .filter(|l| l.split_whitespace().count() >= 2)
+            .count()
+    } else {
+        lines
+            .iter()
+            .skip(1)
+            .filter(|l| l.split_whitespace().count() >= 2)
+            .count()
     }
-    rows
 }
 
 /// `brew list --formula` output — counts package names, ignoring empty lines,
@@ -171,10 +177,22 @@ mod tests {
     }
 
     #[test]
+    fn test_count_choco_output_skips_banner() {
+        let stdout = "Chocolatey v2.6.0\nchocolatey 2.6.0\npython 3.14.3\n20 packages installed.\n";
+        assert_eq!(count_choco_output(stdout), 2);
+    }
+
+    #[test]
     fn test_count_winget_output() {
         let stdout = "Name             Id                       Version\n-----------------------------------------------------\ngit              Git.Git                  2.45.0\nPowerShell       Microsoft.PowerShell    7.5.0\n";
         assert_eq!(count_winget_output(stdout), 2);
         assert_eq!(count_winget_output("Name Id Version\n"), 0);
+    }
+
+    #[test]
+    fn test_count_winget_output_localized_header() {
+        let stdout = "Nombre        Id                  Version\n-----------------------------------------------\ngit           Git.Git             2.45.0\n";
+        assert_eq!(count_winget_output(stdout), 1);
     }
 
     #[test]
