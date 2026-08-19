@@ -102,8 +102,10 @@ mod tests {
     fn test_cmd_timeout_kills_hanging_command() {
         #[cfg(unix)]
         let (cmd, args) = ("sleep", &["10"]);
+        // Windows `timeout.exe` exits immediately when stdin is redirected;
+        // `ping -n 10` genuinely hangs for ~9 s without needing stdin.
         #[cfg(windows)]
-        let (cmd, args) = ("timeout", &["10"]);
+        let (cmd, args) = ("ping", &["-n", "10", "127.0.0.1"]);
 
         let start = Instant::now();
         let result = run_cmd_with_timeout(cmd, args, Duration::from_secs(1));

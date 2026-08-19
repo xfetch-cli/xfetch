@@ -6,8 +6,10 @@ const CMD_TIMEOUT: Duration = Duration::from_secs(10);
 
 const WMIC_CMD: &str = "wmic";
 const POWERSHELL_CMD: &str = "powershell";
-const BATT_PS_SCRIPT: &str =
-    "Get-CimInstance Win32_Battery | Select-Object EstimatedChargeRemaining, BatteryStatus";
+/// `-NoProfile` keeps the user's profile script out of the probe output;
+/// `-NonInteractive` forbids prompts. `[Console]::OutputEncoding=UTF8` fixes
+/// the OEM codepage PowerShell 5.1 uses for redirected output.
+const BATT_PS_SCRIPT: &str = "[Console]::OutputEncoding=[Text.Encoding]::UTF8; Get-CimInstance Win32_Battery | Select-Object EstimatedChargeRemaining, BatteryStatus";
 
 pub fn get_battery_info() -> String {
     let output = run_cmd_with_timeout(
@@ -20,14 +22,21 @@ pub fn get_battery_info() -> String {
         ],
         CMD_TIMEOUT,
     )
-    .or_else(|| run_cmd_with_timeout(POWERSHELL_CMD, &["-Command", BATT_PS_SCRIPT], CMD_TIMEOUT));
+    .filter(|o| o.status.success())
+    .or_else(|| {
+        run_cmd_with_timeout(
+            POWERSHELL_CMD,
+            &["-NoProfile", "-NonInteractive", "-Command", BATT_PS_SCRIPT],
+            CMD_TIMEOUT,
+        )
+    });
 
     let Some(output) = output else {
         return NA.to_string();
     };
     let out = String::from_utf8_lossy(&output.stdout);
     for line in out.lines().skip(1) {
-        let trimmed = line.trim();
+        let trimmed = line.trim().trim_matches('\0');
         if trimmed.is_empty() {
             continue;
         }

@@ -61,7 +61,7 @@ pub fn detect_os_ids() -> (String, Vec<String>) {
     {
         let mut ids = Vec::new();
         if let Some(v) = sysinfo::System::os_version()
-            && let Some(specific) = windows_version_id(&v)
+            && let Some(specific) = crate::info::platform::windows::version::windows_version_id(&v)
         {
             ids.push(specific.to_string());
         }
@@ -120,34 +120,6 @@ fn macos_version_id(version: &str) -> Option<&'static str> {
         }
     }
     None
-}
-
-/// Maps a Windows version string to a catalog id. Windows 11 reports itself
-/// as "10.0" (build >= 22000), so the build number decides when present.
-#[cfg(target_os = "windows")]
-fn windows_version_id(version: &str) -> Option<&'static str> {
-    let v = version.to_lowercase();
-    if v.contains("11") || v.contains("10.0") && build_number(&v) >= 22000 {
-        Some("windows-11")
-    } else if v.contains("8.1") {
-        Some("windows-8-1")
-    } else if v.contains("8") {
-        Some("windows-8")
-    } else if v.contains("7") {
-        Some("windows-7")
-    } else if v.contains("10") {
-        Some("windows-10")
-    } else {
-        None
-    }
-}
-
-#[cfg(target_os = "windows")]
-fn build_number(version: &str) -> u32 {
-    version
-        .split(['.', ' '])
-        .find_map(|t| t.parse::<u32>().ok().filter(|n| *n >= 22000))
-        .unwrap_or(0)
 }
 
 fn entry_matches(entry: &LogoEntry, key: &str) -> bool {

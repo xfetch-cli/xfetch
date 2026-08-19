@@ -1,6 +1,9 @@
 use std::path::PathBuf;
 
 pub fn expand_path(path: &str) -> PathBuf {
+    if path == "~" {
+        return dirs::home_dir().unwrap_or_else(|| PathBuf::from(path));
+    }
     if path.starts_with("~")
         && let Some(home) = dirs::home_dir()
     {

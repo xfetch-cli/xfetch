@@ -35,16 +35,23 @@ pub fn get_uptime_info() -> String {
 }
 
 pub fn get_local_ip_info(networks: &Networks) -> String {
-    for (_name, data) in networks {
-        for ip in data.ip_networks() {
-            if let std::net::IpAddr::V4(ipv4) = ip.addr
-                && !ipv4.is_loopback()
-            {
-                return ipv4.to_string();
+    #[cfg(target_os = "windows")]
+    {
+        crate::info::platform::windows::network::get_local_ip_info(networks)
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        for (_name, data) in networks {
+            for ip in data.ip_networks() {
+                if let std::net::IpAddr::V4(ipv4) = ip.addr
+                    && !ipv4.is_loopback()
+                {
+                    return ipv4.to_string();
+                }
             }
         }
+        "127.0.0.1".to_string()
     }
-    "127.0.0.1".to_string()
 }
 
 pub fn get_ipv6_info(networks: &Networks) -> String {

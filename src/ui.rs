@@ -18,10 +18,13 @@ pub use daemon::{draw_daemon, stop_daemon};
 pub use layout::is_known_layout;
 
 #[cfg(not(unix))]
-pub fn draw_daemon(_info: &Info, _config: &Config) {}
+pub fn draw_daemon(_info: &Info, _config: &Config) {
+    eprintln!("Daemon mode is not supported on Windows.");
+}
 
 #[cfg(not(unix))]
 pub fn stop_daemon() -> bool {
+    eprintln!("Daemon mode is not supported on Windows.");
     false
 }
 use frames::load_animation_frames;

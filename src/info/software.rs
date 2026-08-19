@@ -1,8 +1,9 @@
 use std::env;
+#[cfg(not(target_os = "windows"))]
 use std::path::Path;
 
+#[cfg(not(target_os = "windows"))]
 const ENV_SHELL: &str = "SHELL";
-const ENV_PS_MODULE_PATH: &str = "PSModulePath";
 const ENV_TERM_PROGRAM: &str = "TERM_PROGRAM";
 const ENV_WT_SESSION: &str = "WT_SESSION";
 const ENV_TERM: &str = "TERM";
@@ -11,28 +12,29 @@ const ENV_DESKTOP_SESSION: &str = "DESKTOP_SESSION";
 const ENV_USER: &str = "USER";
 const ENV_USERNAME: &str = "USERNAME";
 
-const SHELL_POWERSHELL: &str = "PowerShell";
-const SHELL_CMD: &str = "cmd";
 const TERMINAL_WT: &str = "Windows Terminal";
-const DESKTOP_EXPLORER: &str = "Explorer";
+#[cfg(target_os = "macos")]
 const DESKTOP_AQUA: &str = "Aqua";
 
-/// Env-var based detection: identical code on every platform, so it stays
-/// outside `platform/`.
+/// Shell detection. Platform-specific logic lives in `platform/`:
+/// `platform/windows/software.rs` implements the Windows probes (the parent
+/// process walk lives in `platform/windows/shell.rs`); other platforms fall
+/// back to `SHELL`.
 pub fn get_shell_info() -> String {
-    if let Ok(shell) = env::var(ENV_SHELL) {
-        let path = Path::new(&shell);
-        if let Some(name) = path.file_name() {
-            return name.to_string_lossy().into_owned();
-        }
+    #[cfg(target_os = "windows")]
+    {
+        crate::info::platform::windows::software::get_shell_info()
     }
-    if cfg!(target_os = "windows") {
-        if env::var(ENV_PS_MODULE_PATH).is_ok() {
-            return SHELL_POWERSHELL.to_string();
+    #[cfg(not(target_os = "windows"))]
+    {
+        if let Ok(shell) = env::var(ENV_SHELL) {
+            let path = Path::new(&shell);
+            if let Some(name) = path.file_name() {
+                return name.to_string_lossy().into_owned();
+            }
         }
-        return SHELL_CMD.to_string();
+        super::unknown()
     }
-    super::unknown()
 }
 
 pub fn get_terminal_info() -> String {
@@ -48,6 +50,9 @@ pub fn get_terminal_info() -> String {
     super::unknown()
 }
 
+/// Desktop/window-manager detection. The XDG checks are generic; the
+/// platform defaults (Explorer on Windows, Aqua on macOS) live per platform
+/// (`platform/windows/software.rs`).
 pub fn get_desktop_info() -> String {
     if let Ok(de) = env::var(ENV_XDG_DESKTOP) {
         return de;
@@ -55,13 +60,18 @@ pub fn get_desktop_info() -> String {
     if let Ok(de) = env::var(ENV_DESKTOP_SESSION) {
         return de;
     }
-    if cfg!(target_os = "windows") {
-        return DESKTOP_EXPLORER.to_string();
+    #[cfg(target_os = "windows")]
+    {
+        crate::info::platform::windows::software::get_desktop_info()
     }
-    if cfg!(target_os = "macos") {
-        return DESKTOP_AQUA.to_string();
+    #[cfg(target_os = "macos")]
+    {
+        DESKTOP_AQUA.to_string()
     }
-    super::unknown()
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    {
+        super::unknown()
+    }
 }
 
 pub fn get_user_info() -> String {

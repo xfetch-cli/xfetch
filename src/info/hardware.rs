@@ -32,6 +32,9 @@ pub fn get_disk_info(disks: &Disks) -> Vec<String> {
     let mut disk_list = Vec::new();
     for disk in disks {
         let total = super::b_to_gib(disk.total_space());
+        if total == 0.0 {
+            continue;
+        }
         let available = super::b_to_gib(disk.available_space());
         let used = total - available;
         let percent = (used / total) * 100.0;

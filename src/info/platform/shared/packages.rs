@@ -54,27 +54,32 @@ pub fn count_scoop_output(stdout: &str) -> usize {
         .count()
 }
 
-/// `choco list --local-only` / `choco list` prints one "name version" row per
-/// package and ends with a "X packages installed." summary line. The banner
-/// ("Chocolatey vX.Y.Z") is excluded by requiring the version to start with a
-/// digit (choco versions always do).
-#[cfg(any(target_os = "windows", test))]
-pub fn count_choco_output(stdout: &str) -> usize {
-    stdout
-        .lines()
-        .filter(|line| {
-            let tokens: Vec<&str> = line.split_whitespace().collect();
-            tokens.len() == 2
-                && !line.contains("packages installed")
-                && tokens[1].starts_with(|c: char| c.is_ascii_digit())
-        })
-        .count()
+/// Localized "no results" messages winget prints instead of a table when the
+/// list is empty (e.g. "No installed package found matching input criteria.").
+/// These end with a period and never look like a "Name Id Version" row.
+fn is_winget_no_results(line: &str) -> bool {
+    let l = line.to_lowercase();
+    l.contains("found matching")
+        || l.contains("no installed package")
+        || l.contains("se encontr")
+        || l.contains("aucun")
+        || l.contains("keine")
+        || l.contains("nenhum")
+        || l.contains("не найдено")
+        || l.contains("не установлено")
+        || l.trim_end().ends_with('.')
 }
 
-/// `winget list` prints a table: header row (localized: "Name"/"Nombre"/...),
-/// a dashes separator, then the actual entries. Only rows after the separator
-/// count; when no separator is present (older winget), the first line is
-/// treated as the header.
+/// A line that looks like an actual `winget list` table row.
+fn is_winget_row(line: &str) -> bool {
+    line.split_whitespace().count() >= 2 && !is_winget_no_results(line)
+}
+
+/// `winget list --source winget` prints a table: header row (localized:
+/// "Name"/"Nombre"/...), a dashes separator, then the actual entries. Only
+/// rows after the separator count; when no separator is present (older
+/// winget), the first line is treated as the header. Localized "no results"
+/// messages are never counted as rows.
 #[cfg(any(target_os = "windows", test))]
 pub fn count_winget_output(stdout: &str) -> usize {
     let lines: Vec<&str> = stdout
@@ -85,13 +90,13 @@ pub fn count_winget_output(stdout: &str) -> usize {
     if let Some(idx) = lines.iter().position(|l| l.chars().all(|c| c == '-')) {
         lines[idx + 1..]
             .iter()
-            .filter(|l| l.split_whitespace().count() >= 2)
+            .filter(|l| is_winget_row(l))
             .count()
     } else {
         lines
             .iter()
             .skip(1)
-            .filter(|l| l.split_whitespace().count() >= 2)
+            .filter(|l| is_winget_row(l))
             .count()
     }
 }
@@ -170,19 +175,6 @@ mod tests {
     }
 
     #[test]
-    fn test_count_choco_output_skips_summary_line() {
-        let stdout = "git 2.45.0\nnodejs 20.11.0\n2 packages installed.\n";
-        assert_eq!(count_choco_output(stdout), 2);
-        assert_eq!(count_choco_output("0 packages installed.\n"), 0);
-    }
-
-    #[test]
-    fn test_count_choco_output_skips_banner() {
-        let stdout = "Chocolatey v2.6.0\nchocolatey 2.6.0\npython 3.14.3\n20 packages installed.\n";
-        assert_eq!(count_choco_output(stdout), 2);
-    }
-
-    #[test]
     fn test_count_winget_output() {
         let stdout = "Name             Id                       Version\n-----------------------------------------------------\ngit              Git.Git                  2.45.0\nPowerShell       Microsoft.PowerShell    7.5.0\n";
         assert_eq!(count_winget_output(stdout), 2);
@@ -193,6 +185,22 @@ mod tests {
     fn test_count_winget_output_localized_header() {
         let stdout = "Nombre        Id                  Version\n-----------------------------------------------\ngit           Git.Git             2.45.0\n";
         assert_eq!(count_winget_output(stdout), 1);
+    }
+
+    #[test]
+    fn test_count_winget_output_source_flag() {
+        let stdout = "Nombre                                                             Id                                     Versión              Disponible\n--------------------------------------------------------------------------------------------------------------------------------------------------\nBrave Beta                                                         Brave.Brave.Beta                       151.1.94.112         \nCPUID CPU-Z 2.19                                                   CPUID.CPU-Z                            2.19                 2.21\n";
+        assert_eq!(count_winget_output(stdout), 2);
+    }
+
+    #[test]
+    fn test_count_winget_output_no_results_message() {
+        let stdout_en = "No installed package found matching input criteria.\n";
+        assert_eq!(count_winget_output(stdout_en), 0);
+        let stdout_es = "No se encontró ningún paquete instalado que coincida con los criterios de entrada.\n";
+        assert_eq!(count_winget_output(stdout_es), 0);
+        let stdout_with_table = "Nombre        Id                  Version\n-----------------------------------------------\ngit           Git.Git             2.45.0\n";
+        assert_eq!(count_winget_output(stdout_with_table), 1);
     }
 
     #[test]
