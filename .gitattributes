@@ -1,5 +1,6 @@
-# Auto-detect text files and perform LF normalization
-* text=auto
+# Auto-detect text files and always use LF everywhere (Linux, macOS and
+# Windows). CRLF is never checked out, so no autocrlf warnings on Windows.
+* text=auto eol=lf
 
 # Rust source code
 *.rs linguist-language=Rust text
