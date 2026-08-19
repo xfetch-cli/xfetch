@@ -34,24 +34,12 @@ pub fn get_uptime_info() -> String {
     format!("{} {}, {} {}", hours, hour_label, mins, min_label)
 }
 
+/// First non-loopback IPv4 address. Each platform folder implements the probe
+/// (`platform/linux/network.rs`, `platform/macos/network.rs`,
+/// `platform/windows/network.rs`) so virtual adapters are skipped when a
+/// physical interface exists; `platform` re-exports the active one.
 pub fn get_local_ip_info(networks: &Networks) -> String {
-    #[cfg(target_os = "windows")]
-    {
-        crate::info::platform::windows::network::get_local_ip_info(networks)
-    }
-    #[cfg(not(target_os = "windows"))]
-    {
-        for (_name, data) in networks {
-            for ip in data.ip_networks() {
-                if let std::net::IpAddr::V4(ipv4) = ip.addr
-                    && !ipv4.is_loopback()
-                {
-                    return ipv4.to_string();
-                }
-            }
-        }
-        "127.0.0.1".to_string()
-    }
+    crate::info::platform::get_local_ip_info(networks)
 }
 
 pub fn get_ipv6_info(networks: &Networks) -> String {

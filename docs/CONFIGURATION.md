@@ -94,7 +94,7 @@
   <li><code>user</code>: Current username</li>
   <li><code>uptime</code>: System uptime</li>
   <li><code>datetime</code>: Current date and time</li>
-  <li><code>packages</code>: Package count (pacman, dpkg, brew, scoop, etc.)</li>
+  <li><code>packages</code>: Package count (pacman, dpkg, brew, scoop, etc.). Also <code>packages:&lt;manager&gt;</code> to show a single manager — see <a href="#package-count-modules">Package Count Modules</a>.</li>
   <li><code>shell</code>: Current shell (bash, zsh, powershell, etc.)</li>
   <li><code>terminal</code>: Current terminal emulator</li>
   <li><code>wm</code>: Window Manager / Desktop Environment</li>
@@ -110,6 +110,98 @@
   <li><code>interfaces</code>: Network interfaces</li>
   <li><code>palette</code>: Color palette</li>
 </ul>
+
+<h2 id="package-count-modules">Package Count Modules</h2>
+
+<p>
+  The <code>packages</code> module shows the total package count, joining every detected manager on one line:
+</p>
+
+<pre><code class="language-plain">1090 (pacman) + 21 (aur) + 0 (flatpak)</code></pre>
+
+<p>
+  To show <strong>one manager only</strong> — as its own module line — use the <code>packages:&lt;manager&gt;</code> key. The manager name must match the label shown between parentheses in the <code>packages</code> output.
+</p>
+
+<pre><code class="language-jsonc">{
+    // Arch: official packages in one line, AUR packages in another
+    "modules": ["os", "kernel", "packages:pacman", "packages:aur"]
+}</code></pre>
+
+<p><strong>Per-platform manager labels:</strong></p>
+
+<table>
+  <thead>
+    <tr><th>Key</th><th>Platform</th><th>Counts</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>packages</code></td><td>all</td>
+      <td>Every detected manager, joined horizontally with <code> + </code>.</td>
+    </tr>
+    <tr>
+      <td><code>packages:pacman</code></td><td>Arch (pacman)</td>
+      <td>Official repository packages only (<code>pacman -Qn</code>).</td>
+    </tr>
+    <tr>
+      <td><code>packages:aur</code></td><td>Arch (pacman)</td>
+      <td>AUR and manually installed packages (<code>pacman -Qm</code>).</td>
+    </tr>
+    <tr>
+      <td><code>packages:dpkg</code></td><td>Debian, Ubuntu</td>
+      <td>apt packages.</td>
+    </tr>
+    <tr>
+      <td><code>packages:rpm</code></td><td>Fedora, RHEL, openSUSE</td>
+      <td>RPM packages.</td>
+    </tr>
+    <tr>
+      <td><code>packages:apk</code></td><td>Alpine</td>
+      <td>Alpine packages.</td>
+    </tr>
+    <tr>
+      <td><code>packages:xbps-query</code></td><td>Void</td>
+      <td>Void packages.</td>
+    </tr>
+    <tr>
+      <td><code>packages:portage</code></td><td>Gentoo</td>
+      <td>Portage packages.</td>
+    </tr>
+    <tr>
+      <td><code>packages:nix-env</code></td><td>NixOS</td>
+      <td>Packages in the user profile (<code>nix-env -q</code>).</td>
+    </tr>
+    <tr>
+      <td><code>packages:flatpak</code></td><td>Linux</td>
+      <td>Flatpak applications (when installed).</td>
+    </tr>
+    <tr>
+      <td><code>packages:snap</code></td><td>Linux</td>
+      <td>Snap packages (only when snapd is running).</td>
+    </tr>
+    <tr>
+      <td><code>packages:brew</code></td><td>macOS</td>
+      <td>Homebrew formulae.</td>
+    </tr>
+    <tr>
+      <td><code>packages:scoop</code></td><td>Windows</td>
+      <td>Scoop apps.</td>
+    </tr>
+    <tr>
+      <td><code>packages:winget</code></td><td>Windows</td>
+      <td>Apps installed through the winget source.</td>
+    </tr>
+  </tbody>
+</table>
+
+<blockquote>
+  <strong>Notes:</strong>
+  <ul>
+    <li>A manager only appears when it is installed and detected; the same manager can produce several labels (e.g. <code>pacman</code> and <code>aur</code> on Arch).</li>
+    <li>A <code>packages:&lt;manager&gt;</code> key whose label was not detected renders nothing — the module line is skipped, with no error.</li>
+    <li>There is no built-in vertical/list rendering of the full breakdown; add one <code>packages:&lt;manager&gt;</code> key per manager to get one line each.</li>
+  </ul>
+</blockquote>
 
 <h2>Logos and ASCII Art</h2>
 

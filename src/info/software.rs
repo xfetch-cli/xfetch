@@ -13,19 +13,22 @@ const ENV_USER: &str = "USER";
 const ENV_USERNAME: &str = "USERNAME";
 
 const TERMINAL_WT: &str = "Windows Terminal";
-#[cfg(target_os = "macos")]
-const DESKTOP_AQUA: &str = "Aqua";
 
 /// Shell detection. Platform-specific logic lives in `platform/`:
 /// `platform/windows/software.rs` implements the Windows probes (the parent
-/// process walk lives in `platform/windows/shell.rs`); other platforms fall
-/// back to `SHELL`.
+/// process walk lives in `platform/windows/shell.rs`);
+/// `platform/macos/software.rs` implements the macOS probes; other platforms
+/// fall back to `SHELL`.
 pub fn get_shell_info() -> String {
     #[cfg(target_os = "windows")]
     {
         crate::info::platform::windows::software::get_shell_info()
     }
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_os = "macos")]
+    {
+        crate::info::platform::macos::software::get_shell_info()
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
     {
         if let Ok(shell) = env::var(ENV_SHELL) {
             let path = Path::new(&shell);
@@ -52,7 +55,7 @@ pub fn get_terminal_info() -> String {
 
 /// Desktop/window-manager detection. The XDG checks are generic; the
 /// platform defaults (Explorer on Windows, Aqua on macOS) live per platform
-/// (`platform/windows/software.rs`).
+/// (`platform/windows/software.rs`, `platform/macos/software.rs`).
 pub fn get_desktop_info() -> String {
     if let Ok(de) = env::var(ENV_XDG_DESKTOP) {
         return de;
@@ -66,7 +69,7 @@ pub fn get_desktop_info() -> String {
     }
     #[cfg(target_os = "macos")]
     {
-        DESKTOP_AQUA.to_string()
+        crate::info::platform::macos::software::get_desktop_info()
     }
     #[cfg(not(any(target_os = "windows", target_os = "macos")))]
     {

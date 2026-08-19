@@ -3,14 +3,23 @@ use super::commands::run_cmd_with_timeout;
 use std::thread;
 use std::time::Duration;
 
-/// A package-manager probe: command name, arguments and its own timeout.
+/// A package-manager probe: executable, arguments, its own timeout and the
+/// display label.
 ///
-/// Timeouts are per command so each platform tunes its probes independently
-/// (e.g. `snap` gets a short timeout because it hangs forever when the snapd
-/// daemon is not running). Used by the Linux runner; macOS and Windows keep
-/// their own.
+/// `label` is what appears in the package count and can differ from `binary`,
+/// so one tool can report two sets (e.g. Arch's AUR count runs `pacman -Qm`
+/// but is labeled `aur`). Timeouts are per command so each platform tunes its
+/// probes independently (e.g. `snap` gets a short timeout because it hangs
+/// forever when the snapd daemon is not running). Used by the Linux runner;
+/// macOS and Windows keep their own.
 #[cfg(target_os = "linux")]
-pub type PackageCheck<'a> = (&'a str, &'a [&'a str], Duration);
+#[derive(Clone)]
+pub struct PackageCheck<'a> {
+    pub binary: &'a str,
+    pub args: &'a [&'a str],
+    pub timeout: Duration,
+    pub label: &'a str,
+}
 
 pub const PACKAGE_CHECK_TIMEOUT: Duration = Duration::from_secs(10);
 #[cfg(target_os = "linux")]
@@ -26,12 +35,8 @@ pub fn run_package_check_stdout(cmd: &str, args: &[&str], timeout: Duration) -> 
 }
 
 #[cfg(target_os = "linux")]
-pub fn run_package_check_with_timeout(
-    cmd: &str,
-    args: &[&str],
-    timeout: Duration,
-) -> Option<usize> {
-    run_package_check_stdout(cmd, args, timeout).map(|out| out.lines().count())
+pub fn run_package_check_with_timeout(check: &PackageCheck<'_>) -> Option<usize> {
+    run_package_check_stdout(check.binary, check.args, check.timeout).map(|out| out.lines().count())
 }
 
 /// Parsers for package-manager output. They are pure text logic so they live
@@ -88,16 +93,9 @@ pub fn count_winget_output(stdout: &str) -> usize {
         .filter(|l| !l.is_empty())
         .collect();
     if let Some(idx) = lines.iter().position(|l| l.chars().all(|c| c == '-')) {
-        lines[idx + 1..]
-            .iter()
-            .filter(|l| is_winget_row(l))
-            .count()
+        lines[idx + 1..].iter().filter(|l| is_winget_row(l)).count()
     } else {
-        lines
-            .iter()
-            .skip(1)
-            .filter(|l| is_winget_row(l))
-            .count()
+        lines.iter().skip(1).filter(|l| is_winget_row(l)).count()
     }
 }
 
@@ -121,10 +119,14 @@ pub fn run_package_checks(checks: &[PackageCheck]) -> Vec<(String, String)> {
     thread::scope(|s| {
         let handles: Vec<_> = checks
             .iter()
-            .map(|(cmd, args, timeout)| {
+            .map(|check| {
                 s.spawn(move || {
-                    run_package_check_with_timeout(cmd, args, *timeout)
-                        .map(|c| (cmd.to_string(), format_package_count(c, cmd)))
+                    run_package_check_with_timeout(check).map(|c| {
+                        (
+                            check.label.to_string(),
+                            format_package_count(c, check.label),
+                        )
+                    })
                 })
             })
             .collect();
@@ -151,14 +153,13 @@ mod tests {
     #[cfg(target_os = "linux")]
     #[test]
     fn test_run_package_check_missing_cmd() {
-        assert_eq!(
-            run_package_check_with_timeout(
-                "nonexistent_cmd_xyz",
-                &["--version"],
-                PACKAGE_CHECK_TIMEOUT
-            ),
-            None
-        );
+        let check = PackageCheck {
+            binary: "nonexistent_cmd_xyz",
+            args: &["--version"],
+            timeout: PACKAGE_CHECK_TIMEOUT,
+            label: "nonexistent_cmd_xyz",
+        };
+        assert_eq!(run_package_check_with_timeout(&check), None);
     }
 
     #[test]
@@ -197,7 +198,8 @@ mod tests {
     fn test_count_winget_output_no_results_message() {
         let stdout_en = "No installed package found matching input criteria.\n";
         assert_eq!(count_winget_output(stdout_en), 0);
-        let stdout_es = "No se encontró ningún paquete instalado que coincida con los criterios de entrada.\n";
+        let stdout_es =
+            "No se encontró ningún paquete instalado que coincida con los criterios de entrada.\n";
         assert_eq!(count_winget_output(stdout_es), 0);
         let stdout_with_table = "Nombre        Id                  Version\n-----------------------------------------------\ngit           Git.Git             2.45.0\n";
         assert_eq!(count_winget_output(stdout_with_table), 1);
@@ -214,8 +216,18 @@ mod tests {
     #[test]
     fn test_multi_manager_format() {
         let checks: &[PackageCheck] = &[
-            ("pacman", &["-Qq"], PACKAGE_CHECK_TIMEOUT),
-            ("dpkg", &["--get-selections"], PACKAGE_CHECK_TIMEOUT),
+            PackageCheck {
+                binary: "pacman",
+                args: &["-Qn"],
+                timeout: PACKAGE_CHECK_TIMEOUT,
+                label: "pacman",
+            },
+            PackageCheck {
+                binary: "dpkg",
+                args: &["--get-selections"],
+                timeout: PACKAGE_CHECK_TIMEOUT,
+                label: "dpkg",
+            },
         ];
         let results = run_package_checks(checks);
 

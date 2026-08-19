@@ -6,9 +6,12 @@
 pub mod battery;
 pub mod datetime;
 pub mod gpu;
+pub mod network;
+pub mod os_release;
 pub mod packages;
 
 pub use battery::get_battery_info;
 pub use datetime::get_datetime_info;
 pub use gpu::get_gpu_info;
+pub use network::get_local_ip_info;
 pub use packages::get_packages_breakdown;

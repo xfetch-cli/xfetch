@@ -6,8 +6,7 @@ use crate::info::platform::shared::packages::{
 };
 
 const PACMAN_CMD: &str = "pacman";
-const YAY_CMD: &str = "yay";
-const PARU_CMD: &str = "paru";
+const AUR_LABEL: &str = "aur";
 const DPKG_CMD: &str = "dpkg";
 const RPM_CMD: &str = "rpm";
 const FLATPAK_CMD: &str = "flatpak";
@@ -17,13 +16,15 @@ const NIX_ENV_CMD: &str = "nix-env";
 const XBPS_CMD: &str = "xbps-query";
 const PORTAGE_LABEL: &str = "portage";
 
-/// Databases that mirror what `dpkg --get-selections`, `pacman -Qq`,
-/// `apk info` and `flatpak list --app` report, world-readable on every distro.
-/// Reading them counts packages in microseconds instead of spawning a process
-/// (which on WSL also pays for the execvp PATH search across the slow
-/// `/mnt/c` mounts).
+/// Databases that mirror what `dpkg --get-selections`, `apk info` and
+/// `flatpak list --app` report, world-readable on every distro. Reading them
+/// counts packages in microseconds instead of spawning a process (which on
+/// WSL also pays for the execvp PATH search across the slow `/mnt/c` mounts).
+///
+/// Arch has no database entry: the pacman DB holds *all* installed packages,
+/// official and AUR alike, so the split comes from `pacman -Qn` (official) /
+/// `pacman -Qm` (foreign) below instead.
 const DPKG_DB: &str = "/var/lib/dpkg/status";
-const PACMAN_DB_DIR: &str = "/var/lib/pacman/local";
 const APK_DB: &str = "/var/lib/apk/db/installed";
 const FLATPAK_SYSTEM_APP_DIR: &str = "/var/lib/flatpak/app";
 const FLATPAK_USER_APP_DIR: &str = ".local/share/flatpak/app";
@@ -32,17 +33,73 @@ const PORTAGE_DB_DIR: &str = "/var/db/pkg";
 
 /// `snap` gets a short timeout: when snapd is not running, `snap list` blocks
 /// forever on the snapd socket instead of failing.
+///
+/// On Arch, `pacman -Qn` lists packages found in the sync databases (official)
+/// and `pacman -Qm` lists foreign packages (AUR and manual installs); running
+/// `pacman -Qq` plus a helper (`yay -Qq` / `paru -Qq`) would double- or
+/// triple-count the same set, since every AUR install goes through pacman.
+/// `portage` (Gentoo) is database-only, so it needs no probe arguments.
 const CHECKS: &[PackageCheck] = &[
-    (PACMAN_CMD, &["-Qq"], PACKAGE_CHECK_TIMEOUT),
-    (YAY_CMD, &["-Qq"], PACKAGE_CHECK_TIMEOUT),
-    (PARU_CMD, &["-Qq"], PACKAGE_CHECK_TIMEOUT),
-    (DPKG_CMD, &["--get-selections"], PACKAGE_CHECK_TIMEOUT),
-    (RPM_CMD, &["-qa"], PACKAGE_CHECK_TIMEOUT),
-    (FLATPAK_CMD, &["list", "--app"], PACKAGE_CHECK_TIMEOUT),
-    (SNAP_CMD, &["list"], SNAP_CHECK_TIMEOUT),
-    (APK_CMD, &["info"], PACKAGE_CHECK_TIMEOUT),
-    (NIX_ENV_CMD, &["-q"], PACKAGE_CHECK_TIMEOUT),
-    (XBPS_CMD, &["-l"], PACKAGE_CHECK_TIMEOUT),
+    PackageCheck {
+        binary: PACMAN_CMD,
+        args: &["-Qn"],
+        timeout: PACKAGE_CHECK_TIMEOUT,
+        label: PACMAN_CMD,
+    },
+    PackageCheck {
+        binary: PACMAN_CMD,
+        args: &["-Qm"],
+        timeout: PACKAGE_CHECK_TIMEOUT,
+        label: AUR_LABEL,
+    },
+    PackageCheck {
+        binary: DPKG_CMD,
+        args: &["--get-selections"],
+        timeout: PACKAGE_CHECK_TIMEOUT,
+        label: DPKG_CMD,
+    },
+    PackageCheck {
+        binary: RPM_CMD,
+        args: &["-qa"],
+        timeout: PACKAGE_CHECK_TIMEOUT,
+        label: RPM_CMD,
+    },
+    PackageCheck {
+        binary: FLATPAK_CMD,
+        args: &["list", "--app"],
+        timeout: PACKAGE_CHECK_TIMEOUT,
+        label: FLATPAK_CMD,
+    },
+    PackageCheck {
+        binary: SNAP_CMD,
+        args: &["list"],
+        timeout: SNAP_CHECK_TIMEOUT,
+        label: SNAP_CMD,
+    },
+    PackageCheck {
+        binary: APK_CMD,
+        args: &["info"],
+        timeout: PACKAGE_CHECK_TIMEOUT,
+        label: APK_CMD,
+    },
+    PackageCheck {
+        binary: NIX_ENV_CMD,
+        args: &["-q"],
+        timeout: PACKAGE_CHECK_TIMEOUT,
+        label: NIX_ENV_CMD,
+    },
+    PackageCheck {
+        binary: XBPS_CMD,
+        args: &["-l"],
+        timeout: PACKAGE_CHECK_TIMEOUT,
+        label: XBPS_CMD,
+    },
+    PackageCheck {
+        binary: PORTAGE_LABEL,
+        args: &[],
+        timeout: PACKAGE_CHECK_TIMEOUT,
+        label: PORTAGE_LABEL,
+    },
 ];
 
 /// When snapd is not running, `snap list` blocks forever on the snapd socket.
@@ -133,9 +190,6 @@ fn db_package_counts() -> Vec<(&'static str, usize)> {
     if let Some(n) = count_lines_with_prefix(DPKG_DB, "Package:") {
         counts.push((DPKG_CMD, n));
     }
-    if let Some(n) = count_dirs(PACMAN_DB_DIR) {
-        counts.push((PACMAN_CMD, n));
-    }
     if let Some(n) = count_lines_with_prefix(APK_DB, "P:") {
         counts.push((APK_CMD, n));
     }
@@ -155,21 +209,25 @@ pub fn get_packages_breakdown() -> Vec<(String, String)> {
     let db_counts = db_package_counts();
     let pending: Vec<PackageCheck> = CHECKS
         .iter()
-        .copied()
-        .filter(|(cmd, _, _)| {
-            (*cmd != SNAP_CMD || snapd_running()) && !db_counts.iter().any(|(c, _)| c == cmd)
+        .filter(|check| {
+            (check.binary != SNAP_CMD || snapd_running())
+                && !db_counts.iter().any(|(c, _)| *c == check.label)
         })
+        .cloned()
         .collect();
     let cmd_counts = run_package_checks(&pending);
     CHECKS
         .iter()
-        .filter_map(|(cmd, _, _)| {
-            if let Some((_, n)) = db_counts.iter().find(|(c, _)| c == cmd) {
-                Some((cmd.to_string(), format_package_count(*n, cmd)))
-            } else if *cmd == SNAP_CMD && !snapd_running() {
+        .filter_map(|check| {
+            if let Some((_, n)) = db_counts.iter().find(|(c, _)| *c == check.label) {
+                Some((
+                    check.label.to_string(),
+                    format_package_count(*n, check.label),
+                ))
+            } else if check.binary == SNAP_CMD && !snapd_running() {
                 None
             } else {
-                cmd_counts.iter().find(|(c, _)| c == cmd).cloned()
+                cmd_counts.iter().find(|(c, _)| c == check.label).cloned()
             }
         })
         .collect()
@@ -191,11 +249,11 @@ mod tests {
     fn test_snapd_socket_precheck_skips_snap() {
         let checks: Vec<PackageCheck> = CHECKS
             .iter()
-            .copied()
-            .filter(|(cmd, _, _)| *cmd != SNAP_CMD || snapd_running())
+            .filter(|check| check.binary != SNAP_CMD || snapd_running())
+            .cloned()
             .collect();
         assert!(
-            !checks.iter().any(|(cmd, _, _)| *cmd == SNAP_CMD)
+            !checks.iter().any(|check| check.binary == SNAP_CMD)
                 || std::path::Path::new("/run/snapd.socket").exists()
         );
     }
@@ -233,17 +291,17 @@ mod tests {
 
     #[test]
     fn test_db_counts_preserve_check_order() {
-        let db_counts: Vec<(&str, usize)> = vec![(DPKG_CMD, 716), (PACMAN_CMD, 42)];
+        let db_counts: Vec<(&str, usize)> = vec![(DPKG_CMD, 716), (APK_CMD, 42)];
         let output: Vec<String> = CHECKS
             .iter()
-            .filter_map(|(cmd, _, _)| {
+            .filter_map(|check| {
                 db_counts
                     .iter()
-                    .find(|(c, _)| c == cmd)
-                    .map(|(_, n)| format_package_count(*n, cmd))
+                    .find(|(c, _)| *c == check.label)
+                    .map(|(_, n)| format_package_count(*n, check.label))
             })
             .collect();
-        assert!(output[0].contains("pacman"), "pacman must come first");
-        assert!(output[1].contains("dpkg"), "dpkg must come second");
+        assert!(output[0].contains("dpkg"), "dpkg must come first");
+        assert!(output[1].contains("apk"), "apk must come second");
     }
 }

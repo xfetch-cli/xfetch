@@ -22,6 +22,15 @@
 - All Windows-specific logic is consolidated under `src/info/platform/windows/` (`battery`, `datetime`, `gpu`, `network`, `packages`, `process`, `shell`, `software`, `version`); `info/software.rs` and `info/system.rs` dispatch to it.
 - 79 tests, clippy clean.
 
+### macOS and Linux: Per-Platform Modularization
+
+- **macOS** now mirrors the Windows layout: `platform/macos/version.rs` (version → logo mapping, e.g. macOS 15 → sequoia), `platform/macos/software.rs` (`get_shell_info`/`get_desktop_info`, Aqua no longer inline in `info/software.rs`), `platform/macos/network.rs` (`local_ip` prefers the physical adapter — utun/tap/bridge/AWDL/Tailscale skipped).
+- **Linux** gets `platform/linux/os_release.rs` (`/etc/os-release` parsing moved out of `logos.rs`) and `platform/linux/network.rs` (`local_ip` prefers the physical adapter — docker0/veth/br-/virbr/tun/tap/Tailscale skipped).
+- **Arch package split**: `pacman` counts only official packages (`pacman -Qn`) and a new `aur` entry counts AUR/manual installs (`pacman -Qm`). Running `yay -Qq`/`paru -Qq` alongside pacman double- or triple-counted the same set (AUR packages are installed via pacman); helpers are no longer probed. The pacman database fast-path was dropped since it holds official + AUR together. Gentoo `portage` count is now displayed (it was computed but never surfaced). `PackageCheck` became a struct with a distinct `label`, Linux-only. No changes to other distros.
+- `logos.rs` has no `#[cfg(target_os)]` anymore: `detect_os_ids` and `logo_category` moved to `platform/mod.rs`; the Windows logo mapping still lives in `platform/windows/version.rs` (unchanged).
+- `get_local_ip_info` is dispatched through `platform::get_local_ip_info` like the other probes; `info/system.rs` no longer carries per-OS `#[cfg]` blocks. Windows behavior is untouched.
+- 94 tests, clippy clean (Linux CI unchanged).
+
 ## 2026-08-18 — v0.5.0
 
 ### Per-Platform Package Counters

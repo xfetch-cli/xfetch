@@ -4,6 +4,9 @@
 //! catalog (index + raw files over HTTPS, via `curl` with a timeout).
 //! Everything here is best-effort: on any failure (no network, bad catalog,
 //! invalid art) the caller falls back to the default behavior.
+//!
+//! OS detection is delegated to `crate::info::platform` (one folder per OS),
+//! so this module has no `#[cfg(target_os)]` blocks of its own.
 
 use std::collections::HashMap;
 use std::time::Duration;
@@ -38,90 +41,6 @@ pub struct LogoEntry {
     pub file: String,
 }
 
-/// `(ID, ID_LIKE)` for the running OS. On Linux these come from
-/// `/etc/os-release` (lowercased); on macOS/Windows the base id plus a
-/// version-specific candidate (e.g. `macos-ventura`, `windows-11`) when the
-/// version can be mapped.
-pub fn detect_os_ids() -> (String, Vec<String>) {
-    #[cfg(target_os = "linux")]
-    {
-        parse_os_release(&std::fs::read_to_string("/etc/os-release").unwrap_or_default())
-    }
-    #[cfg(target_os = "macos")]
-    {
-        let mut ids = Vec::new();
-        if let Some(v) = sysinfo::System::os_version()
-            && let Some(specific) = macos_version_id(&v)
-        {
-            ids.push(specific.to_string());
-        }
-        ("macos".to_string(), ids)
-    }
-    #[cfg(target_os = "windows")]
-    {
-        let mut ids = Vec::new();
-        if let Some(v) = sysinfo::System::os_version()
-            && let Some(specific) = crate::info::platform::windows::version::windows_version_id(&v)
-        {
-            ids.push(specific.to_string());
-        }
-        ("windows".to_string(), ids)
-    }
-}
-
-/// Parses `ID` and `ID_LIKE` out of an os-release file.
-#[cfg(target_os = "linux")]
-fn parse_os_release(content: &str) -> (String, Vec<String>) {
-    let mut id = "linux".to_string();
-    let mut id_like = Vec::new();
-    for line in content.lines() {
-        let Some((key, value)) = line.split_once('=') else {
-            continue;
-        };
-        let value = value.trim().trim_matches('"').trim_matches('\'');
-        match key {
-            "ID" if !value.is_empty() => id = value.to_lowercase(),
-            "ID_LIKE" => id_like = value.split_whitespace().map(|s| s.to_lowercase()).collect(),
-            _ => {}
-        }
-    }
-    (id, id_like)
-}
-
-/// Maps a macOS version string to a catalog id (macOS 15 → sequoia, ...).
-#[cfg(target_os = "macos")]
-fn macos_version_id(version: &str) -> Option<&'static str> {
-    let v = version.trim();
-    for (prefix, id) in [
-        ("15", "macos-sequoia"),
-        ("14", "macos-sonoma"),
-        ("13", "macos-ventura"),
-        ("12", "macos-monterey"),
-        ("11", "macos-bigsur"),
-        ("10.15", "macos-catalina"),
-        ("10.14", "macos-mojave"),
-        ("10.13", "macos-highsierra"),
-        ("10.12", "macos-sierra"),
-        ("10.11", "osx-elcapitan"),
-        ("10.10", "osx-yosemite"),
-        ("10.9", "osx-mavericks"),
-        ("10.8", "osx-mountainlion"),
-        ("10.7", "osx-lion"),
-        ("10.6", "osx-snowleopard"),
-        ("10.5", "osx-leopard"),
-        ("10.4", "osx-tiger"),
-        ("10.3", "osx-panther"),
-        ("10.2", "osx-jaguar"),
-        ("10.1", "osx-puma"),
-        ("10.0", "osx-cheetah"),
-    ] {
-        if v.starts_with(prefix) {
-            return Some(id);
-        }
-    }
-    None
-}
-
 fn entry_matches(entry: &LogoEntry, key: &str) -> bool {
     entry.id.eq_ignore_ascii_case(key) || entry.aliases.iter().any(|a| a.eq_ignore_ascii_case(key))
 }
@@ -144,21 +63,6 @@ pub fn resolve_entry<'a>(
         })
 }
 
-fn category() -> &'static str {
-    #[cfg(target_os = "linux")]
-    {
-        "linux"
-    }
-    #[cfg(target_os = "macos")]
-    {
-        "macos"
-    }
-    #[cfg(target_os = "windows")]
-    {
-        "windows"
-    }
-}
-
 fn fetch_text(url: &str) -> Option<String> {
     let output = run_cmd_with_timeout("curl", &["-fsS", "--max-time", "10", url], FETCH_TIMEOUT)?;
     if !output.status.success() {
@@ -178,25 +82,25 @@ fn validate_art(art: &str) -> bool {
 /// the detected OS/distro otherwise. Returns `(resolved entry id, art)`;
 /// `None` on any failure (callers fall back to the default logo).
 pub fn fetch_distro_logo(logo_override: Option<&str>) -> Option<(String, String)> {
-    let (detected_id, id_like) = detect_os_ids();
+    let (detected_id, id_like) = crate::info::platform::detect_os_ids();
     let (query_id, query_like) = match logo_override {
         Some(override_id) => (override_id, Vec::new()),
         None => (detected_id.as_str(), id_like),
     };
+    let category = crate::info::platform::logo_category();
     let index: LogoIndex = fetch_text(&format!("{}/logos.json", logos_base_url()))
         .and_then(|s| serde_json::from_str(&s).ok())?;
     let entry = resolve_entry(&index, query_id, &query_like);
     let art_path = entry
         .map(|e| e.file.clone())
-        .or_else(|| index.defaults.get(category()).cloned())?;
+        .or_else(|| index.defaults.get(category).cloned())?;
     let art = fetch_text(&format!("{}/{art_path}", logos_base_url()))?;
     let resolved_id = match &entry {
         Some(e) => e.id.clone(),
         None if logo_override.is_some() => {
             eprintln!(
                 "Warning: logo '{}' is not in the catalog; using the generic {} logo.",
-                query_id,
-                category()
+                query_id, category
             );
             "default".to_string()
         }
@@ -221,22 +125,6 @@ mod tests {
             }"#,
         )
         .unwrap()
-    }
-
-    #[cfg(target_os = "linux")]
-    #[test]
-    fn test_parse_os_release() {
-        let (id, like) =
-            parse_os_release("NAME=\"Ubuntu\"\nID=ubuntu\nID_LIKE=debian\nVERSION_ID=\"24.04\"\n");
-        assert_eq!(id, "ubuntu");
-        assert_eq!(like, vec!["debian"]);
-
-        let (id, like) = parse_os_release("ID=\"Linux Mint\"\nID_LIKE=\"ubuntu debian\"\n");
-        assert_eq!(id, "linux mint");
-        assert_eq!(like, vec!["ubuntu", "debian"]);
-
-        let (id, _) = parse_os_release("");
-        assert_eq!(id, "linux");
     }
 
     #[test]
@@ -280,13 +168,5 @@ mod tests {
             "{}\n",
             "y".repeat(MAX_LINE_WIDTH + 1)
         )));
-    }
-
-    #[cfg(target_os = "linux")]
-    #[test]
-    fn test_detect_on_current_system() {
-        let (id, like) = detect_os_ids();
-        assert!(!id.is_empty());
-        assert!(like.iter().all(|l| !l.is_empty()));
     }
 }
