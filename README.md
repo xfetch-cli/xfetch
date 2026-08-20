@@ -165,6 +165,7 @@ xfetch effects install <name>   # install an intro effect (e.g. decrypt)
   <ul>
     <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/INSTALLATION.md">Installation</a></li>
     <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/CONFIGURATION.md">Config</a></li>
+    <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/submodules_configuration.md">Submodule Config (labels &amp; formats)</a></li>
     <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/DAEMON.md">Daemon Mode</a></li>
     <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/LAYOUTS.md">Layouts</a></li>
     <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/PLUGINS.md">Plugins</a></li>

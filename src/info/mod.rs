@@ -1,3 +1,4 @@
+pub mod format;
 pub mod hardware;
 pub mod platform;
 pub mod software;

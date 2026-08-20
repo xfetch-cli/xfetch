@@ -1,6 +1,11 @@
+use std::collections::HashMap;
 use std::time::Duration;
 
-use crate::info::platform::shared::{UNKNOWN_GPU, commands::run_cmd_with_timeout};
+use crate::info::platform::shared::{
+    UNKNOWN_GPU,
+    commands::run_cmd_with_timeout,
+    gpu::{bracket_content, fields_from_name},
+};
 
 const CMD_TIMEOUT: Duration = Duration::from_secs(10);
 
@@ -30,5 +35,44 @@ pub fn get_gpu_info() -> Vec<String> {
         vec![UNKNOWN_GPU.to_string()]
     } else {
         gpus
+    }
+}
+
+/// Structured fields for a stored GPU line: `lspci` device descriptions
+/// wrap the readable name in brackets (`"GP106 [GeForce GTX 1060 6GB]"`),
+/// so `{name}` uses the bracketed part and the rest of the fields are
+/// derived from it.
+pub fn gpu_fields(line: &str) -> HashMap<String, String> {
+    let name = bracket_content(line)
+        .map(|s| s.trim().to_string())
+        .unwrap_or_else(|| line.trim().to_string());
+    fields_from_name(&name)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_gpu_fields_lspci_bracket() {
+        let f = gpu_fields("GP106 [GeForce GTX 1060 6GB]");
+        assert_eq!(f.get("name").unwrap(), "GeForce GTX 1060 6GB");
+        assert_eq!(f.get("vendor").unwrap(), "NVIDIA");
+        assert_eq!(f.get("model").unwrap(), "GTX 1060");
+        assert_eq!(f.get("vram").unwrap(), "6GB");
+    }
+
+    #[test]
+    fn test_gpu_fields_plain_line() {
+        let f = gpu_fields("NVIDIA GeForce GTX 1060 6GB");
+        assert_eq!(f.get("vendor").unwrap(), "NVIDIA");
+        assert_eq!(f.get("model").unwrap(), "GTX 1060");
+    }
+
+    #[test]
+    fn test_gpu_fields_unknown() {
+        let f = gpu_fields("mystery hardware");
+        assert_eq!(f.get("name").unwrap(), "mystery hardware");
+        assert!(!f.contains_key("vendor"));
     }
 }

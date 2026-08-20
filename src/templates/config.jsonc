@@ -83,5 +83,20 @@
         "datetime": "Magenta",
         "palette": "White"
     },
+    // Rename the key shown per module ("cpu" -> "procesador"); an empty
+    // string hides it (icon-only row). Omit the module to keep its name.
+    "labels": {
+        "cpu": "",
+        "gpu": ""
+    },
+    // Value templates with {field} placeholders. Every module exposes
+    // {value} and {key}; CPU adds {brand}, {model}, {cores} and {freq};
+    // GPU adds {name}, {vendor}, {model} and {vram}. Unknown fields render
+    // empty; {{ }} escapes literal braces. Omit a module to keep its
+    // default output.
+    "formats": {
+        "cpu": "{model} · {cores} núcleos · {freq}",
+        "gpu": "{vendor} {model}"
+    },
     "palette_style": "circles"
 }

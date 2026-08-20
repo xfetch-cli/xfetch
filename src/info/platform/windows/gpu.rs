@@ -1,6 +1,9 @@
+use std::collections::HashMap;
 use std::time::Duration;
 
-use crate::info::platform::shared::{UNKNOWN_GPU, commands::run_cmd_with_timeout};
+use crate::info::platform::shared::{
+    UNKNOWN_GPU, commands::run_cmd_with_timeout, gpu::fields_from_name,
+};
 
 const CMD_TIMEOUT: Duration = Duration::from_secs(10);
 
@@ -39,5 +42,32 @@ pub fn get_gpu_info() -> Vec<String> {
         vec![UNKNOWN_GPU.to_string()]
     } else {
         gpus
+    }
+}
+
+/// Structured fields for a stored GPU line: the `Name`/CIM values are plain
+/// device names (`"NVIDIA GeForce GTX 1060 6GB"`).
+pub fn gpu_fields(line: &str) -> HashMap<String, String> {
+    fields_from_name(line)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_gpu_fields_wmic_name() {
+        let f = gpu_fields("NVIDIA GeForce GTX 1060 6GB");
+        assert_eq!(f.get("name").unwrap(), "NVIDIA GeForce GTX 1060 6GB");
+        assert_eq!(f.get("vendor").unwrap(), "NVIDIA");
+        assert_eq!(f.get("model").unwrap(), "GTX 1060");
+        assert_eq!(f.get("vram").unwrap(), "6GB");
+    }
+
+    #[test]
+    fn test_gpu_fields_amd() {
+        let f = gpu_fields("AMD Radeon RX 6800 16GB");
+        assert_eq!(f.get("vendor").unwrap(), "AMD");
+        assert_eq!(f.get("model").unwrap(), "RX 6800");
     }
 }

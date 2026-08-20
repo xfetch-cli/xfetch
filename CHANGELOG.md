@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-08-20 — v0.7.0
+
+### Configurable Labels and Value Formats
+
+- New `labels` config map renames the key shown per module (`"cpu": "procesador"`), in **every layout** (classic and variants, compact, minimal, section, section-box, tree, custom-x). An empty string hides the key — icon-only row. Colors keep using the raw module key, so renaming never breaks the color.
+- New `formats` config map replaces a module's value with a template: `{field}` placeholders are substituted per module. Every module exposes `{value}` and `{key}`; structured modules add more fields:
+  - CPU: `{brand}`, `{model}`, `{cores}`, `{freq}`
+  - GPU: `{name}`, `{vendor}`, `{model}`, `{vram}`
+  - memory/swap: `{used}`, `{total}`, `{percent}`; disk adds `{fs}`
+  - os: `{distro}`, `{version}`, `{arch}`, `{wsl}`
+  - packages: one field per manager (`{pacman}`, `{aur}`, ...), plus `{count}`, `{manager}`, `{managers}`
+  - battery: `{percent}`, `{state}`; uptime: `{days}`, `{hours}`, `{mins}`; datetime: `{date}`, `{time}`
+  - Unknown fields render empty; `{{` and `}}` escape literal braces.
+- No hardcoded output: the default template is `{value}` for every module, so existing configs and output are byte-for-byte unchanged. Formatting happens once in `prepare_render_tree` (`info/format.rs`), so every layout and the daemons (animated-logo and live) see the same values.
+- GPU field extraction is per platform, where the probe output lives: Linux parses the `lspci` bracket description, Windows the `Name`/CIM value, macOS the `system_profiler` chipset model (`platform/<os>/gpu.rs`); the shared rules (vendor detection, VRAM, model cleaning) live in `platform/shared/gpu.rs` with tests.
+- Documented in `docs/submodules_configuration.md` (linked from CONFIGURATION.md and the README).
+- 141 tests, clippy clean.
+
 ## 2026-08-19 — v0.6.0
 
 ### Themes

@@ -1,5 +1,6 @@
 use crate::config::{Config, ModuleConfig};
 use crate::info::Info;
+use crate::info::format::{format_gpu_list, format_packages, format_value};
 
 const PALETTE_KEY: &str = "palette";
 const HEADER_KEY: &str = "header";
@@ -62,7 +63,7 @@ pub fn prepare_render_tree(
                         .unwrap_or_else(|| DEFAULT_PALETTE_ICON.to_string());
                     nodes.push(RenderNode::Line {
                         key: key.clone(),
-                        value: val,
+                        value: format_value(key, &val, &config.formats),
                         icon,
                     });
                 } else if key.starts_with("plugin:") {
@@ -80,6 +81,15 @@ pub fn prepare_render_tree(
                 } else {
                     let val = get_module_value(info, key);
                     if let Some(v) = val {
+                        let formatted = match key.as_str() {
+                            "gpu" if !info.gpu.is_empty() => {
+                                format_gpu_list(&info.gpu, &config.formats)
+                            }
+                            "packages" => {
+                                format_packages(&v, &info.packages_breakdown, &config.formats)
+                            }
+                            _ => format_value(key, &v, &config.formats),
+                        };
                         let icon = config
                             .icons
                             .get(key)
@@ -87,7 +97,7 @@ pub fn prepare_render_tree(
                             .unwrap_or_else(|| DEFAULT_MODULE_ICON.to_string());
                         nodes.push(RenderNode::Line {
                             key: key.clone(),
-                            value: v,
+                            value: formatted,
                             icon,
                         });
                     }

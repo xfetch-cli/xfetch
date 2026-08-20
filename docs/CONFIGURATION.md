@@ -674,7 +674,7 @@
 <h2>Keys (Labels)</h2>
 
 <p>
-  By default xfetch renders each module as <code>icon value</code>. To display the module label as well, enable <code>show_keys</code>; use <code>key_width</code> to pad the labels to a fixed column count so values align vertically.
+  By default xfetch renders each module as <code>icon value</code>. To display the module label as well, enable <code>show_keys</code>; use <code>key_width</code> to pad the labels to a fixed column count so values align vertically. To rename or hide keys per module and to rewrite values with templates, see <a href="submodules_configuration.md">SUBMODULES_CONFIGURATION.md</a>.
 </p>
 
 <table>
@@ -696,6 +696,71 @@
 <pre><code class="language-jsonc">{
     &quot;show_keys&quot;: true,
     &quot;key_width&quot;: 12
+}</code></pre>
+
+<h2>Renaming Keys: <code>labels</code></h2>
+
+<p>
+  The <code>labels</code> map renames the key shown for any module, in every layout (classic and variants, compact, minimal, section, section-box, tree, custom-x). An empty string hides the key — the row shows <code>icon value</code> only. Modules without an entry keep their name.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Field</th><th>Type</th><th>Default</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>labels</code></td><td>object</td><td><code>{}</code></td>
+      <td>Per-module key labels: <code>&quot;cpu&quot;: &quot;procesador&quot;</code> renames the row key; <code>&quot;cpu&quot;: &quot;&quot;</code> hides it. Colors keep using the raw module key.</td>
+    </tr>
+  </tbody>
+</table>
+
+<pre><code class="language-jsonc">{
+    &quot;labels&quot;: {
+        &quot;cpu&quot;: &quot;procesador&quot;,
+        &quot;gpu&quot;: &quot;&quot;
+    }
+}</code></pre>
+
+<h2>Value Templates: <code>formats</code></h2>
+
+<p>
+  The <code>formats</code> map replaces a module's value with a template. Placeholders <code>{field}</code> are substituted with the module's fields; unknown placeholders render empty, and <code>{{</code> / <code>}}</code> escape literal braces. Modules without an entry keep their default output.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Module</th><th>Fields</th><th>Example</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>every module</td>
+      <td><code>{value}</code> (current output), <code>{key}</code> (module name)</td>
+      <td><code>&quot;os&quot;: &quot;Sistema: {value}&quot;</code></td>
+    </tr>
+    <tr>
+      <td><code>cpu</code></td>
+      <td><code>{brand}</code> (raw), <code>{model}</code> (cleaned), <code>{cores}</code>, <code>{freq}</code></td>
+      <td><code>&quot;cpu&quot;: &quot;{model} · {cores} núcleos · {freq}&quot;</code></td>
+    </tr>
+    <tr>
+      <td><code>gpu</code></td>
+      <td><code>{name}</code>, <code>{vendor}</code>, <code>{model}</code>, <code>{vram}</code></td>
+      <td><code>&quot;gpu&quot;: &quot;{vendor} {model}&quot;</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<p>
+  For example, <code>Intel(R) Core(TM) i5-7400 CPU @ 3.00GHz (4) @ 3.00 GHz</code> becomes <code>Intel Core i5-7400</code> with <code>{model}</code>, and <code>NVIDIA GeForce GTX 1060 6GB</code> becomes <code>NVIDIA GTX 1060</code> with <code>{vendor} {model}</code>.
+</p>
+
+<pre><code class="language-jsonc">{
+    &quot;formats&quot;: {
+        &quot;cpu&quot;: &quot;{model} ({cores}) @ {freq}&quot;,
+        &quot;gpu&quot;: &quot;{vendor} {model}&quot;
+    }
 }</code></pre>
 
 <h2>Full Example</h2>

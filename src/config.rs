@@ -28,6 +28,17 @@ pub struct Config {
     pub show_colors: bool,
     pub icons: HashMap<String, String>,
     pub colors: HashMap<String, String>,
+    /// Optional per-module display labels for the row key shown in a line.
+    /// An entry renames the key; an empty string hides it (icon-only row).
+    /// Defaults to the module name when absent.
+    pub labels: HashMap<String, String>,
+    /// Optional per-module value templates. `{field}` placeholders are
+    /// substituted with the module's fields (every module exposes `{value}`
+    /// and `{key}`; structured modules add more, e.g. CPU adds `{brand}`,
+    /// `{model}`, `{cores}` and `{freq}`). Unknown placeholders render empty;
+    /// `{{` and `}}` escape literal braces. An empty map keeps the default
+    /// output unchanged.
+    pub formats: HashMap<String, String>,
     pub layout: Option<String>,
     pub header_icons: Option<Vec<String>>,
     pub footer_text: Option<String>,
@@ -202,6 +213,8 @@ impl Default for Config {
             show_colors: true,
             icons,
             colors,
+            labels: HashMap::new(),
+            formats: HashMap::new(),
             layout: None,
             header_icons: None,
             footer_text: None,

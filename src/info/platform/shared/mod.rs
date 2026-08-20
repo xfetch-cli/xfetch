@@ -5,6 +5,7 @@
 //! own probe tables in its own folder.
 
 pub mod commands;
+pub mod gpu;
 pub mod packages;
 
 pub const UNKNOWN_GPU: &str = "Unknown GPU";

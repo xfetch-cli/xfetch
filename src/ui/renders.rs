@@ -224,10 +224,18 @@ pub fn render_tree(nodes: &[RenderNode], config: &Config) -> Vec<String> {
                                 SECTION_COLOR, prefix, key_color, value
                             ));
                         } else {
-                            lines.push(format!(
-                                "\x1b[{}m{}\x1b[0m \x1b[{}m{}\x1b[0m {}",
-                                SECTION_COLOR, prefix, key_color, key, value
-                            ));
+                            let label = display_key(key, config);
+                            if label.is_empty() {
+                                lines.push(format!(
+                                    "\x1b[{}m{}\x1b[0m \x1b[{}m{}\x1b[0m",
+                                    SECTION_COLOR, prefix, key_color, value
+                                ));
+                            } else {
+                                lines.push(format!(
+                                    "\x1b[{}m{}\x1b[0m \x1b[{}m{}\x1b[0m {}",
+                                    SECTION_COLOR, prefix, key_color, label, value
+                                ));
+                            }
                         }
                     }
                 }
@@ -296,14 +304,22 @@ pub fn render_section(nodes: &[RenderNode], config: &Config) -> Vec<String> {
                             ));
                         } else {
                             let key_color = get_color_code(key, config);
-                            let key_display = match config.key_width {
-                                Some(w) => format!("{:width$}:", key, width = w),
-                                None => format!("{}:", key),
-                            };
-                            lines.push(format!(
-                                "\x1b[{}m│\x1b[0m \x1b[{}m{} {}\x1b[0m {}",
-                                SECTION_COLOR, key_color, icon, key_display, value
-                            ));
+                            let label = display_key(key, config);
+                            if label.is_empty() {
+                                lines.push(format!(
+                                    "\x1b[{}m│\x1b[0m \x1b[{}m{} {}\x1b[0m",
+                                    SECTION_COLOR, key_color, icon, value
+                                ));
+                            } else {
+                                let key_display = match config.key_width {
+                                    Some(w) => format!("{:width$}:", label, width = w),
+                                    None => format!("{}:", label),
+                                };
+                                lines.push(format!(
+                                    "\x1b[{}m│\x1b[0m \x1b[{}m{} {}\x1b[0m {}",
+                                    SECTION_COLOR, key_color, icon, key_display, value
+                                ));
+                            }
                         }
                     }
                 }
@@ -483,21 +499,31 @@ pub fn render_minimal(nodes: &[RenderNode], config: &Config) -> Vec<String> {
     for node in nodes {
         match node {
             RenderNode::Line { key, value, .. } => {
-                let k = match config.key_width {
-                    Some(w) => format!("{:width$}", key, width = w),
-                    None => key.clone(),
-                };
-                lines.push(format!("{}: {}", k, value));
+                let label = display_key(key, config);
+                if label.is_empty() {
+                    lines.push(value.clone());
+                } else {
+                    let k = match config.key_width {
+                        Some(w) => format!("{:width$}", label, width = w),
+                        None => label,
+                    };
+                    lines.push(format!("{}: {}", k, value));
+                }
             }
             RenderNode::Group { title, children } => {
                 lines.push(format!("-- {} --", title));
                 for child in children {
                     if let RenderNode::Line { key, value, .. } = child {
-                        let k = match config.key_width {
-                            Some(w) => format!("{:width$}", key, width = w),
-                            None => key.clone(),
-                        };
-                        lines.push(format!("{}: {}", k, value));
+                        let label = display_key(key, config);
+                        if label.is_empty() {
+                            lines.push(value.clone());
+                        } else {
+                            let k = match config.key_width {
+                                Some(w) => format!("{:width$}", label, width = w),
+                                None => label,
+                            };
+                            lines.push(format!("{}: {}", k, value));
+                        }
                     }
                 }
             }
@@ -506,19 +532,35 @@ pub fn render_minimal(nodes: &[RenderNode], config: &Config) -> Vec<String> {
     lines
 }
 
+/// The key label shown for a module: the `labels` config entry when present
+/// (an empty string hides the key), the module name otherwise. Colors keep
+/// using the raw key, so renaming a label never breaks its color.
+fn display_key(key: &str, config: &Config) -> String {
+    config
+        .labels
+        .get(key)
+        .cloned()
+        .unwrap_or_else(|| key.to_string())
+}
+
 pub fn format_line(key: &str, value: &str, icon: &str, config: &Config) -> String {
     let color_code = get_color_code(key, config);
     if icon.is_empty() && key.starts_with("plugin:") {
         format!("\x1b[{}m{}\x1b[0m", color_code, value)
-    } else if config.show_keys && !key.is_empty() {
-        format!(
-            "\x1b[{}m{} \x1b[0m\x1b[{}m{}\x1b[0m{}",
-            color_code,
-            icon,
-            color_code,
-            format_key(key, config),
-            value
-        )
+    } else if (config.show_keys && !key.is_empty()) || config.labels.contains_key(key) {
+        let label = display_key(key, config);
+        if label.is_empty() {
+            format!("\x1b[{}m{} \x1b[0m{}", color_code, icon, value)
+        } else {
+            format!(
+                "\x1b[{}m{} \x1b[0m\x1b[{}m{}\x1b[0m{}",
+                color_code,
+                icon,
+                color_code,
+                format_key(key, config),
+                value
+            )
+        }
     } else {
         format!("\x1b[{}m{} \x1b[0m{}", color_code, icon, value)
     }
@@ -577,9 +619,13 @@ pub fn color_sgr(value: &str) -> String {
 }
 
 pub fn format_key(key: &str, config: &Config) -> String {
+    let label = display_key(key, config);
+    if label.is_empty() {
+        return String::new();
+    }
     let k = match config.key_width {
-        Some(w) => format!("{:width$}", key, width = w),
-        None => key.to_string(),
+        Some(w) => format!("{:width$}", label, width = w),
+        None => label,
     };
     format!("{}: ", k)
 }
@@ -675,6 +721,72 @@ mod tests {
         let config = Config::default();
         let line = format_line("cpu", "Apple M4", "\u{f2db}", &config);
         assert!(!line.contains("cpu"));
+    }
+
+    #[test]
+    fn test_format_line_label_renames_key() {
+        let config = Config {
+            show_keys: true,
+            labels: [("cpu".to_string(), "procesador".to_string())]
+                .into_iter()
+                .collect(),
+            ..Config::default()
+        };
+        let line = format_line("cpu", "Apple M4", "\u{f2db}", &config);
+        assert!(line.contains("procesador:"));
+        assert!(!line.contains("cpu:"));
+    }
+
+    #[test]
+    fn test_format_line_empty_label_hides_key() {
+        let config = Config {
+            show_keys: true,
+            labels: [("cpu".to_string(), String::new())].into_iter().collect(),
+            ..Config::default()
+        };
+        let line = format_line("cpu", "Apple M4", "\u{f2db}", &config);
+        assert!(line.contains("Apple M4"));
+        assert!(!line.contains("cpu"));
+    }
+
+    #[test]
+    fn test_format_line_label_shows_without_show_keys() {
+        let config = Config {
+            labels: [("cpu".to_string(), "cpu2".to_string())]
+                .into_iter()
+                .collect(),
+            ..Config::default()
+        };
+        let line = format_line("cpu", "Apple M4", "\u{f2db}", &config);
+        assert!(line.contains("cpu2:"));
+    }
+
+    #[test]
+    fn test_render_minimal_labels() {
+        let config = Config {
+            labels: [
+                ("cpu".to_string(), "cpu".to_string()),
+                ("gpu".to_string(), String::new()),
+            ]
+            .into_iter()
+            .collect(),
+            ..Config::default()
+        };
+        let nodes = vec![
+            RenderNode::Line {
+                key: "cpu".to_string(),
+                value: "Apple M4".to_string(),
+                icon: String::new(),
+            },
+            RenderNode::Line {
+                key: "gpu".to_string(),
+                value: "Apple M4 Max".to_string(),
+                icon: String::new(),
+            },
+        ];
+        let lines = render_minimal(&nodes, &config);
+        assert_eq!(lines[0], "cpu: Apple M4");
+        assert_eq!(lines[1], "Apple M4 Max");
     }
 
     #[test]
