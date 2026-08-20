@@ -633,7 +633,7 @@ EOF
 
     if [ "${EXISTING_CONFIG}" -eq 1 ]; then
         cat <<EOF
-  ⚠  Existing config preserved at ${CONFIG_DIR}/config.jsonc
+    Existing config preserved at ${CONFIG_DIR}/config.jsonc
 EOF
     fi
 

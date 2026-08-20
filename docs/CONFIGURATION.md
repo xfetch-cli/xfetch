@@ -631,7 +631,7 @@
 <pre><code class="language-jsonc">{
     &quot;icons&quot;: {
         &quot;os&quot;: &quot;&quot;,      // Arch Linux icon (Nerd Font)
-        &quot;cpu&quot;: &quot;🧠&quot;,    // Brain emoji
+        &quot;cpu&quot;: &quot;󰧑&quot;,    // Brain icon (Nerd Font)
         &quot;memory&quot;: &quot;RAM:&quot; // Plain text
     }
 }</code></pre>

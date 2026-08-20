@@ -4,7 +4,7 @@ use crate::info::Info;
 const PALETTE_KEY: &str = "palette";
 const HEADER_KEY: &str = "header";
 const SEP_KEY: &str = "sep";
-const DEFAULT_PALETTE_ICON: &str = "🎨";
+const DEFAULT_PALETTE_ICON: &str = "";
 pub const DEFAULT_MODULE_ICON: &str = "●";
 const SEPARATOR: &str = "---";
 const UNKNOWN_FALLBACK: &str = "Unknown";

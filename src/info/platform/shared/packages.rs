@@ -62,6 +62,7 @@ pub fn count_scoop_output(stdout: &str) -> usize {
 /// Localized "no results" messages winget prints instead of a table when the
 /// list is empty (e.g. "No installed package found matching input criteria.").
 /// These end with a period and never look like a "Name Id Version" row.
+#[cfg(any(target_os = "windows", test))]
 fn is_winget_no_results(line: &str) -> bool {
     let l = line.to_lowercase();
     l.contains("found matching")
@@ -76,6 +77,7 @@ fn is_winget_no_results(line: &str) -> bool {
 }
 
 /// A line that looks like an actual `winget list` table row.
+#[cfg(any(target_os = "windows", test))]
 fn is_winget_row(line: &str) -> bool {
     line.split_whitespace().count() >= 2 && !is_winget_no_results(line)
 }
