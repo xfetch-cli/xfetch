@@ -144,14 +144,14 @@ xfetch theme export my-theme
   <code>xfetch theme export &lt;name&gt;</code> captures the current runtime visual state (after all three layers are merged) and writes it to <code>~/.config/xfetch/themes/&lt;name&gt;.jsonc</code>. This lets you share your look without exposing your module list or plugin config.
 </p>
 
-<p>The exported file contains only visual fields: <code>layout</code>, <code>colors</code>, <code>icons</code>, <code>palette_style</code>, <code>header_icons</code>, <code>footer_text</code>, <code>logo_path</code>, <code>show_colors</code>.</p>
+<p>The exported file contains only visual fields: <code>layout</code>, <code>colors</code>, <code>palette_style</code>, <code>header_icons</code>, <code>footer_text</code>, <code>logo_path</code>, <code>show_colors</code>. Icons are never exported — they are a per-user font choice, filled from the defaults.</p>
 
 <h2>Directory Structure</h2>
 
 <pre><code>~/.config/xfetch/
     config.jsonc            # Modules, plugins, and theme reference
     themes/
-        berlin.jsonc        # Theme files: colors, icons, layout
+        berlin.jsonc        # Theme files: colors, layout
         dracula.jsonc
         nord.jsonc
         catppuccin-mocha.jsonc
