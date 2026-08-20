@@ -6,6 +6,7 @@
 pub mod battery;
 pub mod datetime;
 pub mod gpu;
+#[cfg(unix)]
 pub mod live;
 pub mod network;
 pub mod os_release;

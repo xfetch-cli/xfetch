@@ -15,14 +15,16 @@ fn run_plugin_raw(
     let plugin_path = find_plugin_binary(plugin_name)
         .ok_or_else(|| format!("Plugin not found: {}", plugin_name))?;
 
-    let output = run_cmd_with_stdin_timeout(&plugin_path, &[], Some(payload), timeout)
-        .ok_or_else(|| match timeout {
-            Some(d) => format!(
-                "Plugin '{}' exceeded its timeout of {}s",
-                plugin_name,
-                d.as_secs()
-            ),
-            None => format!("Failed to run plugin '{}'", plugin_name),
+    let output =
+        run_cmd_with_stdin_timeout(&plugin_path, &[], Some(payload), timeout).ok_or_else(|| {
+            match timeout {
+                Some(d) => format!(
+                    "Plugin '{}' exceeded its timeout of {}s",
+                    plugin_name,
+                    d.as_secs()
+                ),
+                None => format!("Failed to run plugin '{}'", plugin_name),
+            }
         })?;
 
     if !output.status.success() {

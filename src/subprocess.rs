@@ -259,12 +259,8 @@ mod tests {
     fn test_stdin_no_timeout_still_drains() {
         // With timeout None a fast command still completes and the bounded
         // drain applies after exit.
-        let output = run_cmd_with_stdin_timeout(
-            Path::new("cmd"),
-            &["/c", "echo ok"],
-            Some(b""),
-            None,
-        );
+        let output =
+            run_cmd_with_stdin_timeout(Path::new("cmd"), &["/c", "echo ok"], Some(b""), None);
         assert!(output.is_some());
         assert!(output.unwrap().status.success());
     }

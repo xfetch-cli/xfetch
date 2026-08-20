@@ -70,9 +70,8 @@ fn set_theme_key(content: &str, theme_name: &str) -> Option<String> {
     let mut result = String::new();
     for line in content.lines() {
         let t = line.trim_start();
-        let is_theme_key = t.starts_with("\"theme\"")
-            || t.starts_with("'theme'")
-            || t.starts_with("theme:");
+        let is_theme_key =
+            t.starts_with("\"theme\"") || t.starts_with("'theme'") || t.starts_with("theme:");
         if !found && is_theme_key {
             let indent: String = line.chars().take_while(|c| c.is_whitespace()).collect();
             // Replace only the quoted value, keeping the rest of the line
@@ -205,7 +204,8 @@ mod tests {
 
     #[test]
     fn test_set_theme_inserts_when_missing() {
-        let cfg = "{\n    // my config\n    \"ascii\": \"fox.txt\",\n    \"show_colors\": true\n}\n";
+        let cfg =
+            "{\n    // my config\n    \"ascii\": \"fox.txt\",\n    \"show_colors\": true\n}\n";
         let out = set_theme_key(cfg, "nord").unwrap();
         assert!(out.contains("\"theme\": \"nord\""));
         assert!(out.contains("// my config"), "comment must survive");

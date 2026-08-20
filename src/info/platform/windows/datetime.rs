@@ -6,7 +6,8 @@ const POWERSHELL_CMD: &str = "powershell";
 /// `-NoProfile` keeps the user's profile script out of the probe output;
 /// `-NonInteractive` forbids prompts. `[Console]::OutputEncoding=UTF8` fixes
 /// the OEM codepage PowerShell 5.1 uses for redirected output.
-const DATE_FMT: &str = "[Console]::OutputEncoding=[Text.Encoding]::UTF8; Get-Date -Format 'yyyy-MM-dd HH:mm:ss'";
+const DATE_FMT: &str =
+    "[Console]::OutputEncoding=[Text.Encoding]::UTF8; Get-Date -Format 'yyyy-MM-dd HH:mm:ss'";
 const DATE_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub fn get_datetime_info() -> String {

@@ -44,11 +44,7 @@ fn shell_label(name: &str) -> String {
 /// Explorer); the caller falls back to env detection.
 pub fn detect_shell_name() -> Option<String> {
     let mut sys = System::new();
-    sys.refresh_processes_specifics(
-        ProcessesToUpdate::All,
-        true,
-        ProcessRefreshKind::nothing(),
-    );
+    sys.refresh_processes_specifics(ProcessesToUpdate::All, true, ProcessRefreshKind::nothing());
     let current = sysinfo::get_current_pid().ok()?;
     let mut proc = sys.process(current)?;
     for _ in 0..MAX_DEPTH {

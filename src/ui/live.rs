@@ -458,8 +458,10 @@ mod tests {
 
     #[test]
     fn test_live_modules_override() {
-        let mut config = Config::default();
-        config.daemon_live_modules = Some(vec!["battery".to_string()]);
+        let config = Config {
+            daemon_live_modules: Some(vec!["battery".to_string()]),
+            ..Config::default()
+        };
         assert_eq!(live_modules(&config, &policy()), vec!["battery"]);
     }
 

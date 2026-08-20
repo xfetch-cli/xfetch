@@ -142,10 +142,10 @@
 ## Phase 13 · Documentation & Marketing <!-- phase:phase-13:marketing -->
 
 - [x] Create comprehensive user manual (#134)
-- [ ] Create video tutorials (#135)
+- [/] Create video tutorials (#135)
 - [x] Setup project website with showcase (#136)
 - [x] Create developer documentation (#137)
-- [ ] Publish blog posts about features (#138)
+- [/] Publish blog posts about features (#138)
 - [/] Create comparison guide with similar tools (#139)
-- [ ] Setup Discord/Slack community channel (#140)
+- [/] Setup Discord/Slack community channel (#140)
 - [x] Create contribution program (#141)
