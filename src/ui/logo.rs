@@ -7,7 +7,7 @@ use console::strip_ansi_codes;
 use crossterm::execute;
 use crossterm::terminal::size;
 use std::io::{Write, stdout};
-use viuer::{Config as ViuerConfig, print_from_file};
+use viuer::{Config as ViuerConfig, print};
 
 const IMAGE_EXTENSIONS: [&str; 4] = [".png", ".jpg", ".jpeg", ".svg"];
 
@@ -62,7 +62,9 @@ pub fn get_logo_data(config: &Config) -> (Vec<String>, bool, usize, usize) {
                 crossterm::cursor::MoveToColumn(0)
             );
 
-            if let Ok((width, height)) = print_from_file(&path, &conf) {
+            if let Ok(img) = image::open(&path)
+                && let Ok((width, height)) = print(&img, &conf)
+            {
                 image_printed = true;
                 ascii_width = width as usize;
                 image_height = height as usize;

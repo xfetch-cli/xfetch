@@ -1,8 +1,10 @@
-use std::io::{BufReader, Read, Write};
-use std::net::{TcpStream, ToSocketAddrs};
+use std::io::Read;
+use std::net::IpAddr;
+use std::sync::LazyLock;
 use std::thread;
 use std::time::Duration;
 use sysinfo::{Networks, System};
+use ureq::Agent;
 
 const PUBLIC_IP_HOSTS: [&str; 3] = ["ifconfig.me", "api.ipify.org", "icanhazip.com"];
 
@@ -55,27 +57,41 @@ pub fn get_ipv6_info(networks: &Networks) -> String {
     "N/A".to_string()
 }
 
-fn fetch_public_ip_from(host: &str) -> Option<String> {
-    let addr = (host, 80).to_socket_addrs().ok()?.next()?;
-    let mut stream = TcpStream::connect_timeout(&addr, Duration::from_secs(3)).ok()?;
-    stream.set_read_timeout(Some(Duration::from_secs(3))).ok()?;
+/// Shared HTTPS agent: one TLS client for all hosts/threads.
+/// No redirects: the IP endpoints serve the address directly, and a
+/// redirect to plaintext HTTP would silently downgrade the request.
+static AGENT: LazyLock<Agent> = LazyLock::new(|| {
+    ureq::AgentBuilder::new()
+        .timeout_connect(Duration::from_secs(3))
+        .timeout_read(Duration::from_secs(5))
+        .redirects(0)
+        .build()
+});
 
-    let request = format!(
-        "GET / HTTP/1.0\r\nHost: {}\r\nConnection: close\r\n\r\n",
-        host
-    );
-    stream.write_all(request.as_bytes()).ok()?;
-
-    let mut reader = BufReader::new(stream);
-    let mut response = String::new();
-    reader.read_to_string(&mut response).ok()?;
-
-    let body = response.split("\r\n\r\n").nth(1)?.trim().to_string();
-    if body.is_empty() || body.contains('<') {
-        None
-    } else {
-        Some(body)
+/// Validates the response body is a real IP address. Stricter than the old
+/// `contains('<')` heuristic: HTML error pages, empty bodies and arbitrary
+/// text are all rejected instead of being surfaced as the public IP.
+fn parse_public_ip(body: &str) -> Option<IpAddr> {
+    let candidate = body.trim().lines().next()?.trim();
+    if candidate.is_empty() || candidate.len() > 45 {
+        return None;
     }
+    candidate.parse::<IpAddr>().ok()
+}
+
+fn fetch_public_ip_from(host: &str) -> Option<String> {
+    // Cap the body at 64 bytes: a public IP is at most 45 chars.
+    let response = AGENT
+        .get(&format!("https://{host}/"))
+        .call()
+        .ok()?;
+    let mut body = String::new();
+    response
+        .into_reader()
+        .take(64)
+        .read_to_string(&mut body)
+        .ok()?;
+    parse_public_ip(&body).map(|ip| ip.to_string())
 }
 
 pub fn get_public_ip_info(enabled: bool) -> String {
@@ -158,6 +174,46 @@ mod tests {
             uptime.contains("hour") || uptime.contains("min"),
             "uptime '{}' should contain hour or min",
             uptime
+        );
+    }
+
+    #[test]
+    fn test_parse_public_ip_valid_v4() {
+        assert_eq!(
+            parse_public_ip("203.0.113.42\n"),
+            Some("203.0.113.42".parse().unwrap())
+        );
+    }
+
+    #[test]
+    fn test_parse_public_ip_valid_v6() {
+        assert_eq!(
+            parse_public_ip("  2001:db8::1  "),
+            Some("2001:db8::1".parse().unwrap())
+        );
+    }
+
+    #[test]
+    fn test_parse_public_ip_rejects_html() {
+        assert_eq!(parse_public_ip("<!DOCTYPE html><html>..."), None);
+        assert_eq!(parse_public_ip("<html>203.0.113.42</html>"), None);
+    }
+
+    #[test]
+    fn test_parse_public_ip_rejects_junk() {
+        assert_eq!(parse_public_ip(""), None);
+        assert_eq!(parse_public_ip("   "), None);
+        assert_eq!(parse_public_ip("not-an-ip"), None);
+        assert_eq!(parse_public_ip("999.999.999.999"), None);
+        assert_eq!(parse_public_ip("garbage\n203.0.113.42"), None);
+        assert_eq!(parse_public_ip(&"1".repeat(46)), None);
+    }
+
+    #[test]
+    fn test_parse_public_ip_takes_first_line() {
+        assert_eq!(
+            parse_public_ip("203.0.113.42\ngarbage"),
+            Some("203.0.113.42".parse().unwrap())
         );
     }
 }

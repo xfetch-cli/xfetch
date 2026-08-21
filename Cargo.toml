@@ -9,13 +9,14 @@ clap = { version = "4.5.54", features = ["derive"] }
 console = "0.16.2"
 crossterm = "0.29.0"
 dirs = "6.0.0"
-image = "0.25.9"
+image = { version = "0.25.9", default-features = false, features = ["png", "jpeg", "gif", "bmp", "ico", "webp", "tiff"] }
 json_comments = "0.2.2"
 libc = "0.2"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.148"
 sysinfo = "0.37.2"
-viuer = { version = "0.11.0", features = ["print-file"] }
-xfetch-plugin-api = { git = "https://github.com/xfetch-cli/api", package = "xfetch-plugin-api" }
-xfetch-extension-api = { git = "https://github.com/xfetch-cli/api", package = "xfetch-extension-api" }
-xfetch-effect-api = { git = "https://github.com/xfetch-cli/api", package = "xfetch-effect-api" }
+ureq = { version = "2.12", features = ["tls"] }
+viuer = { version = "0.11.0", default-features = false }
+xfetch-plugin-api = { git = "https://github.com/xfetch-cli/api", rev = "8a63f2d6693c9a1eb7fde248e7ca54e25ccbded3", package = "xfetch-plugin-api" }
+xfetch-extension-api = { git = "https://github.com/xfetch-cli/api", rev = "8a63f2d6693c9a1eb7fde248e7ca54e25ccbded3", package = "xfetch-extension-api" }
+xfetch-effect-api = { git = "https://github.com/xfetch-cli/api", rev = "8a63f2d6693c9a1eb7fde248e7ca54e25ccbded3", package = "xfetch-effect-api" }

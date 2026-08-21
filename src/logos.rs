@@ -71,9 +71,16 @@ fn fetch_text(url: &str) -> Option<String> {
     String::from_utf8(output.stdout).ok()
 }
 
+/// Rejects control characters that could inject terminal escape sequences:
+/// ESC (`\x1b`), C0/C1 controls (e.g. `\x0f`), etc. Only `\n` and `\t` are
+/// allowed. The art is later printed raw to the terminal (and embedded in
+/// `--gen-config`), so this is a hard gate: a compromised catalog falls back
+/// to the built-in default logo instead of delivering payloads.
 fn validate_art(art: &str) -> bool {
     art.len() <= MAX_ART_SIZE
-        && !art.contains('\0')
+        && art
+            .chars()
+            .all(|c| matches!(c, '\n' | '\t') || !c.is_control())
         && art.lines().all(|l| l.chars().count() <= MAX_LINE_WIDTH)
 }
 
@@ -162,11 +169,21 @@ mod tests {
     #[test]
     fn test_validate_art() {
         assert!(validate_art("███\n█ █\n"));
+        assert!(validate_art("  tab\there\n"));
         assert!(!validate_art("a\0b"));
         assert!(!validate_art(&"x".repeat(MAX_ART_SIZE + 1)));
         assert!(!validate_art(&format!(
             "{}\n",
             "y".repeat(MAX_LINE_WIDTH + 1)
         )));
+    }
+
+    #[test]
+    fn test_validate_art_rejects_escape_sequences() {
+        assert!(!validate_art("\x1b[31mred\x1b[0m"));
+        assert!(!validate_art("a\x07b"));
+        assert!(!validate_art("\x1b]52;c;aGVsbG8=\x07"));
+        assert!(!validate_art("\x0e shift-out\x0f"));
+        assert!(!validate_art("del\x7f"));
     }
 }

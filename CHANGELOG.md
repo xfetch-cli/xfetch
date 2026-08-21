@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-08-21 — v0.8.0
+
+### Dependency tree slimming (AVIF encoder removed)
+
+- `image` is built with `default-features = false` and only the codecs the logo renderer actually uses (`png`, `jpeg`, `gif`, `bmp`, `ico`, `webp`, `tiff`). The AVIF **encoder** chain (`ravif` → `rav1e` → `rayon` → `crossbeam-epoch`) is gone — it fixed the one `cargo audit` vulnerability (RUSTSEC-2026-0204, invalid pointer dereference in `crossbeam-epoch`'s `fmt::Pointer`) and dropped the `core2`/`paste`/`anyhow` unmaintained/unsound warnings along with it. Dependency count went from 196 to 133 crates, zero vulnerabilities.
+- `viuer` is used without the `print-file` feature (which re-enabled `image/default-formats` behind the back of the dependency config): the logo is now loaded with `image::open` and rendered with `viuer::print` (`ui/logo.rs`). Behavior is byte-for-byte identical for the supported formats (`.png`, `.jpg`, `.jpeg`); `.svg` falls back to no logo, exactly as before.
+- The `xfetch-plugin-api`, `xfetch-extension-api` and `xfetch-effect-api` git dependencies are pinned to a commit (`rev`) instead of tracking the mutable `main` branch, so fresh builds without a lockfile resolve to a fixed API.
+
+### Public IP over HTTPS
+
+- The public IP probe (`info/system.rs`) now speaks TLS (`ureq` + rustls, Mozilla roots): `ifconfig.me`, `api.ipify.org` and `icanhazip.com` are queried over `https://` instead of plaintext port 80, so a network MITM can no longer inject a fake address.
+- The response is validated strictly: the body must parse as a real `IpAddr` (IPv4 or IPv6); HTML error pages, empty bodies and junk are rejected instead of being displayed. The body read is capped at 64 bytes and redirects are not followed (a redirect to `http://` would silently downgrade the request). Hosts are still queried in parallel with a 3 s connect / 5 s read timeout.
+
+### Logo catalog hardening
+
+- Fetched logo art (`logos.rs`) is now rejected if it contains any control characters other than `\n`/`\t` — in particular ANSI escape sequences (`\x1b`, C0/C1 controls). A compromised catalog or `XFETCH_LOGOS_URL` mirror can no longer deliver terminal escape payloads (OSC clipboard, etc.): the art falls back to the built-in default logo.
+- 147 tests, clippy clean.
+
 ## 2026-08-20 — Bugfix
 
 ### Battery detection on Linux (wireless peripherals)
