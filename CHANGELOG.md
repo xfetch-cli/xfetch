@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-20 — Bugfix
+
+### Battery detection on Linux (wireless peripherals)
+
+- Linux battery detection no longer counts peripheral batteries (e.g. Logitech HID++ wireless mice/keyboards) as system batteries. Previously any `/sys/class/power_supply/hidpp_battery*` entry was averaged into the battery percentage/status, so a wireless mouse could make the battery read `[Discharging]`/`[Unknown]` instead of the laptop's real state. The probe now requires `type = Battery` and excludes `scope = Device` (peripherals), while real batteries (`BAT*`) are unaffected. Reported by **smashedbanan** (#179).
+
 ## 2026-08-20 — v0.7.0
 
 ### Configurable Labels and Value Formats
