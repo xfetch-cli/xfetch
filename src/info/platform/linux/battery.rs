@@ -12,8 +12,25 @@ const BATT_PREFIXES: [&str; 6] = [
     "ps-battery",
 ];
 
-fn is_battery_dir(name: &str) -> bool {
-    BATT_PREFIXES.iter().any(|p| name.starts_with(p))
+fn is_battery_dir(base: &std::path::Path, name: &str) -> bool {
+    if !BATT_PREFIXES.iter().any(|p| name.starts_with(p)) {
+        return false;
+    }
+    // Only a real battery counts: type must be "Battery" (excludes Mains/USB/UPS).
+    let Ok(ty) = std::fs::read_to_string(base.join("type")) else {
+        return false;
+    };
+    if ty.trim() != "Battery" {
+        return false;
+    }
+    // Exclude peripherals (e.g. Logitech HID++ mouse/keyboard): those expose
+    // scope=Device, while system batteries have no scope or scope=System.
+    if let Ok(scope) = std::fs::read_to_string(base.join("scope"))
+        && scope.trim() == "Device"
+    {
+        return false;
+    }
+    true
 }
 
 pub fn get_battery_info() -> String {
@@ -27,10 +44,10 @@ pub fn get_battery_info() -> String {
     for entry in entries.flatten() {
         let name = entry.file_name();
         let name = name.to_string_lossy();
-        if !is_battery_dir(&name) {
+        let base = entry.path();
+        if !is_battery_dir(&base, &name) {
             continue;
         }
-        let base = entry.path();
         if let Ok(cap) = std::fs::read_to_string(base.join(BATT_CAPACITY))
             && let Ok(pct) = cap.trim().parse::<u32>()
         {
