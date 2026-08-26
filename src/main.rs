@@ -2,6 +2,7 @@ mod cache;
 mod cli;
 mod config;
 mod effects;
+mod error;
 mod extensions;
 mod info;
 mod logos;
@@ -23,18 +24,14 @@ use std::path::PathBuf;
 
 fn main() {
     let cli = Cli::parse();
+    error::exit_on_error(run(cli));
+}
 
+fn run(cli: Cli) -> Result<(), error::XFetchError> {
     if cli.clean_cache {
-        match cache::clean() {
-            Ok(()) => {
-                println!("Cache cleaned.");
-                return;
-            }
-            Err(err) => {
-                eprintln!("Failed to clean cache: {}", err);
-                std::process::exit(1);
-            }
-        }
+        return cache::clean()
+            .map_err(|err| error::XFetchError::CleanCache(err.to_string()))
+            .map(|()| println!("Cache cleaned."));
     }
 
     if cli.daemon_stop {
@@ -43,7 +40,7 @@ fn main() {
         } else {
             println!("No daemon running.");
         }
-        return;
+        return Ok(());
     }
 
     if cli.daemon_live_stop {
@@ -52,78 +49,56 @@ fn main() {
         } else {
             println!("No live daemon running.");
         }
-        return;
+        return Ok(());
     }
 
     if cli.gen_config {
-        match generate_config(
+        return generate_config(
             cli.config.clone(),
             cli.logo.as_deref(),
             cli.layout.as_deref(),
-        ) {
-            Ok(path) => {
-                println!("Generated config: {}", path.display());
-                println!("Run xfetch to see the new layout.");
-                return;
-            }
-            Err(err) => {
-                eprintln!("Failed to generate config: {}", err);
-                std::process::exit(1);
-            }
-        }
+        )
+        .map_err(|err| error::XFetchError::GenConfig(err.to_string()))
+        .map(|path| {
+            println!("Generated config: {}", path.display());
+            println!("Run xfetch to see the new layout.");
+        });
     }
 
     match cli.command {
-        Some(Commands::Plugin { action }) => match action {
-            PluginCommands::Install { path, repo } => {
-                match install_plugin(&path, repo.as_deref()) {
-                    Ok(()) => {}
-                    Err(err) => {
-                        eprintln!("Error: {}", err);
-                        std::process::exit(1);
-                    }
+        Some(Commands::Plugin { action }) => {
+            match action {
+                PluginCommands::Install { path, repo } => {
+                    install_plugin(&path, repo.as_deref()).map_err(error::XFetchError::Fatal)
+                }
+                PluginCommands::List => list_plugins()
+                    .map_err(error::XFetchError::Fatal)
+                    .map(|plugins| {
+                        if plugins.is_empty() {
+                            println!("No plugins installed.");
+                            println!(
+                                "Plugin directory: {}",
+                                plugins::default_plugin_dir().display()
+                            );
+                        } else {
+                            println!("Installed plugins:");
+                            for (name, path) in &plugins {
+                                println!("  {}  ({})", name, path.display());
+                            }
+                        }
+                    }),
+                PluginCommands::Remove { name } => {
+                    remove_plugin(&name).map_err(error::XFetchError::Fatal)
                 }
             }
-            PluginCommands::List => match list_plugins() {
-                Ok(plugins) => {
-                    if plugins.is_empty() {
-                        println!("No plugins installed.");
-                        println!(
-                            "Plugin directory: {}",
-                            plugins::default_plugin_dir().display()
-                        );
-                    } else {
-                        println!("Installed plugins:");
-                        for (name, path) in &plugins {
-                            println!("  {}  ({})", name, path.display());
-                        }
-                    }
-                }
-                Err(err) => {
-                    eprintln!("Error: {}", err);
-                    std::process::exit(1);
-                }
-            },
-            PluginCommands::Remove { name } => match remove_plugin(&name) {
-                Ok(()) => {}
-                Err(err) => {
-                    eprintln!("Error: {}", err);
-                    std::process::exit(1);
-                }
-            },
-        },
+        }
         Some(Commands::Extension { action }) => match action {
             ExtensionCommands::Install { path, repo } => {
-                match install_extension(&path, repo.as_deref()) {
-                    Ok(()) => {}
-                    Err(err) => {
-                        eprintln!("Error: {}", err);
-                        std::process::exit(1);
-                    }
-                }
+                install_extension(&path, repo.as_deref()).map_err(error::XFetchError::Fatal)
             }
-            ExtensionCommands::List => match list_extensions() {
-                Ok(extensions) => {
+            ExtensionCommands::List => list_extensions()
+                .map_err(error::XFetchError::Fatal)
+                .map(|extensions| {
                     if extensions.is_empty() {
                         println!("No extensions installed.");
                         println!(
@@ -136,41 +111,30 @@ fn main() {
                             println!("  {}  ({})", name, path.display());
                         }
                     }
-                }
-                Err(err) => {
-                    eprintln!("Error: {}", err);
-                    std::process::exit(1);
-                }
-            },
-            ExtensionCommands::Remove { name } => match remove_extension(&name) {
-                Ok(()) => {}
-                Err(err) => {
-                    eprintln!("Error: {}", err);
-                    std::process::exit(1);
-                }
-            },
+                }),
+            ExtensionCommands::Remove { name } => {
+                remove_extension(&name).map_err(error::XFetchError::Fatal)
+            }
         },
         Some(Commands::Theme { action }) => match action {
-            ThemeCommands::List => match list_themes() {
-                Ok(themes) => {
-                    if themes.is_empty() {
-                        println!("No themes installed.");
-                        println!(
-                            "Theme directory: {}",
-                            config::default_themes_dir().display()
-                        );
-                    } else {
-                        println!("Available themes:");
-                        for (name, path) in &themes {
-                            println!("  {}  ({})", name, path.display());
+            ThemeCommands::List => {
+                list_themes()
+                    .map_err(error::XFetchError::Fatal)
+                    .map(|themes| {
+                        if themes.is_empty() {
+                            println!("No themes installed.");
+                            println!(
+                                "Theme directory: {}",
+                                config::default_themes_dir().display()
+                            );
+                        } else {
+                            println!("Available themes:");
+                            for (name, path) in &themes {
+                                println!("  {}  ({})", name, path.display());
+                            }
                         }
-                    }
-                }
-                Err(err) => {
-                    eprintln!("Error: {}", err);
-                    std::process::exit(1);
-                }
-            },
+                    })
+            }
             ThemeCommands::Set { name } => {
                 let config_path = cli
                     .config
@@ -178,77 +142,49 @@ fn main() {
                     .map(PathBuf::from)
                     .unwrap_or_else(config::default_config_path);
 
-                match set_active_theme(&config_path, &name) {
-                    Ok(()) => {
-                        println!("Theme set to '{}'.", name);
-                    }
-                    Err(err) => {
-                        eprintln!("Error: {}", err);
-                        std::process::exit(1);
-                    }
-                }
+                set_active_theme(&config_path, &name)
+                    .map_err(error::XFetchError::Fatal)
+                    .map(|()| println!("Theme set to '{}'.", name))
             }
-            ThemeCommands::Remove { name } => match remove_theme(&name) {
-                Ok(()) => {
-                    println!("Theme '{}' removed.", name);
-                }
-                Err(err) => {
-                    eprintln!("Error: {}", err);
-                    std::process::exit(1);
-                }
-            },
+            ThemeCommands::Remove { name } => remove_theme(&name)
+                .map_err(error::XFetchError::Fatal)
+                .map(|()| println!("Theme '{}' removed.", name)),
             ThemeCommands::Export { name } => {
                 let config = load_config(cli.config);
-                match export_current_theme(&config, &name) {
-                    Ok(path) => {
+                export_current_theme(&config, &name)
+                    .map_err(error::XFetchError::Fatal)
+                    .map(|path| {
                         println!("Theme exported to {}", path.display());
                         println!("Set it with: xfetch theme set {}", name);
-                    }
-                    Err(err) => {
-                        eprintln!("Error: {}", err);
-                        std::process::exit(1);
-                    }
-                }
+                    })
             }
         },
-        Some(Commands::Effects { action }) => match action {
-            EffectCommands::Install { path, repo } => {
-                match install_effect(&path, repo.as_deref()) {
-                    Ok(()) => {}
-                    Err(err) => {
-                        eprintln!("Error: {}", err);
-                        std::process::exit(1);
-                    }
+        Some(Commands::Effects { action }) => {
+            match action {
+                EffectCommands::Install { path, repo } => {
+                    install_effect(&path, repo.as_deref()).map_err(error::XFetchError::Fatal)
                 }
-            }
-            EffectCommands::List => match list_effects() {
-                Ok(effects) => {
-                    if effects.is_empty() {
-                        println!("No effects installed.");
-                        println!(
-                            "Effect directory: {}",
-                            effects::default_effect_dir().display()
-                        );
-                    } else {
-                        println!("Installed effects:");
-                        for (name, path) in &effects {
-                            println!("  {}  ({})", name, path.display());
+                EffectCommands::List => list_effects()
+                    .map_err(error::XFetchError::Fatal)
+                    .map(|effects| {
+                        if effects.is_empty() {
+                            println!("No effects installed.");
+                            println!(
+                                "Effect directory: {}",
+                                effects::default_effect_dir().display()
+                            );
+                        } else {
+                            println!("Installed effects:");
+                            for (name, path) in &effects {
+                                println!("  {}  ({})", name, path.display());
+                            }
                         }
-                    }
+                    }),
+                EffectCommands::Remove { name } => {
+                    remove_effect(&name).map_err(error::XFetchError::Fatal)
                 }
-                Err(err) => {
-                    eprintln!("Error: {}", err);
-                    std::process::exit(1);
-                }
-            },
-            EffectCommands::Remove { name } => match remove_effect(&name) {
-                Ok(()) => {}
-                Err(err) => {
-                    eprintln!("Error: {}", err);
-                    std::process::exit(1);
-                }
-            },
-        },
+            }
+        }
         None => {
             let config = load_config(cli.config.clone());
             let (info, bench_lines) = Info::with_config(&config, cli.benchmark);
@@ -271,6 +207,7 @@ fn main() {
                 }
                 println!("---------------------------------------------");
             }
+            Ok(())
         }
     }
 }
