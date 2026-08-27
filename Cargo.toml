@@ -1,8 +1,13 @@
 [package]
-name = "xfetch"
-version = "0.7.0"
+name = "xfetch-cli"
+version = "0.8.0"
 edition = "2024"
 license = "MIT"
+description = "XFetch — a fast, customizable system information fetch tool for the terminal"
+
+[[bin]]
+name = "xfetch"
+path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4.5.54", features = ["derive"] }
@@ -17,6 +22,6 @@ serde_json = "1.0.148"
 sysinfo = "0.37.2"
 ureq = { version = "2.12", features = ["tls"] }
 viuer = { version = "0.11.0", default-features = false }
-xfetch-plugin-api = { git = "https://github.com/xfetch-cli/api", rev = "8a63f2d6693c9a1eb7fde248e7ca54e25ccbded3", package = "xfetch-plugin-api" }
-xfetch-extension-api = { git = "https://github.com/xfetch-cli/api", rev = "8a63f2d6693c9a1eb7fde248e7ca54e25ccbded3", package = "xfetch-extension-api" }
-xfetch-effect-api = { git = "https://github.com/xfetch-cli/api", rev = "8a63f2d6693c9a1eb7fde248e7ca54e25ccbded3", package = "xfetch-effect-api" }
+xfetch-plugin-api = { version = "0.1.0", package = "xfetch-plugin-api" }
+xfetch-extension-api = { version = "0.1.0", package = "xfetch-extension-api" }
+xfetch-effect-api = { version = "0.1.0", package = "xfetch-effect-api" }
