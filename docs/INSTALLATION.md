@@ -161,10 +161,52 @@ xfetch --gen-config</code></pre>
 
 <h2>Install via Cargo</h2>
 
-<pre><code class="language-bash">cargo install --path .</code></pre>
+<p>
+  Install the latest release straight from <a href="https://crates.io/crates/xfetch-cli">crates.io</a>
+  (the installed command is <code>xfetch</code>):
+</p>
+
+<pre><code class="language-bash">cargo install xfetch-cli</code></pre>
 
 <p>
   This installs to <code>~/.cargo/bin/</code> (ensure it is in your PATH).
+</p>
+
+<p>
+  Alternatively, install from a local clone of the repository:
+</p>
+
+<pre><code class="language-bash">cargo install --path .</code></pre>
+
+<hr>
+
+<h2>macOS (Homebrew)</h2>
+
+<p>
+  The easiest way to install xfetch on macOS is via
+  <a href="https://brew.sh/">Homebrew</a>. No Rust toolchain or compilation is
+  needed — a prebuilt binary is downloaded and verified against its SHA256
+  checksum. It works on both Apple Silicon (arm64) and Intel (x86_64) Macs.
+</p>
+
+<pre><code class="language-bash">brew tap xfetch-cli/tap
+brew install xfetch</code></pre>
+
+<p>
+  To update to a newer release:
+</p>
+
+<pre><code class="language-bash">brew upgrade xfetch</code></pre>
+
+<p>
+  To uninstall:
+</p>
+
+<pre><code class="language-bash">brew uninstall xfetch</code></pre>
+
+<p>
+  <strong>Note:</strong> because Homebrew installs the binary directly (without
+  macOS quarantine), no code signing or Gatekeeper bypass is required.
 </p>
 
 <hr>

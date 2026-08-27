@@ -78,6 +78,22 @@ curl -fsSL https://raw.githubusercontent.com/xfetch-cli/xfetch/main/install.sh |
 irm https://raw.githubusercontent.com/xfetch-cli/xfetch/main/install.ps1 | iex
 ```
 
+**Cargo (crates.io):**
+```bash
+cargo install xfetch-cli
+```
+
+**macOS (Homebrew):**
+```bash
+brew tap xfetch-cli/tap && brew install xfetch
+```
+
+**Arch Linux (AUR, via yay):**
+```bash
+yay -S xfetch-core-bin   # precompiled binary
+yay -S xfetch-git        # build from source
+```
+
 > For detailed installation steps — prerequisites, manual builds, package managers, and uninstallation — see the [Installation Guide](docs/INSTALLATION.md).
 
 <h2 id="features" align="center"> Features</h2>

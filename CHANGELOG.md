@@ -2,6 +2,11 @@
 
 ## 2026-08-21 — v0.8.0
 
+- Add suppor for crates.io with cargo install xfetch-cli.
+- Start work to add release on winget and homebrew.
+
+## 2026-08-21 — v0.8.0
+
 ### Dependency tree slimming (AVIF encoder removed)
 
 - `image` is built with `default-features = false` and only the codecs the logo renderer actually uses (`png`, `jpeg`, `gif`, `bmp`, `ico`, `webp`, `tiff`). The AVIF **encoder** chain (`ravif` → `rav1e` → `rayon` → `crossbeam-epoch`) is gone — it fixed the one `cargo audit` vulnerability (RUSTSEC-2026-0204, invalid pointer dereference in `crossbeam-epoch`'s `fmt::Pointer`) and dropped the `core2`/`paste`/`anyhow` unmaintained/unsound warnings along with it. Dependency count went from 196 to 133 crates, zero vulnerabilities.
