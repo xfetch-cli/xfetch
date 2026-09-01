@@ -9,8 +9,8 @@
 
 <p>A cross-platform system information fetching tool written in Rust.</p>
 
-<a href="https://imgur.com/8qcIITv">
-<img src="https://i.imgur.com/fRD6bgX.gif" width="900" alt="Demo" >
+<a href="https://xfetch-cli.github.io/web/previews">
+<img src="https://xfetch-cli.github.io/web/previews/xfetch-demo.gif" width="900" alt="Demo" >
 </a>
 
 </div>
@@ -39,24 +39,55 @@
 <h2  id="previews" align="center"> Previews</h2>
 
 <p align="center">
-  <a href="./assets/previews/preview0.jpg">
-    <img src="https://raw.githubusercontent.com/xscriptor/xassets/main/xrepos/apps/xfetch/preview03.jpg" alt="Main preview" width="850"/>
-  </a>
-</p>
+    <img src="https://xfetch-cli.github.io/web/previews/preview-linux-2.webp" alt="Preview Linux" width="850"/>
+  </p>
 
 <details>
-  <summary>More previews</summary>
+  <summary>More... </summary>
 
-  <table align="center">
-    <tr>
-      <td align="center">
-        <img src="https://raw.githubusercontent.com/xscriptor/xassets/main/xrepos/apps/xfetch/preview02.png" alt="Preview 2" width="490"/>
-      </td>
-      <td align="center">
-        <img src="https://raw.githubusercontent.com/xscriptor/xassets/main/xrepos/apps/xfetch/preview01.jpg" alt="Preview 3" width="490"/>
-      </td>
-    </tr>
-  </table>
+  <p align="center">
+    <img src="https://xfetch-cli.github.io/web/previews/preview-linux-1.gif" alt="Preview Linux" width="850"/>
+  </p>
+
+  <p align="center">
+    <img src="https://xfetch-cli.github.io/web/previews/preview-linux-3.webp" alt="Preview Linux" width="850"/>
+  </p>
+
+  <p align="center">
+    <img src="https://xfetch-cli.github.io/web/previews/preview-linux-4.webp" alt="Preview Linux" width="850"/>
+  </p>
+
+  <p align="center">
+    <img src="https://xfetch-cli.github.io/web/previews/preview-linux-5.webp" alt="Preview Linux" width="850"/>
+  </p>
+
+  <p align="center">
+    <img src="https://xfetch-cli.github.io/web/previews/preview-linux-6.webp" alt="Preview Linux" width="850"/>
+  </p>
+
+  <p align="center">
+    <img src="https://xfetch-cli.github.io/web/previews/preview-windows-1.webp" alt="Preview Windows" width="850"/>
+  </p>
+
+  <p align="center">
+    <img src="https://xfetch-cli.github.io/web/previews/preview-windows-2.webp" alt="Preview Windows" width="850"/>
+  </p>
+
+  <p align="center">
+    <img src="https://xfetch-cli.github.io/web/previews/preview-windows-3.webp" alt="Preview Windows" width="850"/>
+  </p>
+
+  <p align="center">
+    <img src="https://xfetch-cli.github.io/web/previews/macos-preview-1.gif" alt="Preview macOS" width="850"/>
+  </p>
+
+  <p align="center">
+    <img src="https://xfetch-cli.github.io/web/previews/macos-preview-2.webp" alt="Preview macOS" width="850"/>
+  </p>
+
+  <p align="center">
+    <img src="https://xfetch-cli.github.io/web/previews/macos-preview-3.webp" alt="Preview macOS" width="850"/>
+  </p>
 </details>
 
 
