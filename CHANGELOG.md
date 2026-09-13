@@ -2,6 +2,7 @@
 
 ## 2026-09-13 — v1.0.0
 
+- Updated the core dependencies to the 0.2.0 API crates (`xfetch-plugin-api`, `xfetch-extension-api`, `xfetch-effect-api`).
 - Module colors now accept the same formats as the logo color: names, 256-color indexes (`"196"`) and hex RGB (`"#FF8800"`). The documented dark aliases (`DarkRed`, `DarkGrey`, ...) are accepted too, and unrecognized values fall back to white with a one-time warning.
 - Installer writes are now atomic: binaries and manifests are staged in the destination directory and renamed over the target, so an interrupted install can no longer leave a truncated file (same pattern applied to `install-prebuilt.sh` and `install-prebuilt.ps1`).
 - New `install-prebuilt.ps1`: Windows prebuilt installer that downloads the release ZIP, verifies its SHA256 and installs it per-user; `uninstall.ps1` and `install-prebuilt.sh` updated accordingly.

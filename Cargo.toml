@@ -49,9 +49,9 @@ wasmtime-wasi = { version = "48", optional = true, default-features = false, fea
     "p1",
     "p2",
 ] }
-xfetch-plugin-api = { version = "0.1.0", package = "xfetch-plugin-api" }
-xfetch-extension-api = { version = "0.1.0", package = "xfetch-extension-api" }
-xfetch-effect-api = { version = "0.1.0", package = "xfetch-effect-api" }
+xfetch-plugin-api = { version = "0.2.0", package = "xfetch-plugin-api" }
+xfetch-extension-api = { version = "0.2.0", package = "xfetch-extension-api" }
+xfetch-effect-api = { version = "0.2.0", package = "xfetch-effect-api" }
 
 [dev-dependencies]
 wat = "1"
