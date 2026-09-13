@@ -275,7 +275,10 @@ xfetch extension install ./extensions/wasm-night-mode</code></pre>
   <a href="https://github.com/xfetch-cli/api/tree/main/crates/guest-api">xfetch-guest-api</a>
   crate, which implements the ABI, the allocator exports and typed helpers
   (<code>http_request</code>, <code>exec</code>, <code>log</code>,
-  <code>protocol_version</code>).
+  <code>protocol_version</code>). The core does not depend on this crate: the
+  host bridge lives in the runtime, and only the guest adds it to its own
+  <code>Cargo.toml</code>. Declaring it as <code>"0.2"</code> lets Cargo resolve
+  the newest compatible 0.2.x release.
 </p>
 
 <h2>Components</h2>
