@@ -666,11 +666,19 @@
   <li><code>DarkCyan</code></li>
 </ul>
 
+<p>
+  Color names are case-insensitive. The <code>colors</code> map also accepts
+  256-color indexes (for example <code>&quot;196&quot;</code>) and hex RGB
+  (for example <code>&quot;#FF8800&quot;</code>), the same formats as
+  <code>logo_color</code>. Unrecognized values fall back to white and print a
+  one-time warning.
+</p>
+
 <pre><code class="language-jsonc">{
     &quot;colors&quot;: {
         &quot;os&quot;: &quot;Cyan&quot;,
-        &quot;cpu&quot;: &quot;Red&quot;,
-        &quot;memory&quot;: &quot;Green&quot;
+        &quot;cpu&quot;: &quot;#FF8800&quot;,
+        &quot;memory&quot;: &quot;196&quot;
     }
 }</code></pre>
 

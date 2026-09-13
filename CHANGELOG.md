@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Module colors now accept the same formats as the logo color: names, 256-color indexes (`"196"`) and hex RGB (`"#FF8800"`). The documented dark aliases (`DarkRed`, `DarkGrey`, ...) are accepted too, and unrecognized values fall back to white with a one-time warning.
+
+
 ## 2026-09-12 — v0.9.0
 
 ### WebAssembly guests
