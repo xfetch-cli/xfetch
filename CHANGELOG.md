@@ -1,8 +1,11 @@
 # Changelog
 
-## Unreleased
+## 2026-09-13 — v1.0.0
 
 - Module colors now accept the same formats as the logo color: names, 256-color indexes (`"196"`) and hex RGB (`"#FF8800"`). The documented dark aliases (`DarkRed`, `DarkGrey`, ...) are accepted too, and unrecognized values fall back to white with a one-time warning.
+- Installer writes are now atomic: binaries and manifests are staged in the destination directory and renamed over the target, so an interrupted install can no longer leave a truncated file (same pattern applied to `install-prebuilt.sh` and `install-prebuilt.ps1`).
+- New `install-prebuilt.ps1`: Windows prebuilt installer that downloads the release ZIP, verifies its SHA256 and installs it per-user; `uninstall.ps1` and `install-prebuilt.sh` updated accordingly.
+- `install-prebuilt.sh` now picks the musl build on musl distributions (Alpine), where the glibc prebuilt cannot run.
 
 
 ## 2026-09-12 — v0.9.0
@@ -16,8 +19,6 @@
 - Capability manifests (sidecar JSON or an embedded `xfetch:manifest` custom section) with deny-by-default `http`, `exec`, `fs`, `env` and `args` grants; every artifact runs under a wall-clock epoch timeout, memory cap and output caps even without a manifest.
 - Host operations for core modules: `http` (allowlisted, redirects re-checked per hop), `exec` (allowlisted, no shell, cleared environment), `log` and `version`, transported over a `host_call` ABI with guest-side allocator exports.
 - Guest logging is now filtered: only `warn`/`error` lines print by default, and `XFETCH_WASM_LOG_LEVEL` (`off`..`debug`) controls the threshold.
-- New `install-prebuilt.ps1`: Windows prebuilt installer that downloads the release ZIP, verifies its SHA256 and installs it per-user; `uninstall.ps1` and `install-prebuilt.sh` updated accordingly.
-- Installer writes are now atomic: binaries and manifests are staged in the destination directory and renamed over the target, so an interrupted install can no longer leave a truncated file (same pattern applied to `install-prebuilt.sh` and `install-prebuilt.ps1`).
 - New `xfetch update` command: checks GitHub releases, detects how the binary was installed and only updates prebuilt installs in place (SHA256-verified, atomic replace with a single `xfetch.bak`); cargo installs go through `cargo install --force` and package-manager/local builds are never replaced. `--check` reports and exits 1 when an update exists.
 - `xfetch wasm inspect|run|wit` tooling, wasm-aware installers (prebuilt artifact, `build` command, `artifact_url` or direct URL/single-file installs), sidecar-aware list/remove, and a fix for remote repository layouts nested under `plugins/plugins/`.
 - `wit/xfetch-runtime.wit` vendored from the api repository with a sync test; component protocol docs in `docs/WASM.md`.
