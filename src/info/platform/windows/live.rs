@@ -12,7 +12,7 @@ pub const DEFAULT_LIVE_REFRESH_SECS: u64 = 5;
 
 pub fn live_policy() -> LivePolicy {
     LivePolicy {
-        modules: &["cpu", "memory", "swap", "disks", "uptime", "datetime"],
+        modules: &["cpu", "memory", "swap", "disk", "uptime", "datetime"],
         default_refresh_secs: DEFAULT_LIVE_REFRESH_SECS,
     }
 }

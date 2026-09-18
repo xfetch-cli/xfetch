@@ -108,9 +108,10 @@ xfetch wasm run ./plugin.wasm --request '{"version":1,"kind":"info_provider"}'</
 </p>
 
 <p>
-  As a safety net for uncooperative or third-party plugins, the core can also
-  kill the plugin process after a per-plugin deadline set in the config.
-  It is opt-in: without it, the current behavior is unchanged.
+  As a safety net for uncooperative or third-party plugins, the core kills the
+  plugin process after a deadline set in the config (<code>timeout_secs</code>);
+  when the field is unset the core applies a 30 s default, and <code>0</code>
+  disables the cap entirely.
 </p>
 
 <pre><code class="language-jsonc">{

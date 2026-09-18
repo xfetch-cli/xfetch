@@ -91,9 +91,9 @@
 
 <ul>
   <li><code>~/.config/xfetch/daemon.rows</code> stores the pinned block height, available for optional shell integration.</li>
-  <li>If the terminal is closed while the daemon runs, the daemon exits on its own (the output device disappears).</li>
+  <li>If the terminal is closed while the daemon runs, the daemon exits on its own: both daemons poll their stdout for the pty hangup and shut down cleanly (terminal restored, PID files removed) instead of lingering as orphans.</li>
   <li>If the PID file is missing or stale, <code>xfetch --daemon-stop</code> reports "No daemon running" and cleans up the stale file.</li>
-  <li>Orphaned daemons can accumulate if <code>--daemon-stop</code> is not used (e.g. after killing the terminal abruptly); clean them up with <code>pkill xfetch</code>.</li>
+  <li>A daemon killed with <code>SIGKILL</code> cannot clean up after itself; <code>xfetch --daemon-stop</code> (or <code>pkill xfetch</code>) clears the leftover file.</li>
 </ul>
 
 <h2>Live Stats Daemon</h2>
@@ -102,7 +102,7 @@
   The <strong>live stats daemon</strong> (<code>daemon_live</code>) is a sibling of the
   animated-logo daemon: it pins the fetch block at the top of the terminal and
   <strong>re-probes a lightweight subset of modules every few seconds</strong>, re-rendering
-  the block with fresh values (cpu, memory, swap, disks, battery, uptime, datetime).
+  the block with fresh values (cpu, memory, swap, disk, battery, uptime, datetime).
   Your fetch stops being a static snapshot and becomes a live panel — think
   "conky pinned at the top", not an interactive btop.
 </p>
@@ -142,7 +142,7 @@ xfetch --daemon-live-reload   # force hot reload (same as "daemon_live_reload": 
     </tr>
     <tr>
       <td><code>daemon_live_modules</code></td><td>array</td><td>per-platform</td>
-      <td>Modules shown (and refreshed). Defaults to the platform's live set: Linux/macOS <code>cpu, memory, swap, disks, battery, uptime, datetime</code>; Windows excludes <code>battery</code> (it spawns <code>wmic</code>/PowerShell every tick) unless you add it back.</td>
+      <td>Modules shown (and refreshed). Defaults to the platform's live set: Linux/macOS <code>cpu, memory, swap, disk, battery, uptime, datetime</code>; Windows excludes <code>battery</code> (it spawns <code>wmic</code>/PowerShell every tick) unless you add it back.</td>
     </tr>
     <tr>
       <td><code>daemon_live_reload</code></td><td>boolean</td><td><code>false</code></td>

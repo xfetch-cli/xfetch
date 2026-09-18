@@ -550,8 +550,8 @@
       <td>Free-form parameters passed to the effect.</td>
     </tr>
     <tr>
-      <td><code>timeout_secs</code></td><td>number</td><td>none</td>
-      <td>Safety net: kills the effect process if it runs longer.</td>
+      <td><code>timeout_secs</code></td><td>number</td><td>30</td>
+      <td>Safety net: kills the effect process if it runs longer. Unset uses the 30 s default; <code>0</code> disables the cap.</td>
     </tr>
   </tbody>
 </table>

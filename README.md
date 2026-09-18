@@ -6,6 +6,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](https://github.com/xfetch-cli/xfetch/blob/main/LICENSE)
 [![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20windows-lightgrey?style=flat-square)](https://github.com/xfetch-cli/xfetch/blob/main/docs/INSTALLATION.md)
 [![Build](https://img.shields.io/github/actions/workflow/status/xfetch-cli/xfetch/rust-tests.yml?style=flat-square&logo=github&label=build)](https://github.com/xfetch-cli/xfetch/actions/workflows/rust-tests.yml)
+[![Stars](https://img.shields.io/github/stars/xfetch-cli/xfetch?style=flat-square&logo=github)](https://github.com/xfetch-cli/xfetch/stargazers)
 
 <p>A cross-platform system information fetching tool written in Rust.</p>
 

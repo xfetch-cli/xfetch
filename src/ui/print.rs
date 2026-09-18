@@ -165,14 +165,15 @@ pub fn print_output(
                 ""
             };
             print_logo_line(&mut out, ascii_line, ascii_width, config, force_plain_logo);
-            execute!(out, Print(LOGO_INFO_GAP)).unwrap();
+            // A broken pipe (`xfetch | head`) must stop quietly, not panic.
+            let _ = execute!(out, Print(LOGO_INFO_GAP));
         }
 
         if i < content_lines.len() {
             let line = truncate_line(&content_lines[i], max_content_width);
-            execute!(out, Print(&line)).unwrap();
+            let _ = execute!(out, Print(&line));
         }
-        execute!(out, Print("\n")).unwrap();
+        let _ = execute!(out, Print("\n"));
     }
 }
 
@@ -526,6 +527,28 @@ fn scale_index(row: u16, source_len: usize, state: &DaemonState) -> usize {
 }
 
 #[cfg(unix)]
+fn fd_hung_up(fd: i32) -> bool {
+    let mut pfd = libc::pollfd {
+        fd,
+        events: 0,
+        revents: 0,
+    };
+    let ready = unsafe { libc::poll(&mut pfd, 1, 0) };
+    ready > 0 && (pfd.revents & (libc::POLLHUP | libc::POLLERR | libc::POLLNVAL)) != 0
+}
+
+/// Whether the process's stdout terminal has hung up (the terminal window was
+/// closed). The daemons run detached (`setsid`), so no SIGHUP arrives and they
+/// would keep rendering into a dead pty forever; polling the fd lets both
+/// loops notice and exit. `poll` reports `POLLHUP` with no events requested,
+/// so this is a single non-blocking syscall.
+#[cfg(unix)]
+pub fn terminal_hung_up() -> bool {
+    use std::os::fd::AsRawFd;
+    fd_hung_up(stdout().as_raw_fd())
+}
+
+#[cfg(unix)]
 pub fn print_daemon_output(
     frames: &[AnimationFrame],
     ascii_width: usize,
@@ -546,6 +569,11 @@ pub fn print_daemon_output(
         if crate::ui::daemon::INTERRUPTED.load(std::sync::atomic::Ordering::SeqCst) {
             break;
         }
+        // The terminal window may have closed under the detached daemon; a
+        // hangup or a failed write means the pinned block is gone for good.
+        if terminal_hung_up() {
+            break;
+        }
 
         let cur_size = match size() {
             Ok(s) => s,
@@ -560,8 +588,9 @@ pub fn print_daemon_output(
         let frame = &frames[frame_index];
         let buffer =
             build_daemon_frame_buffer(frame, &state, content_lines, config, force_plain_logo);
-        let _ = out.write_all(buffer.as_bytes());
-        let _ = out.flush();
+        if out.write_all(buffer.as_bytes()).is_err() || out.flush().is_err() {
+            break;
+        }
 
         let delay = std::cmp::max(MIN_FRAME_DELAY_MS, frame.delay_ms);
         std::thread::sleep(Duration::from_millis(delay));
@@ -588,15 +617,14 @@ fn print_logo_line(
     let padding = ascii_width.saturating_sub(visible_len);
 
     if is_custom_ascii {
-        execute!(out, Print(format!("{}{}", ascii_line, " ".repeat(padding)))).unwrap();
+        let _ = execute!(out, Print(format!("{}{}", ascii_line, " ".repeat(padding))));
     } else {
-        execute!(
+        let _ = execute!(
             out,
             SetForegroundColor(DEFAULT_LOGO_COLOR),
             Print(format!("{}{}", ascii_line, " ".repeat(padding))),
             ResetColor
-        )
-        .unwrap();
+        );
     }
 }
 
@@ -645,5 +673,35 @@ impl crossterm::Command for ResetScrollRegion {
     #[cfg(windows)]
     fn execute_winapi(&self) -> std::io::Result<()> {
         Ok(())
+    }
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_fd_hung_up_tracks_the_pty_master() {
+        let mut master: libc::c_int = -1;
+        let mut slave: libc::c_int = -1;
+        let rc = unsafe {
+            libc::openpty(
+                &mut master,
+                &mut slave,
+                std::ptr::null_mut(),
+                std::ptr::null(),
+                std::ptr::null(),
+            )
+        };
+        assert_eq!(rc, 0, "openpty failed");
+
+        assert!(!fd_hung_up(slave), "live pty must not report a hangup");
+        unsafe {
+            libc::close(master);
+        }
+        assert!(fd_hung_up(slave), "closed master must report a hangup");
+        unsafe {
+            libc::close(slave);
+        }
     }
 }

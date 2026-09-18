@@ -107,8 +107,9 @@ pub struct LogoAnimationConfig {
     pub style: Option<String>,
     pub frames_path: Option<FramePaths>,
     /// Safety net in seconds: the core kills the plugin process if it runs
-    /// longer. The plugin's own `with_timeout` budget is the primary control;
-    /// this caps even uncooperative plugins.
+    /// longer. Unset uses `subprocess::DEFAULT_GUEST_TIMEOUT_SECS`; `0`
+    /// disables the cap. The plugin's own `with_timeout` budget is the
+    /// primary control; this caps even uncooperative plugins.
     pub timeout_secs: Option<u64>,
 }
 
@@ -118,8 +119,9 @@ pub struct InfoPluginConfig {
     pub plugin: String,
     pub args: Option<Value>,
     /// Safety net in seconds: the core kills the plugin process if it runs
-    /// longer. The plugin's own `with_timeout` budget is the primary control;
-    /// this caps even uncooperative plugins.
+    /// longer. Unset uses `subprocess::DEFAULT_GUEST_TIMEOUT_SECS`; `0`
+    /// disables the cap. The plugin's own `with_timeout` budget is the
+    /// primary control; this caps even uncooperative plugins.
     pub timeout_secs: Option<u64>,
 }
 
@@ -135,7 +137,9 @@ pub struct EffectConfig {
     pub fps: Option<u64>,
     pub args: Option<Value>,
     /// Safety net in seconds: the core kills the effect process if it runs
-    /// longer. The effect's own `with_timeout` budget is the primary control.
+    /// longer. Unset uses `subprocess::DEFAULT_GUEST_TIMEOUT_SECS`; `0`
+    /// disables the cap. The effect's own `with_timeout` budget is the
+    /// primary control.
     pub timeout_secs: Option<u64>,
 }
 
@@ -165,8 +169,9 @@ pub struct ConfigProviderConfig {
     pub extension: String,
     pub args: Option<Value>,
     /// Safety net in seconds: the core kills the extension process if it
-    /// runs longer. The extension's own `with_timeout` budget is the primary
-    /// control; this caps even uncooperative extensions.
+    /// runs longer. Unset uses `subprocess::DEFAULT_GUEST_TIMEOUT_SECS`; `0`
+    /// disables the cap. The extension's own `with_timeout` budget is the
+    /// primary control; this caps even uncooperative extensions.
     pub timeout_secs: Option<u64>,
 }
 

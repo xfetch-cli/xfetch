@@ -1,7 +1,12 @@
 # Changelog
 
-## 2026-09-13 — v1.0.0
+## 2026-09-18 — v1.0.0
 
+- Fixed the live stats daemon losing the disk module on every platform: the default module lists said `"disks"` while the probe gate and renderer only know `"disk"`, so the module was silently skipped (Linux/macOS/Windows policies and `docs/DAEMON.md` now use `disk`).
+- Both daemons (animated logo and live stats) now exit on their own when the terminal is closed: they run detached (`setsid`), so no SIGHUP arrives, and they used to linger as orphans rendering into a dead pty. They now poll stdout for the pty hangup and stop cleanly (terminal restored, PID/rows files removed).
+- `xfetch | head` (or any consumer that closes the pipe early) no longer panics on the static render path: stdout write errors are ignored, matching the daemon and animation paths.
+- Native plugins, effects and extensions now default to a 30 s timeout when `timeout_secs` is unset, matching the wasm manifest default, so an uncooperative guest can no longer hang the whole fetch; `0` disables the cap. Docs updated accordingly.
+- Fixed the Windows PowerShell GPU fallback dropping the first GPU: the header line is only skipped for `wmic` output, and the parsing is now covered by tests.
 - Updated the core dependencies to the 0.2.0 API crates (`xfetch-plugin-api`, `xfetch-extension-api`, `xfetch-effect-api`).
 - Module colors now accept the same formats as the logo color: names, 256-color indexes (`"196"`) and hex RGB (`"#FF8800"`). The documented dark aliases (`DarkRed`, `DarkGrey`, ...) are accepted too, and unrecognized values fall back to white with a one-time warning.
 - Installer writes are now atomic: binaries and manifests are staged in the destination directory and renamed over the target, so an interrupted install can no longer leave a truncated file (same pattern applied to `install-prebuilt.sh` and `install-prebuilt.ps1`).

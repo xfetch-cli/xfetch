@@ -13,7 +13,7 @@ pub mod install;
 pub mod manage;
 
 use crate::config::{EffectConfig, config_dir, config_search_dirs};
-use crate::subprocess::run_cmd_with_stdin_timeout;
+use crate::subprocess::{guest_timeout, run_cmd_with_stdin_timeout};
 use crate::wasm::{self, GuestKind};
 use std::env;
 use std::path::{Path, PathBuf};
@@ -173,10 +173,10 @@ pub fn run_effect(config: &EffectConfig, lines: &[String]) -> Result<Vec<EffectF
     let payload = to_json_vec(&request)
         .map_err(|err| format!("Failed to serialize effect request: {}", err))?;
 
-    let timeout = config.timeout_secs.map(Duration::from_secs);
-
-    // Wasm guests reuse the JSON protocol through the sandboxed runtime.
+    // Wasm guests reuse the JSON protocol through the sandboxed runtime; an
+    // absent `timeout_secs` lets the manifest's own `timeout_ms` apply.
     if wasm::is_wasm_file(&path) {
+        let timeout = config.timeout_secs.map(Duration::from_secs);
         let stdout = wasm::run_request(&path, &payload, timeout, GuestKind::Effect)?;
         let response: EffectResponse = parse_json_slice(&stdout)
             .map_err(|err| format!("Failed to parse effect output: {}", err))?;
@@ -186,6 +186,7 @@ pub fn run_effect(config: &EffectConfig, lines: &[String]) -> Result<Vec<EffectF
         return Ok(response.frames);
     }
 
+    let timeout = guest_timeout(config.timeout_secs);
     let output = run_cmd_with_stdin_timeout(&path, &[], Some(&payload), timeout).ok_or_else(
         || match timeout {
             Some(d) => format!(

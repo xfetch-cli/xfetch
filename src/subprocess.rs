@@ -151,6 +151,23 @@ pub fn run_cmd_with_timeout(cmd: &str, args: &[&str], timeout: Duration) -> Opti
     run_cmd_with_stdin_timeout(Path::new(cmd), args, None, Some(timeout))
 }
 
+/// Default safety cap for native plugin, effect and extension processes when
+/// the config omits `timeout_secs`, matching the wasm manifest default. An
+/// uncooperative guest should never hang the whole fetch.
+pub const DEFAULT_GUEST_TIMEOUT_SECS: u64 = 30;
+
+/// Resolves a configured `timeout_secs` into the deadline for a native guest:
+/// unset uses [`DEFAULT_GUEST_TIMEOUT_SECS`], `0` disables the cap. Wasm
+/// guests keep the raw value so an absent setting still lets the manifest's
+/// own `timeout_ms` apply.
+pub fn guest_timeout(timeout_secs: Option<u64>) -> Option<Duration> {
+    match timeout_secs {
+        Some(0) => None,
+        Some(secs) => Some(Duration::from_secs(secs)),
+        None => Some(Duration::from_secs(DEFAULT_GUEST_TIMEOUT_SECS)),
+    }
+}
+
 /// Grace period for a pipe reader to finish after the direct child exits.
 /// Grandchildren that inherited the pipe may keep it open; beyond this window
 /// the output is discarded (the detached reader thread is leaked) rather than
@@ -302,5 +319,15 @@ mod tests {
             !binary_reachable("definitely_not_a_binary_xyz_123"),
             "missing binaries should fail the pre-check"
         );
+    }
+
+    #[test]
+    fn test_guest_timeout_defaults_and_disables() {
+        assert_eq!(
+            guest_timeout(None),
+            Some(Duration::from_secs(DEFAULT_GUEST_TIMEOUT_SECS))
+        );
+        assert_eq!(guest_timeout(Some(0)), None);
+        assert_eq!(guest_timeout(Some(5)), Some(Duration::from_secs(5)));
     }
 }
