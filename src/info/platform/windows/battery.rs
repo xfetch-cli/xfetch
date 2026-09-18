@@ -1,57 +1,69 @@
-use std::time::Duration;
+use std::mem::zeroed;
 
-use crate::info::platform::shared::{NA, commands::run_cmd_with_timeout};
+use windows_sys::Win32::System::Power::{GetSystemPowerStatus, SYSTEM_POWER_STATUS};
 
-const CMD_TIMEOUT: Duration = Duration::from_secs(10);
+use crate::info::platform::shared::NA;
 
-const WMIC_CMD: &str = "wmic";
-const POWERSHELL_CMD: &str = "powershell";
-/// `-NoProfile` keeps the user's profile script out of the probe output;
-/// `-NonInteractive` forbids prompts. `[Console]::OutputEncoding=UTF8` fixes
-/// the OEM codepage PowerShell 5.1 uses for redirected output.
-const BATT_PS_SCRIPT: &str = "[Console]::OutputEncoding=[Text.Encoding]::UTF8; Get-CimInstance Win32_Battery | Select-Object EstimatedChargeRemaining, BatteryStatus";
+const AC_OFFLINE: u8 = 0;
+const AC_ONLINE: u8 = 1;
+const BATTERY_FLAG_CHARGING: u8 = 8;
+const BATTERY_FLAG_NO_BATTERY: u8 = 128;
+const BATTERY_PERCENT_UNKNOWN: u8 = 255;
 
+/// Battery status read straight from the Win32 API. `GetSystemPowerStatus`
+/// returns the same percentage/state the previous `wmic`/PowerShell probes
+/// reported, without a subprocess (PowerShell alone cost ~280 ms per fetch).
 pub fn get_battery_info() -> String {
-    let output = run_cmd_with_timeout(
-        WMIC_CMD,
-        &[
-            "path",
-            "Win32_Battery",
-            "Get",
-            "EstimatedChargeRemaining,BatteryStatus",
-        ],
-        CMD_TIMEOUT,
-    )
-    .filter(|o| o.status.success())
-    .or_else(|| {
-        run_cmd_with_timeout(
-            POWERSHELL_CMD,
-            &["-NoProfile", "-NonInteractive", "-Command", BATT_PS_SCRIPT],
-            CMD_TIMEOUT,
-        )
-    });
-
-    let Some(output) = output else {
+    let mut status: SYSTEM_POWER_STATUS = unsafe { zeroed() };
+    if unsafe { GetSystemPowerStatus(&mut status) } == 0 {
         return NA.to_string();
-    };
-    let out = String::from_utf8_lossy(&output.stdout);
-    for line in out.lines().skip(1) {
-        let trimmed = line.trim().trim_matches('\0');
-        if trimmed.is_empty() {
-            continue;
-        }
-        let cols: Vec<&str> = trimmed.split_whitespace().collect();
-        if cols.len() >= 2
-            && let Ok(pct) = cols[0].parse::<u32>()
-        {
-            let status = match cols.get(1).and_then(|s| s.parse::<u32>().ok()) {
-                Some(1) => "Discharging",
-                Some(2) | Some(3) => "Charged",
-                Some(6) | Some(7) | Some(8) | Some(9) => "Charging",
-                _ => "Unknown",
-            };
-            return format!("{}% [{}]", pct, status);
-        }
     }
-    NA.to_string()
+    if status.BatteryFlag & BATTERY_FLAG_NO_BATTERY != 0
+        || status.BatteryLifePercent == BATTERY_PERCENT_UNKNOWN
+    {
+        return NA.to_string();
+    }
+    let label = battery_label(
+        status.ACLineStatus,
+        status.BatteryFlag,
+        status.BatteryLifePercent,
+    );
+    format!("{}% [{}]", status.BatteryLifePercent, label)
+}
+
+/// Maps `SYSTEM_POWER_STATUS` to the labels the `Win32_Battery` probe used:
+/// `Discharging` (1), `Charged` (2/3) and `Charging` (6-9).
+fn battery_label(ac_line: u8, flags: u8, percent: u8) -> &'static str {
+    if flags & BATTERY_FLAG_CHARGING != 0 {
+        return "Charging";
+    }
+    match ac_line {
+        AC_OFFLINE => "Discharging",
+        AC_ONLINE if percent == 100 => "Charged",
+        AC_ONLINE => "Charging",
+        _ => "Unknown",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_battery_label_mapping() {
+        assert_eq!(battery_label(AC_OFFLINE, 0, 42), "Discharging");
+        assert_eq!(battery_label(AC_ONLINE, 0, 100), "Charged");
+        assert_eq!(
+            battery_label(AC_ONLINE, BATTERY_FLAG_CHARGING, 80),
+            "Charging"
+        );
+        assert_eq!(battery_label(AC_ONLINE, 0, 80), "Charging");
+        assert_eq!(battery_label(255, 0, 80), "Unknown");
+    }
+
+    #[test]
+    fn test_get_battery_info_format() {
+        let battery = get_battery_info();
+        assert!(battery.contains('%') || battery == NA);
+    }
 }

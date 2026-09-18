@@ -215,6 +215,7 @@ mod tests {
     use super::*;
     use std::path::Path;
 
+    #[cfg(unix)]
     #[test]
     fn test_extract_plugin_name_linux() {
         let path = Path::new("/usr/lib/xfetch/plugins/xfetch-plugin-hello");

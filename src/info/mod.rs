@@ -10,7 +10,9 @@ use crate::plugins::run_info_plugin;
 use std::collections::{HashMap, HashSet};
 use std::thread;
 use std::time::{Duration, Instant};
-use sysinfo::{CpuRefreshKind, Disks, MemoryRefreshKind, Networks, RefreshKind, System};
+#[cfg(not(target_os = "windows"))]
+use sysinfo::CpuRefreshKind;
+use sysinfo::{Disks, MemoryRefreshKind, Networks, RefreshKind, System};
 
 pub use platform::shared::packages::packages_info_from_breakdown;
 pub use platform::{get_battery_info, get_datetime_info, get_gpu_info, get_packages_breakdown};
@@ -47,6 +49,24 @@ fn collect_module_keys(modules: &[ModuleConfig]) -> HashSet<String> {
 /// read from it (os, kernel, hostname and uptime are sysinfo statics).
 fn needs_cpu_mem(keys: &HashSet<String>) -> bool {
     keys.contains("cpu") || keys.contains("memory") || keys.contains("swap")
+}
+
+/// Refresh policy for the shared `System`. On Windows the CPU values are
+/// probed natively (`platform/windows/cpu.rs`) and sysinfo's CPU refresh
+/// opens PDH counters (~270 ms) whenever a `CpuRefreshKind` is requested,
+/// even with all its flags off — so the CPU refresh is omitted entirely
+/// there. Other platforms keep the full refresh.
+fn system_refresh_kind() -> RefreshKind {
+    #[cfg(target_os = "windows")]
+    {
+        RefreshKind::nothing().with_memory(MemoryRefreshKind::everything())
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        RefreshKind::nothing()
+            .with_cpu(CpuRefreshKind::everything())
+            .with_memory(MemoryRefreshKind::everything())
+    }
 }
 
 fn needs_network(keys: &HashSet<String>) -> bool {
@@ -93,15 +113,8 @@ impl Info {
         // refresh_all()` also walks every process, which xfetch never reads
         // (measured ~40x slower on WSL).
         let (sys, disks, networks) = thread::scope(|s| {
-            let sys_h = needs_cpu_mem(&needed).then(|| {
-                s.spawn(|| {
-                    System::new_with_specifics(
-                        RefreshKind::nothing()
-                            .with_cpu(CpuRefreshKind::everything())
-                            .with_memory(MemoryRefreshKind::everything()),
-                    )
-                })
-            });
+            let sys_h = needs_cpu_mem(&needed)
+                .then(|| s.spawn(|| System::new_with_specifics(system_refresh_kind())));
             let disks_h = needed
                 .contains("disk")
                 .then(|| s.spawn(Disks::new_with_refreshed_list));

@@ -15,37 +15,41 @@ mod logo;
 mod nodes;
 mod print;
 mod renders;
+#[cfg(windows)]
+mod win_daemon;
 mod x;
 #[cfg(unix)]
 pub use daemon::{draw_daemon, stop_daemon};
 pub use layout::is_known_layout;
 #[cfg(unix)]
 pub use live::{draw_live_daemon, stop_live_daemon};
+#[cfg(windows)]
+pub use win_daemon::{draw_daemon, draw_live_daemon, stop_daemon, stop_live_daemon};
 
-#[cfg(not(unix))]
+#[cfg(not(any(unix, windows)))]
 pub fn draw_daemon(_info: &Info, _config: &Config) {
-    eprintln!("Daemon mode is not supported on Windows.");
+    eprintln!("Daemon mode is not supported on this platform.");
 }
 
-#[cfg(not(unix))]
+#[cfg(not(any(unix, windows)))]
 pub fn stop_daemon() -> bool {
-    eprintln!("Daemon mode is not supported on Windows.");
+    eprintln!("Daemon mode is not supported on this platform.");
     false
 }
 
-#[cfg(not(unix))]
+#[cfg(not(any(unix, windows)))]
 pub fn draw_live_daemon(
     _info: &Info,
     _config: &Config,
     _config_path: Option<String>,
     _reload: bool,
 ) {
-    eprintln!("Live daemon mode is not supported on Windows.");
+    eprintln!("Live daemon mode is not supported on this platform.");
 }
 
-#[cfg(not(unix))]
+#[cfg(not(any(unix, windows)))]
 pub fn stop_live_daemon() -> bool {
-    eprintln!("Live daemon mode is not supported on Windows.");
+    eprintln!("Live daemon mode is not supported on this platform.");
     false
 }
 use frames::load_animation_frames;

@@ -258,6 +258,10 @@ fn parse_jsonc_file(path: &Path) -> Option<Value> {
 }
 
 fn parse_jsonc_str(content: &str) -> Option<Value> {
+    // Windows editors (PowerShell 5.1 `Set-Content -Encoding UTF8`, Notepad)
+    // prepend a UTF-8 BOM, which serde_json rejects; strip it so a config
+    // written there is not silently replaced by the defaults.
+    let content = content.strip_prefix('\u{feff}').unwrap_or(content);
     let mut stripped = StripComments::new(content.as_bytes());
     let mut clean = String::new();
     stripped.read_to_string(&mut clean).ok()?;
@@ -563,5 +567,13 @@ mod tests {
         let parsed = parse_jsonc_str(jsonc).expect("parse jsonc");
         let config: Config = serde_json::from_value(parsed).expect("deserialize config");
         assert_eq!(config.info_plugins[0].timeout_secs, None);
+    }
+
+    #[test]
+    fn test_parse_jsonc_strips_utf8_bom() {
+        // PowerShell 5.1 `Set-Content -Encoding UTF8` writes the BOM.
+        let jsonc = "\u{feff}{ \"layout\": \"section\" }";
+        let parsed = parse_jsonc_str(jsonc).expect("BOM-prefixed jsonc should parse");
+        assert_eq!(parsed["layout"], "section");
     }
 }

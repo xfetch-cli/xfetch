@@ -3014,6 +3014,7 @@ dependencies = [
  "wasmtime",
  "wasmtime-wasi",
  "wat",
+ "windows-sys 0.61.2",
  "xfetch-effect-api",
  "xfetch-extension-api",
  "xfetch-plugin-api",

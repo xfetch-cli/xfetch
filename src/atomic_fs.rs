@@ -28,7 +28,7 @@ pub fn copy_atomic(source: &Path, dest: &Path) -> io::Result<()> {
         fs::copy(source, &temp)?;
         // fs::copy does not flush; sync before renaming so a power loss never
         // exposes a partially written file at the final path.
-        fs::File::open(&temp)?.sync_all()?;
+        sync_temp(&temp)?;
         fs::rename(&temp, dest)
     })();
 
@@ -36,6 +36,21 @@ pub fn copy_atomic(source: &Path, dest: &Path) -> io::Result<()> {
         let _ = fs::remove_file(&temp);
     }
     result
+}
+
+/// Flushes the staged temporary to disk. On Windows `FlushFileBuffers`
+/// requires a handle with write access, so the read-only handle used on Unix
+/// (`fs::copy` can leave the temporary read-only) fails with `Access Denied`
+/// and every install was aborted. Unix keeps its read-only handle.
+fn sync_temp(path: &Path) -> io::Result<()> {
+    #[cfg(windows)]
+    {
+        fs::OpenOptions::new().write(true).open(path)?.sync_all()
+    }
+    #[cfg(not(windows))]
+    {
+        fs::File::open(path)?.sync_all()
+    }
 }
 
 /// Writes `contents` to `dest` atomically.

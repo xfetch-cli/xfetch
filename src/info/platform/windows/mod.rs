@@ -4,9 +4,9 @@
 //! `macos/`, and `crate::info::platform` re-exports the active one.
 
 pub mod battery;
+pub mod cpu;
 pub mod datetime;
 pub mod gpu;
-#[cfg(unix)]
 pub mod live;
 pub mod network;
 pub mod packages;

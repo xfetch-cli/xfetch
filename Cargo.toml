@@ -53,5 +53,20 @@ xfetch-plugin-api = { version = "0.2.0", package = "xfetch-plugin-api" }
 xfetch-extension-api = { version = "0.2.0", package = "xfetch-extension-api" }
 xfetch-effect-api = { version = "0.2.0", package = "xfetch-effect-api" }
 
+# Windows-only native probes: CPU/date/battery/GPU are read through the Win32
+# API instead of PDH counters or PowerShell subprocesses (see
+# src/info/platform/windows/). The dependency never enters other targets.
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Gdi",
+    "Win32_Security",
+    "Win32_System_Console",
+    "Win32_System_Power",
+    "Win32_System_Registry",
+    "Win32_System_SystemInformation",
+    "Win32_System_Threading",
+] }
+
 [dev-dependencies]
 wat = "1"

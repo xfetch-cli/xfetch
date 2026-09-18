@@ -18,6 +18,16 @@
 
 <p>No extra shell configuration is required — everything activates from the JSON.</p>
 
+<p>
+  On Windows there is no <code>fork</code>: the parent renders the first frame and
+  spawns a worker copy of itself that inherits the console, and
+  <code>xfetch --daemon-stop</code> signals a named stop event (falling back to
+  terminating the worker) so the terminal is restored either way. The worker also
+  exits on its own when the shell leaves the console — the Windows equivalent of
+  the pty hangup. Scroll region, absolute rows and cursor save/restore are the
+  same on every platform.
+</p>
+
 <h2>Activation</h2>
 
 <p>From the CLI:</p>
@@ -48,6 +58,14 @@
   This reads the PID from <code>~/.config/xfetch/daemon.pid</code>, verifies it is an
   xfetch process, sends <code>SIGTERM</code>, and restores the terminal (cursor shown,
   scroll region reset, PID file removed).
+</p>
+
+<p>
+  On Windows the same command signals the worker's named stop event instead of
+  <code>SIGTERM</code>; if the worker does not exit within a second it is
+  terminated and the terminal is restored from the stop command. The PID is
+  validated against the process image name (<code>xfetch.exe</code>), mirroring
+  the <code>/proc/&lt;pid&gt;/comm</code> check on Linux.
 </p>
 
 <h2>Configuration</h2>

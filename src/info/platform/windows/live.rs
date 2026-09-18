@@ -1,21 +1,15 @@
-//! Live-refresh policy for Windows (used by `ui::live`).
+//! Live-refresh policy for Windows (`daemon_live`).
 //!
-//! Battery on Windows runs `wmic`/PowerShell subprocesses, which are heavy to
-//! spawn every tick, so it is excluded from the defaults (add it back with
-//! `daemon_live_modules` if you want it). The default tick is slower than the
-//! other platforms for the same reason.
+//! The Windows daemon engine lives in `ui/win_daemon.rs`; this module only
+//! declares the module set and cadence it defaults to. Battery is excluded
+//! because it used to spawn `wmic`/PowerShell every tick — add it back with
+//! `daemon_live_modules` if wanted.
 
-use crate::info::platform::LivePolicy;
+/// Modules refreshed by the live daemon on Windows by default.
+pub const LIVE_MODULES: &[&str] = &["cpu", "memory", "swap", "disk", "uptime", "datetime"];
 
 /// Default refresh cadence (seconds) for the live daemon on Windows.
 pub const DEFAULT_LIVE_REFRESH_SECS: u64 = 5;
-
-pub fn live_policy() -> LivePolicy {
-    LivePolicy {
-        modules: &["cpu", "memory", "swap", "disk", "uptime", "datetime"],
-        default_refresh_secs: DEFAULT_LIVE_REFRESH_SECS,
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -23,11 +17,9 @@ mod tests {
 
     #[test]
     fn test_windows_live_modules_exclude_battery() {
-        let policy = live_policy();
         assert!(
-            !policy.modules.contains(&"battery"),
+            !LIVE_MODULES.contains(&"battery"),
             "battery is heavy on Windows and must be opt-in"
         );
-        assert!(policy.default_refresh_secs >= 5);
     }
 }
