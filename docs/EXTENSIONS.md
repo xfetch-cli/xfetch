@@ -18,7 +18,8 @@
 
 <p>Or install from a local path / repository:</p>
 
-<pre><code class="language-bash">xfetch extension install /path/to/xfetch-extension-name</code></pre>
+<pre><code class="language-bash">xfetch extension install /path/to/xfetch-extension-name
+xfetch extension install my-extension --repo https://github.com/user/extensions.git</code></pre>
 
 <p>List and remove installed extensions:</p>
 

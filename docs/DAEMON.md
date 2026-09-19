@@ -160,7 +160,7 @@ xfetch --daemon-live-reload   # force hot reload (same as "daemon_live_reload": 
     </tr>
     <tr>
       <td><code>daemon_live_modules</code></td><td>array</td><td>per-platform</td>
-      <td>Modules shown (and refreshed). Defaults to the platform's live set: Linux/macOS <code>cpu, memory, swap, disk, battery, uptime, datetime</code>; Windows excludes <code>battery</code> (it spawns <code>wmic</code>/PowerShell every tick) unless you add it back.</td>
+      <td>Modules shown (and refreshed). Defaults to the platform's live set: Linux/macOS <code>cpu, memory, swap, disk, battery, uptime, datetime</code>; Windows excludes <code>battery</code> (opt-in) unless you add it back.</td>
     </tr>
     <tr>
       <td><code>daemon_live_reload</code></td><td>boolean</td><td><code>false</code></td>

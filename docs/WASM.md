@@ -45,9 +45,11 @@
 
 <pre><code class="language-bash"># Inspect an artifact without running it
 xfetch wasm inspect ./xfetch-plugin-wasm-crypto.wasm
+xfetch wasm inspect ./plugin.wasm --json
 
 # Run it with a raw JSON request (useful for authors and scripts)
 xfetch wasm run ./plugin.wasm --request '{"version":1,"kind":"info_provider"}'
+xfetch wasm run ./plugin.wasm --request-file request.json --kind plugin --timeout 30
 
 # Print the WIT contract used by component guests
 xfetch wasm wit
@@ -58,6 +60,16 @@ xfetch plugin install wasm-crypto
 xfetch plugin install https://example.com/releases/plugin.wasm
 xfetch effects install ./effects/wasm-matrix
 xfetch extension install ./extensions/wasm-night-mode</code></pre>
+
+<p>
+  <code>wasm inspect</code> prints a human-readable report or the same data as
+  JSON with <code>--json</code>. <code>wasm run</code> accepts the request
+  inline (<code>--request</code>) or from a file
+  (<code>--request-file</code>), an optional <code>--kind</code>
+  (<code>plugin</code>, <code>effect</code> or <code>extension</code>; default
+  <code>plugin</code>) and a <code>--timeout</code> in seconds that overrides
+  the manifest limit.
+</p>
 
 <h2>Manifest</h2>
 

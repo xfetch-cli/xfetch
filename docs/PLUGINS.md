@@ -33,6 +33,21 @@
   the resulting binary into the xfetch plugin directory.
 </p>
 
+<p>
+  Install from a custom repository with <code>--repo</code> (or <code>-r</code>),
+  or point the default remote somewhere else with the
+  <code>XFETCH_PLUGIN_REPO</code> environment variable:
+</p>
+
+<pre><code class="language-bash">xfetch plugin install my-plugin --repo https://github.com/user/plugins.git
+XFETCH_PLUGIN_REPO=https://github.com/user/plugins.git xfetch plugin install my-plugin</code></pre>
+
+<p>
+  Local sources are searched under the working directory, <code>plugins/</code>
+  and the repositories' nested layouts; <code>XFETCH_PLUGIN_DEV_DIR</code> adds
+  an extra development directory to that search path.
+</p>
+
 <h2>WebAssembly Plugins</h2>
 
 <p>
