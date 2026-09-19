@@ -25,6 +25,14 @@
 - The two Unix-path name tests are now `cfg(unix)`-gated and the wasm `exec` test gets a `cmd /c` counterpart on Windows. Windows suite: 199 tests, 0 failures.
 - Daemon mode and the live stats daemon are now implemented on Windows (`ui/win_daemon.rs`): the parent renders the first frame and spawns a worker copy of itself that inherits the console, `--daemon-stop`/`--daemon-live-stop` signal a named stop event (falling back to `TerminateProcess`) and the worker exits on its own when the shell leaves the console (`GetConsoleProcessList`, the pty-hangup equivalent). The live policy documented for Windows (5 s tick, battery excluded) is now actually compiled: `platform/windows/live.rs` was unreachable dead code under `#[cfg(unix)]` inside the Windows module. The Unix engine (`ui/daemon.rs`, `ui/live.rs`) is untouched. Tests: 208 (+9) plus end-to-end start/stop/self-exit checks on Windows.
 
+### Dependency Updates
+
+- `cargo update` brought every semver-compatible dependency to its latest: `clap` 4.6.7, `console` 0.16.6, `image` 0.25.10, `serde` 1.0.229, `serde_json` 1.0.151, `libc` 0.2.189, `tar` 0.4.46, `flate2` 1.1.10 and the rest of the transitive graph.
+- Fixed `RUSTSEC-2026-0285` (rustls accepted TLS 1.3 handshake messages across encryption-level boundaries) with `rustls` 0.23.43 → 0.23.45, pulled through `ureq 2.12`; xfetch never uses rustls directly, so only `Cargo.lock` changed.
+- Major bumps that compiled with no source changes: `base64` 0.22 → 0.23, `sha2` 0.10 → 0.11, `dirs` 6 → 7 and `sysinfo` 0.37.2 → 0.39.6. Rendering was smoke-tested on Linux after the sysinfo bump.
+- `ureq` stays on 2.12: ureq 3 removes `AgentBuilder` and renames `Error::Status`, so the migration is deferred (it touches `update/github.rs`, `info/system.rs` and `wasm/host/http.rs`).
+- Verified with `cargo fmt --check`, `clippy --all-targets -- -D warnings`, the full suite (218 + 6 e2e), a `--no-default-features` build and an OSV scan of the 347 registry crates in `Cargo.lock` (0 advisories).
+
 
 ## 2026-09-12 — v0.9.0
 

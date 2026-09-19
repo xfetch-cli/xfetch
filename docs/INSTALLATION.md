@@ -228,14 +228,23 @@ brew install xfetch</code></pre>
 
 <hr>
 
-<h2>Arch Linux (PKGBUILD)</h2>
+<h2>Arch Linux (AUR)</h2>
 
 <p>
-  This method installs xfetch as a proper Arch package, making it easy to update and remove.
+  xfetch is packaged in the <a href="https://aur.archlinux.org/packages?O=0&amp;K=xfetch">Arch User Repository</a>
+  as <code>xfetch-core-bin</code> (precompiled binary) and <code>xfetch-git</code>
+  (builds from source). With an AUR helper such as <code>yay</code>:
 </p>
 
-<pre><code class="language-bash">git clone https://github.com/xfetch-cli/xfetch.git
-cd xfetch
+<pre><code class="language-bash">yay -S xfetch-core-bin   # precompiled binary
+yay -S xfetch-git        # build from source</code></pre>
+
+<p>
+  Without an AUR helper, clone the package repository and build it manually:
+</p>
+
+<pre><code class="language-bash">git clone https://aur.archlinux.org/xfetch-core-bin.git
+cd xfetch-core-bin
 makepkg -si</code></pre>
 
 <p>
@@ -246,7 +255,13 @@ makepkg -si</code></pre>
   To uninstall the package:
 </p>
 
-<pre><code class="language-bash">sudo pacman -R xfetch-git</code></pre>
+<pre><code class="language-bash">sudo pacman -R xfetch-core-bin</code></pre>
+
+<p>
+  Packages are maintained in the AUR, not in the xfetch repository, so update
+  them with <code>pacman -Syu</code> (or your AUR helper); <code>xfetch update</code>
+  never replaces a package-manager install.
+</p>
 
 <hr>
 
