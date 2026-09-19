@@ -1,14 +1,26 @@
 use sysinfo::{Disks, System};
 
 pub fn get_cpu_info(sys: &System) -> String {
-    let cpus = sys.cpus();
-    if cpus.is_empty() {
-        return super::unknown();
+    // sysinfo's CPU refresh opens a PDH query with one counter per logical
+    // processor (~270 ms) even when CPU usage is never read; the Windows
+    // probe reads brand/count/clock natively instead (see
+    // `platform/windows/cpu.rs`). Other platforms keep the sysinfo path.
+    #[cfg(target_os = "windows")]
+    {
+        let _ = sys;
+        crate::info::platform::windows::cpu::get_cpu_info()
     }
-    let brand = cpus[0].brand();
-    let freq = cpus[0].frequency();
-    let cores = cpus.len();
-    format!("{} ({}) @ {:.2} GHz", brand, cores, freq as f64 / 1000.0)
+    #[cfg(not(target_os = "windows"))]
+    {
+        let cpus = sys.cpus();
+        if cpus.is_empty() {
+            return super::unknown();
+        }
+        let brand = cpus[0].brand();
+        let freq = cpus[0].frequency();
+        let cores = cpus.len();
+        format!("{} ({}) @ {:.2} GHz", brand, cores, freq as f64 / 1000.0)
+    }
 }
 
 pub fn get_memory_info(sys: &System) -> String {

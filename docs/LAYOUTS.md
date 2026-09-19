@@ -227,6 +227,74 @@
     ]
 }</code></pre>
 
+<h2>12. Compact Layout</h2>
+
+<p>
+  Icon-to-value layout without row keys: every module renders as
+  <code>icon value</code> on a single line. Use <code>show_keys</code> or the
+  <code>labels</code> map in other layouts when you need the keys back.
+</p>
+
+<p><strong>Configuration:</strong></p>
+
+<pre><code class="language-jsonc">{
+    "layout": "compact"
+}</code></pre>
+
+<p><strong>Appearance:</strong></p>
+
+<pre><code> Arch Linux x86_64
+ 6.6.87.2-arch1-1
+ 16 GiB / 32 GiB (50%)</code></pre>
+
+<h2>13. Minimal Layout</h2>
+
+<p>
+  Plain text output with no logo, borders or icons: one <code>key: value</code>
+  line per module (a module whose <code>labels</code> entry is empty prints
+  only its value). <code>key_width</code> still pads the keys so the values
+  align, and group titles render as <code>-- Title --</code> separators.
+</p>
+
+<p><strong>Configuration:</strong></p>
+
+<pre><code class="language-jsonc">{
+    "layout": "minimal",
+    "key_width": 10
+}</code></pre>
+
+<p><strong>Appearance:</strong></p>
+
+<pre><code>os:        Arch Linux x86_64
+kernel:    6.6.87.2-arch1-1
+memory:    16 GiB / 32 GiB (50%)</code></pre>
+
+<h2>14. Horizontal Layout</h2>
+
+<p>
+  Stacks the logo above the module list instead of side by side. The content
+  is rendered exactly like the classic layout; only the placement changes.
+</p>
+
+<p><strong>Configuration:</strong></p>
+
+<pre><code class="language-jsonc">{
+    "layout": "horizontal"
+}</code></pre>
+
+<h2>15. Bottom Layout</h2>
+
+<p>
+  Like <code>horizontal</code>, but the logo is printed below the module list
+  (useful when the terminal scrolls the fetch out of view).
+</p>
+
+<p><strong>Configuration:</strong></p>
+
+<pre><code class="language-jsonc">{
+    "layout": "bottom"
+}</code></pre>
+
 <h2>Module Grouping</h2>
 
 <p>

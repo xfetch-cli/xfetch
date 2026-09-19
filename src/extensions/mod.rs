@@ -122,6 +122,7 @@ mod tests {
     use super::*;
     use std::path::Path;
 
+    #[cfg(unix)]
     #[test]
     fn test_extract_extension_name_linux() {
         let path = Path::new("/usr/lib/xfetch/extensions/xfetch-extension-foo");

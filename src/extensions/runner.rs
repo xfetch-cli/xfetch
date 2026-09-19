@@ -1,7 +1,7 @@
 use crate::config::ConfigProviderConfig;
 use crate::extensions::find_extension_binary;
 use crate::extensions::types::{ConfigProviderRequest, ConfigProviderResponse};
-use crate::subprocess::run_cmd_with_stdin_timeout;
+use crate::subprocess::{guest_timeout, run_cmd_with_stdin_timeout};
 use crate::wasm::{self, GuestKind};
 use std::time::Duration;
 
@@ -17,16 +17,17 @@ pub fn run_config_provider(
     let payload = serde_json::to_vec(&request)
         .map_err(|err| format!("Failed to serialize extension request: {}", err))?;
 
-    let timeout = config.timeout_secs.map(Duration::from_secs);
-
-    // Wasm guests reuse the JSON protocol through the sandboxed runtime.
+    // Wasm guests reuse the JSON protocol through the sandboxed runtime; an
+    // absent `timeout_secs` lets the manifest's own `timeout_ms` apply.
     if wasm::is_wasm_file(&extension_path) {
+        let timeout = config.timeout_secs.map(Duration::from_secs);
         let stdout = wasm::run_request(&extension_path, &payload, timeout, GuestKind::Extension)?;
         let response: ConfigProviderResponse = serde_json::from_slice(&stdout)
             .map_err(|err| format!("Failed to parse extension output: {}", err))?;
         return Ok(response.config);
     }
 
+    let timeout = guest_timeout(config.timeout_secs);
     let output = run_cmd_with_stdin_timeout(&extension_path, &[], Some(&payload), timeout)
         .ok_or_else(|| match timeout {
             Some(d) => format!(

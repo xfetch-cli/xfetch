@@ -1,6 +1,6 @@
 use crate::config::{InfoPluginConfig, LogoAnimationConfig};
 use crate::plugins::find_plugin_binary;
-use crate::subprocess::run_cmd_with_stdin_timeout;
+use crate::subprocess::{guest_timeout, run_cmd_with_stdin_timeout};
 use crate::wasm::{self, GuestKind};
 use std::time::Duration;
 use xfetch_plugin_api::{
@@ -11,17 +11,20 @@ use xfetch_plugin_api::{
 fn run_plugin_raw(
     plugin_name: &str,
     payload: &[u8],
-    timeout: Option<Duration>,
+    timeout_secs: Option<u64>,
 ) -> Result<Vec<u8>, String> {
     let plugin_path = find_plugin_binary(plugin_name)
         .ok_or_else(|| format!("Plugin not found: {}", plugin_name))?;
 
     // Wasm guests reuse the JSON protocol; the runtime enforces the manifest
-    // capabilities and limits instead of spawning a native process.
+    // capabilities and limits instead of spawning a native process, and falls
+    // back to the manifest's own `timeout_ms` when the config sets none.
     if wasm::is_wasm_file(&plugin_path) {
+        let timeout = timeout_secs.map(Duration::from_secs);
         return wasm::run_request(&plugin_path, payload, timeout, GuestKind::Plugin);
     }
 
+    let timeout = guest_timeout(timeout_secs);
     let output =
         run_cmd_with_stdin_timeout(&plugin_path, &[], Some(payload), timeout).ok_or_else(|| {
             match timeout {
@@ -67,8 +70,7 @@ pub fn run_logo_animation_plugin(
     let payload = to_json_vec(&request)
         .map_err(|err| format!("Failed to serialize plugin request: {}", err))?;
 
-    let timeout = config.timeout_secs.map(Duration::from_secs);
-    let stdout = run_plugin_raw(plugin_name, &payload, timeout)?;
+    let stdout = run_plugin_raw(plugin_name, &payload, config.timeout_secs)?;
 
     let response: LogoAnimationResponse = parse_json_slice(&stdout)
         .map_err(|err| format!("Failed to parse plugin output: {}", err))?;
@@ -86,8 +88,7 @@ pub fn run_info_plugin(config: &InfoPluginConfig) -> Result<Vec<String>, String>
     let payload = to_json_vec(&request)
         .map_err(|err| format!("Failed to serialize plugin request: {}", err))?;
 
-    let timeout = config.timeout_secs.map(Duration::from_secs);
-    let stdout = run_plugin_raw(&config.plugin, &payload, timeout)?;
+    let stdout = run_plugin_raw(&config.plugin, &payload, config.timeout_secs)?;
 
     let response: InfoPluginResponse = parse_json_slice(&stdout)
         .map_err(|err| format!("Failed to parse plugin output: {}", err))?;

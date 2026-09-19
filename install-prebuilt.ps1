@@ -5,7 +5,7 @@
 #
 # Usage:
 #   irm https://raw.githubusercontent.com/xfetch-cli/xfetch/main/install-prebuilt.ps1 | iex
-#   .\install-prebuilt.ps1 -Version 0.9.0 -BinDir C:\tools\bin
+#   .\install-prebuilt.ps1 -Version 1.0.0 -BinDir C:\tools\bin
 #   .\install-prebuilt.ps1 -NoChecksum -NoPath
 
 param(

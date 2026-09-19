@@ -125,10 +125,29 @@ mod tests {
         assert_eq!(err.kind, HostErrorKind::Denied);
     }
 
+    #[cfg(unix)]
     #[test]
     fn allowlisted_program_returns_output() {
         let ctx = context(r#"{ "capabilities": { "exec": { "allow": ["echo"] } } }"#);
         let value = run(&json!({ "program": "echo", "args": ["hello"] }), &ctx).expect("run");
+        assert_eq!(value["code"], 0);
+        let stdout = crate::wasm::host::parse_bytes(&value, "stdout_base64")
+            .expect("decode")
+            .unwrap_or_default();
+        assert_eq!(String::from_utf8_lossy(&stdout).trim(), "hello");
+    }
+
+    /// `echo` is a cmd builtin, not an executable, so the Windows
+    /// counterpart goes through `cmd /c`.
+    #[cfg(windows)]
+    #[test]
+    fn allowlisted_program_returns_output() {
+        let ctx = context(r#"{ "capabilities": { "exec": { "allow": ["cmd"] } } }"#);
+        let value = run(
+            &json!({ "program": "cmd", "args": ["/c", "echo", "hello"] }),
+            &ctx,
+        )
+        .expect("run");
         assert_eq!(value["code"], 0);
         let stdout = crate::wasm::host::parse_bytes(&value, "stdout_base64")
             .expect("decode")

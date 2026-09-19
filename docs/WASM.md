@@ -45,9 +45,11 @@
 
 <pre><code class="language-bash"># Inspect an artifact without running it
 xfetch wasm inspect ./xfetch-plugin-wasm-crypto.wasm
+xfetch wasm inspect ./plugin.wasm --json
 
 # Run it with a raw JSON request (useful for authors and scripts)
 xfetch wasm run ./plugin.wasm --request '{"version":1,"kind":"info_provider"}'
+xfetch wasm run ./plugin.wasm --request-file request.json --kind plugin --timeout 30
 
 # Print the WIT contract used by component guests
 xfetch wasm wit
@@ -58,6 +60,16 @@ xfetch plugin install wasm-crypto
 xfetch plugin install https://example.com/releases/plugin.wasm
 xfetch effects install ./effects/wasm-matrix
 xfetch extension install ./extensions/wasm-night-mode</code></pre>
+
+<p>
+  <code>wasm inspect</code> prints a human-readable report or the same data as
+  JSON with <code>--json</code>. <code>wasm run</code> accepts the request
+  inline (<code>--request</code>) or from a file
+  (<code>--request-file</code>), an optional <code>--kind</code>
+  (<code>plugin</code>, <code>effect</code> or <code>extension</code>; default
+  <code>plugin</code>) and a <code>--timeout</code> in seconds that overrides
+  the manifest limit.
+</p>
 
 <h2>Manifest</h2>
 
@@ -275,7 +287,10 @@ xfetch extension install ./extensions/wasm-night-mode</code></pre>
   <a href="https://github.com/xfetch-cli/api/tree/main/crates/guest-api">xfetch-guest-api</a>
   crate, which implements the ABI, the allocator exports and typed helpers
   (<code>http_request</code>, <code>exec</code>, <code>log</code>,
-  <code>protocol_version</code>).
+  <code>protocol_version</code>). The core does not depend on this crate: the
+  host bridge lives in the runtime, and only the guest adds it to its own
+  <code>Cargo.toml</code>. Declaring it as <code>"0.2"</code> lets Cargo resolve
+  the newest compatible 0.2.x release.
 </p>
 
 <h2>Components</h2>

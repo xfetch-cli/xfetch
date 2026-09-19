@@ -18,6 +18,16 @@
 
 <p>No extra shell configuration is required — everything activates from the JSON.</p>
 
+<p>
+  On Windows there is no <code>fork</code>: the parent renders the first frame and
+  spawns a worker copy of itself that inherits the console, and
+  <code>xfetch --daemon-stop</code> signals a named stop event (falling back to
+  terminating the worker) so the terminal is restored either way. The worker also
+  exits on its own when the shell leaves the console — the Windows equivalent of
+  the pty hangup. Scroll region, absolute rows and cursor save/restore are the
+  same on every platform.
+</p>
+
 <h2>Activation</h2>
 
 <p>From the CLI:</p>
@@ -48,6 +58,14 @@
   This reads the PID from <code>~/.config/xfetch/daemon.pid</code>, verifies it is an
   xfetch process, sends <code>SIGTERM</code>, and restores the terminal (cursor shown,
   scroll region reset, PID file removed).
+</p>
+
+<p>
+  On Windows the same command signals the worker's named stop event instead of
+  <code>SIGTERM</code>; if the worker does not exit within a second it is
+  terminated and the terminal is restored from the stop command. The PID is
+  validated against the process image name (<code>xfetch.exe</code>), mirroring
+  the <code>/proc/&lt;pid&gt;/comm</code> check on Linux.
 </p>
 
 <h2>Configuration</h2>
@@ -91,9 +109,9 @@
 
 <ul>
   <li><code>~/.config/xfetch/daemon.rows</code> stores the pinned block height, available for optional shell integration.</li>
-  <li>If the terminal is closed while the daemon runs, the daemon exits on its own (the output device disappears).</li>
+  <li>If the terminal is closed while the daemon runs, the daemon exits on its own: both daemons poll their stdout for the pty hangup and shut down cleanly (terminal restored, PID files removed) instead of lingering as orphans.</li>
   <li>If the PID file is missing or stale, <code>xfetch --daemon-stop</code> reports "No daemon running" and cleans up the stale file.</li>
-  <li>Orphaned daemons can accumulate if <code>--daemon-stop</code> is not used (e.g. after killing the terminal abruptly); clean them up with <code>pkill xfetch</code>.</li>
+  <li>A daemon killed with <code>SIGKILL</code> cannot clean up after itself; <code>xfetch --daemon-stop</code> (or <code>pkill xfetch</code>) clears the leftover file.</li>
 </ul>
 
 <h2>Live Stats Daemon</h2>
@@ -102,7 +120,7 @@
   The <strong>live stats daemon</strong> (<code>daemon_live</code>) is a sibling of the
   animated-logo daemon: it pins the fetch block at the top of the terminal and
   <strong>re-probes a lightweight subset of modules every few seconds</strong>, re-rendering
-  the block with fresh values (cpu, memory, swap, disks, battery, uptime, datetime).
+  the block with fresh values (cpu, memory, swap, disk, battery, uptime, datetime).
   Your fetch stops being a static snapshot and becomes a live panel — think
   "conky pinned at the top", not an interactive btop.
 </p>
@@ -142,7 +160,7 @@ xfetch --daemon-live-reload   # force hot reload (same as "daemon_live_reload": 
     </tr>
     <tr>
       <td><code>daemon_live_modules</code></td><td>array</td><td>per-platform</td>
-      <td>Modules shown (and refreshed). Defaults to the platform's live set: Linux/macOS <code>cpu, memory, swap, disks, battery, uptime, datetime</code>; Windows excludes <code>battery</code> (it spawns <code>wmic</code>/PowerShell every tick) unless you add it back.</td>
+      <td>Modules shown (and refreshed). Defaults to the platform's live set: Linux/macOS <code>cpu, memory, swap, disk, battery, uptime, datetime</code>; Windows excludes <code>battery</code> (opt-in) unless you add it back.</td>
     </tr>
     <tr>
       <td><code>daemon_live_reload</code></td><td>boolean</td><td><code>false</code></td>

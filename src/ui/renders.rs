@@ -1,6 +1,8 @@
 use super::nodes::RenderNode;
 use crate::config::Config;
 use console::strip_ansi_codes;
+use std::collections::HashSet;
+use std::sync::{Mutex, OnceLock};
 
 const BOX_PADDING: usize = 2;
 const BORDER_COLOR: &str = "38;5;2";
@@ -570,27 +572,69 @@ pub fn format_line_content(key: &str, value: &str, icon: &str, config: &Config) 
     format_line(key, value, icon, config)
 }
 
-pub fn get_color_code(key: &str, config: &Config) -> &'static str {
-    let color_name = config
+/// Resolves the SGR parameter string for a module color.
+///
+/// Accepts the same formats as the logo color: names (`"Cyan"`),
+/// 256-color indexes (`"196"`) and hex RGB (`"#FF0000"`). Unknown values
+/// fall back to white and are reported once.
+pub fn get_color_code(key: &str, config: &Config) -> String {
+    let value = config
         .colors
         .get(key)
-        .map(|s| s.as_str())
+        .map(String::as_str)
         .unwrap_or("White");
-    color_code_from_name(color_name)
+    if !is_known_color(value) {
+        warn_unknown_color(value);
+    }
+    color_sgr(value)
 }
 
 pub fn color_code_from_name(name: &str) -> &'static str {
+    named_color_code(name).unwrap_or("37")
+}
+
+/// Named colors shared by the renderers, including the documented dark
+/// aliases. Returns `None` for anything that is not a known name.
+fn named_color_code(name: &str) -> Option<&'static str> {
     match name.to_lowercase().as_str() {
-        "black" => "30",
-        "red" => "31",
-        "green" => "32",
-        "yellow" => "33",
-        "blue" => "34",
-        "magenta" => "35",
-        "cyan" => "36",
-        "white" => "37",
-        "grey" | "gray" => "90",
-        _ => "37",
+        "black" | "darkblack" => Some("30"),
+        "red" | "darkred" => Some("31"),
+        "green" | "darkgreen" => Some("32"),
+        "yellow" | "darkyellow" => Some("33"),
+        "blue" | "darkblue" => Some("34"),
+        "magenta" | "darkmagenta" => Some("35"),
+        "cyan" | "darkcyan" => Some("36"),
+        "white" => Some("37"),
+        "grey" | "gray" | "darkgrey" | "darkgray" => Some("90"),
+        _ => None,
+    }
+}
+
+/// Whether `value` is a color this renderer understands.
+fn is_known_color(value: &str) -> bool {
+    let value = value.trim();
+    if let Some(hex) = value.strip_prefix('#') {
+        return hex.len() == 6 && hex.chars().all(|c| c.is_ascii_hexdigit());
+    }
+    if !value.is_empty() && value.chars().all(|c| c.is_ascii_digit()) {
+        return value.parse::<u8>().is_ok();
+    }
+    named_color_code(value).is_some()
+}
+
+/// Reports an unrecognized color once per value, so typos are visible
+/// without spamming one warning per rendered line.
+fn warn_unknown_color(value: &str) {
+    static WARNED: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
+    let warned = WARNED.get_or_init(|| Mutex::new(HashSet::new()));
+    let Ok(mut warned) = warned.lock() else {
+        return;
+    };
+    if warned.insert(value.to_string()) {
+        eprintln!(
+            "Warning: unknown color '{}'; using white. Use a name, a 0-255 index or #RRGGBB.",
+            value
+        );
     }
 }
 
@@ -636,6 +680,53 @@ mod tests {
     use super::*;
     use crate::config::Config;
     use crate::ui::nodes::RenderNode;
+
+    #[test]
+    fn test_color_sgr_accepts_names_indexes_and_hex() {
+        assert_eq!(color_sgr("Cyan"), "36");
+        assert_eq!(color_sgr("cyan"), "36");
+        assert_eq!(color_sgr("darkred"), "31");
+        assert_eq!(color_sgr("196"), "38;5;196");
+        assert_eq!(color_sgr("0"), "38;5;0");
+        assert_eq!(color_sgr("#FF8800"), "38;2;255;136;0");
+        assert_eq!(color_sgr("  #ff8800  "), "38;2;255;136;0");
+    }
+
+    #[test]
+    fn test_color_sgr_falls_back_for_invalid_values() {
+        assert_eq!(color_sgr("#F00"), "37");
+        assert_eq!(color_sgr("#GG0000"), "37");
+        assert_eq!(color_sgr("256"), "37");
+        assert_eq!(color_sgr("nonsense"), "37");
+    }
+
+    #[test]
+    fn test_module_colors_use_the_full_color_parser() {
+        let mut config = Config::default();
+        config
+            .colors
+            .insert("os".to_string(), "#FF8800".to_string());
+        config.colors.insert("cpu".to_string(), "196".to_string());
+        config
+            .colors
+            .insert("memory".to_string(), "Cyan".to_string());
+
+        assert_eq!(get_color_code("os", &config), "38;2;255;136;0");
+        assert_eq!(get_color_code("cpu", &config), "38;5;196");
+        assert_eq!(get_color_code("memory", &config), "36");
+        assert_eq!(get_color_code("unknown", &config), "37");
+    }
+
+    #[test]
+    fn test_known_color_detection_matches_the_parser() {
+        assert!(is_known_color("Cyan"));
+        assert!(is_known_color("DARKGRAY"));
+        assert!(is_known_color("196"));
+        assert!(is_known_color("#FF8800"));
+        assert!(!is_known_color("nonsense"));
+        assert!(!is_known_color("#F00"));
+        assert!(!is_known_color("256"));
+    }
 
     #[test]
     // Test that classic render doesn't crash with empty nodes

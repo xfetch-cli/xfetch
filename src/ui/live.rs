@@ -25,7 +25,7 @@ use crate::ui::logo;
 use crate::ui::nodes::prepare_render_tree;
 use crate::ui::print::{
     DaemonState, LOGO_INFO_GAP, build_daemon_frame_buffer, daemon_move_to_prompt, daemon_prepare,
-    restore_terminal,
+    restore_terminal, terminal_hung_up,
 };
 use crossterm::terminal::size;
 use std::io::{IsTerminal, Write, stdout};
@@ -281,6 +281,11 @@ fn print_live_output(block: &mut LiveBlock, config_path: Option<&str>) {
         if INTERRUPTED.load(Ordering::SeqCst) {
             break;
         }
+        // The terminal window may have closed under the detached daemon; a
+        // hangup or a failed write means the pinned block is gone for good.
+        if terminal_hung_up() {
+            break;
+        }
 
         let cur_size = match size() {
             Ok(s) => s,
@@ -342,8 +347,9 @@ fn print_live_output(block: &mut LiveBlock, config_path: Option<&str>) {
                 &block.config,
                 block.force_plain_logo,
             );
-            let _ = out.write_all(buffer.as_bytes());
-            let _ = out.flush();
+            if out.write_all(buffer.as_bytes()).is_err() || out.flush().is_err() {
+                break;
+            }
             frame_index = (frame_index + 1) % block.frames.len();
             first = false;
         }

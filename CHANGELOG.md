@@ -1,5 +1,39 @@
 # Changelog
 
+## 2026-09-18 — v1.0.0
+
+- Fixed the live stats daemon losing the disk module on every platform: the default module lists said `"disks"` while the probe gate and renderer only know `"disk"`, so the module was silently skipped (Linux/macOS/Windows policies and `docs/DAEMON.md` now use `disk`).
+- Both daemons (animated logo and live stats) now exit on their own when the terminal is closed: they run detached (`setsid`), so no SIGHUP arrives, and they used to linger as orphans rendering into a dead pty. They now poll stdout for the pty hangup and stop cleanly (terminal restored, PID/rows files removed).
+- `xfetch | head` (or any consumer that closes the pipe early) no longer panics on the static render path: stdout write errors are ignored, matching the daemon and animation paths.
+- Native plugins, effects and extensions now default to a 30 s timeout when `timeout_secs` is unset, matching the wasm manifest default, so an uncooperative guest can no longer hang the whole fetch; `0` disables the cap. Docs updated accordingly.
+- Fixed the Windows PowerShell GPU fallback dropping the first GPU: the header line is only skipped for `wmic` output, and the parsing is now covered by tests.
+- Updated the core dependencies to the 0.2.0 API crates (`xfetch-plugin-api`, `xfetch-extension-api`, `xfetch-effect-api`).
+- Module colors now accept the same formats as the logo color: names, 256-color indexes (`"196"`) and hex RGB (`"#FF8800"`). The documented dark aliases (`DarkRed`, `DarkGrey`, ...) are accepted too, and unrecognized values fall back to white with a one-time warning.
+- Installer writes are now atomic: binaries and manifests are staged in the destination directory and renamed over the target, so an interrupted install can no longer leave a truncated file (same pattern applied to `install-prebuilt.sh` and `install-prebuilt.ps1`).
+- New `install-prebuilt.ps1`: Windows prebuilt installer that downloads the release ZIP, verifies its SHA256 and installs it per-user; `uninstall.ps1` and `install-prebuilt.sh` updated accordingly.
+- `install-prebuilt.sh` now picks the musl build on musl distributions (Alpine), where the glibc prebuilt cannot run.
+
+### Windows Native Probes (Performance)
+
+- Windows no longer pays sysinfo's PDH setup: brand and nominal clock come from `HARDWARE\DESCRIPTION\System\CentralProcessor\0` (`ProcessorNameString`, `~MHz`), the logical processor count from `GetActiveProcessorCount` and the live clock from `CallNtPowerInformation(ProcessorInformation)` (`platform/windows/cpu.rs`). sysinfo opens one PDH counter per logical processor (~270 ms on a 16-thread machine) even when CPU usage is never read, so on Windows `System` is created with the memory refresh only (`system_refresh_kind()` in `info/mod.rs`); other platforms keep the full refresh.
+- `datetime` reads `GetLocalTime` instead of spawning PowerShell (~200 ms), `battery` reads `GetSystemPowerStatus` instead of `wmic`/PowerShell (~280 ms, same `NN% [Charging|Charged|Discharging]` output) and `gpu` enumerates `EnumDisplayDevicesW` (deduplicated, ~1 ms) with the PowerShell/CIM probe kept only as a fallback. `wmic` (absent from Windows 11 24H2+) is no longer spawned.
+- Configs starting with a UTF-8 BOM now parse: PowerShell 5.1 `Set-Content -Encoding UTF8` and Notepad write one, and xfetch used to fall back silently to the defaults.
+- New `windows-sys` dependency under `[target.'cfg(windows)'.dependencies]` (already present in the dependency graph; other targets unaffected). All changes are Windows-only or `cfg(windows)`-gated: the shared files keep identical Linux/macOS behavior.
+- Measured on Windows 11 26100 (Ryzen 7 7735HS, 16 threads), default config: warm fetch 575 ms → **~33 ms**, cold (cache cleared) 955 ms → ~650 ms (remaining cost is `winget list`, cached for 300 s afterwards); per module: datetime 219 → 24 ms, gpu 301 → 25 ms, battery 280 → 24 ms, cpu and memory 294 → 23 ms. Rendered values are unchanged.
+- 197 tests pass on Windows. The four pre-existing Windows failures are unrelated to this work: the `plugin`/`extension` name tests use Unix paths without `#[cfg(unix)]`, the `atomic_fs` permission test hits the read-only-handle `sync_all` `Access Denied` bug in `copy_atomic`, and the wasm `exec` test spawns `echo` (a cmd builtin, not an executable).
+- Fixed those pre-existing Windows failures (the note above is superseded): `copy_atomic` now flushes the staged file through a write handle (a read-only handle fails `FlushFileBuffers` with `Access Denied`, which aborted native plugin/effect/extension installs), and the `scoop` package probe runs `scoop.cmd` — the shim Scoop actually installs — instead of the bare name, since `CreateProcess` never resolves an extensionless `.cmd`. Both fixes are `cfg(windows)`-gated/branch-local; Linux and macOS keep their previous code paths.
+- The two Unix-path name tests are now `cfg(unix)`-gated and the wasm `exec` test gets a `cmd /c` counterpart on Windows. Windows suite: 199 tests, 0 failures.
+- Daemon mode and the live stats daemon are now implemented on Windows (`ui/win_daemon.rs`): the parent renders the first frame and spawns a worker copy of itself that inherits the console, `--daemon-stop`/`--daemon-live-stop` signal a named stop event (falling back to `TerminateProcess`) and the worker exits on its own when the shell leaves the console (`GetConsoleProcessList`, the pty-hangup equivalent). The live policy documented for Windows (5 s tick, battery excluded) is now actually compiled: `platform/windows/live.rs` was unreachable dead code under `#[cfg(unix)]` inside the Windows module. The Unix engine (`ui/daemon.rs`, `ui/live.rs`) is untouched. Tests: 208 (+9) plus end-to-end start/stop/self-exit checks on Windows.
+
+### Dependency Updates
+
+- `cargo update` brought every semver-compatible dependency to its latest: `clap` 4.6.7, `console` 0.16.6, `image` 0.25.10, `serde` 1.0.229, `serde_json` 1.0.151, `libc` 0.2.189, `tar` 0.4.46, `flate2` 1.1.10 and the rest of the transitive graph.
+- Fixed `RUSTSEC-2026-0285` (rustls accepted TLS 1.3 handshake messages across encryption-level boundaries) with `rustls` 0.23.43 → 0.23.45, pulled through `ureq 2.12`; xfetch never uses rustls directly, so only `Cargo.lock` changed.
+- Major bumps that compiled with no source changes: `base64` 0.22 → 0.23, `sha2` 0.10 → 0.11, `dirs` 6 → 7 and `sysinfo` 0.37.2 → 0.39.6. Rendering was smoke-tested on Linux after the sysinfo bump.
+- `ureq` stays on 2.12: ureq 3 removes `AgentBuilder` and renames `Error::Status`, so the migration is deferred (it touches `update/github.rs`, `info/system.rs` and `wasm/host/http.rs`).
+- Verified with `cargo fmt --check`, `clippy --all-targets -- -D warnings`, the full suite (218 + 6 e2e), a `--no-default-features` build and an OSV scan of the 347 registry crates in `Cargo.lock` (0 advisories).
+
+
 ## 2026-09-12 — v0.9.0
 
 ### WebAssembly guests
@@ -11,8 +45,6 @@
 - Capability manifests (sidecar JSON or an embedded `xfetch:manifest` custom section) with deny-by-default `http`, `exec`, `fs`, `env` and `args` grants; every artifact runs under a wall-clock epoch timeout, memory cap and output caps even without a manifest.
 - Host operations for core modules: `http` (allowlisted, redirects re-checked per hop), `exec` (allowlisted, no shell, cleared environment), `log` and `version`, transported over a `host_call` ABI with guest-side allocator exports.
 - Guest logging is now filtered: only `warn`/`error` lines print by default, and `XFETCH_WASM_LOG_LEVEL` (`off`..`debug`) controls the threshold.
-- New `install-prebuilt.ps1`: Windows prebuilt installer that downloads the release ZIP, verifies its SHA256 and installs it per-user; `uninstall.ps1` and `install-prebuilt.sh` updated accordingly.
-- Installer writes are now atomic: binaries and manifests are staged in the destination directory and renamed over the target, so an interrupted install can no longer leave a truncated file (same pattern applied to `install-prebuilt.sh` and `install-prebuilt.ps1`).
 - New `xfetch update` command: checks GitHub releases, detects how the binary was installed and only updates prebuilt installs in place (SHA256-verified, atomic replace with a single `xfetch.bak`); cargo installs go through `cargo install --force` and package-manager/local builds are never replaced. `--check` reports and exits 1 when an update exists.
 - `xfetch wasm inspect|run|wit` tooling, wasm-aware installers (prebuilt artifact, `build` command, `artifact_url` or direct URL/single-file installs), sidecar-aware list/remove, and a fix for remote repository layouts nested under `plugins/plugins/`.
 - `wit/xfetch-runtime.wit` vendored from the api repository with a sync test; component protocol docs in `docs/WASM.md`.

@@ -33,6 +33,21 @@
   the resulting binary into the xfetch plugin directory.
 </p>
 
+<p>
+  Install from a custom repository with <code>--repo</code> (or <code>-r</code>),
+  or point the default remote somewhere else with the
+  <code>XFETCH_PLUGIN_REPO</code> environment variable:
+</p>
+
+<pre><code class="language-bash">xfetch plugin install my-plugin --repo https://github.com/user/plugins.git
+XFETCH_PLUGIN_REPO=https://github.com/user/plugins.git xfetch plugin install my-plugin</code></pre>
+
+<p>
+  Local sources are searched under the working directory, <code>plugins/</code>
+  and the repositories' nested layouts; <code>XFETCH_PLUGIN_DEV_DIR</code> adds
+  an extra development directory to that search path.
+</p>
+
 <h2>WebAssembly Plugins</h2>
 
 <p>
@@ -108,9 +123,10 @@ xfetch wasm run ./plugin.wasm --request '{"version":1,"kind":"info_provider"}'</
 </p>
 
 <p>
-  As a safety net for uncooperative or third-party plugins, the core can also
-  kill the plugin process after a per-plugin deadline set in the config.
-  It is opt-in: without it, the current behavior is unchanged.
+  As a safety net for uncooperative or third-party plugins, the core kills the
+  plugin process after a deadline set in the config (<code>timeout_secs</code>);
+  when the field is unset the core applies a 30 s default, and <code>0</code>
+  disables the cap entirely.
 </p>
 
 <pre><code class="language-jsonc">{
