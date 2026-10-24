@@ -14,6 +14,21 @@
 - Manifest build commands print the exact command and a warning that they run on the host, unsandboxed. Native plugin/effect/extension installs are labelled as unsandboxed in the install output and docs.
 - Stabilized the PTY hangup test by marking its descriptors close-on-exec, owning them with RAII cleanup and waiting for the kernel hangup transition.
 
+### Release and supply chain
+
+- Added a keyless cosign signature for every release's `SHA256SUMS` (`SHA256SUMS.bundle`) plus GitHub build provenance attestations for the published archives.
+- The release workflow now has a gate that verifies the tag is on `main`, the tag matches `Cargo.toml`, and runs `cargo test --locked` and `cargo audit --deny warnings` before building.
+- The publish job verifies the cosign signature and every archive against `SHA256SUMS` before uploading; release assets are restricted to the expected filenames and permissions are split between build, sign and publish jobs.
+- Added `security-audit.yml` running `cargo audit` 0.22.2 with `--deny warnings` on push, pull request and weekly schedules, plus weekly Dependabot updates for Cargo and GitHub Actions. All actions are pinned by commit SHA.
+- Release builds use Rust 1.98.1 and `--locked`; checkouts no longer persist credentials.
+
+### Installer and packaging
+
+- `install-prebuilt.sh` now uses a portable SHA-256 implementation (`sha256sum`, `shasum -a 256` or `openssl`), so verification also works on stock macOS.
+- `SHA256SUMS` is mandatory. Releases from v1.0.1 onward also require a `SHA256SUMS.bundle`; a missing or invalid signature aborts the install. `--require-signature` makes cosign mandatory and `--allow-unsigned` is an explicit opt-out for missing bundles; `--no-checksum` disables both checks with a loud warning.
+- The installer derives the version from the release `tag_name` (not from the asset filename), validates it, cross-checks `--version`, and selects the exact expected asset name. This closes the old-version/asset-spoof downgrade path.
+- Remote artifacts without a digest still install for compatibility but print a prominent unverified warning.
+
 ## 2026-09-18 — v1.0.0
 
 - Fixed the live stats daemon losing the disk module on every platform: the default module lists said `"disks"` while the probe gate and renderer only know `"disk"`, so the module was silently skipped (Linux/macOS/Windows policies and `docs/DAEMON.md` now use `disk`).
