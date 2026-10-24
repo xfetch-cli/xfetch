@@ -3,7 +3,7 @@
 # Prebuilt installer — downloads a precompiled binary from GitHub Releases.
 # Fast: no Rust toolchain, no compilation. Requires only curl (and tar/unzip).
 # Usage: curl -fsSL https://raw.githubusercontent.com/xfetch-cli/xfetch/main/install-prebuilt.sh | bash
-#        bash install-prebuilt.sh --version 1.0.0
+#        bash install-prebuilt.sh --version 1.0.1
 #        bash install-prebuilt.sh --prefix /usr/local --yes
 
 set -euo pipefail
@@ -174,7 +174,7 @@ Options:
   -y, --yes               Automatic yes to all prompts
   -s, --skip-config       Skip generating the default config
   -q, --quiet             Quiet mode (minimal output)
-      --version <ver>     Install a specific version (e.g. 1.0.0); default: latest release
+      --version <ver>     Install a specific version (e.g. 1.0.1); default: latest release
       --require-signature Abort when cosign is unavailable or the signature bundle is missing
       --allow-unsigned    Accept a signed release that is missing SHA256SUMS.bundle
                           (SHA-256 only; not recommended)
@@ -200,7 +200,7 @@ Examples:
   curl -fsSL ${REPO_RAW}/install-prebuilt.sh | bash
 
   # Install a specific version
-  curl -fsSL ${REPO_RAW}/install-prebuilt.sh | bash -s -- --version 1.0.0
+  curl -fsSL ${REPO_RAW}/install-prebuilt.sh | bash -s -- --version 1.0.1
 
   # Non-interactive install
   bash install-prebuilt.sh --yes
