@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-10-24 — v1.0.1
+
+### Security
+
+- Closed all RustSec advisories in the 1.0.0 dependency graph with `cargo update`: `wasmtime` and `wasmtime-wasi` 48.0.7, `rustls` 0.23.46, `rustls-webpki` 0.103.16, `webpki-roots` 1.0.11, `tokio` 1.54.1 and `yoke-derive` 0.8.4, plus the remaining semver-compatible transitive updates. `cargo audit` now reports 0 vulnerabilities and 0 warnings.
+- **Binaries built from v1.0.0 remain affected by these advisories; upgrade to v1.0.1.** wasmtime stays on the 48.x line rather than jumping to 50.x, so the runtime behavior of existing wasm guests is unchanged.
+- Wasm manifests accept an optional `sha256` field (64 hex characters). Digests are enforced on every wasm install path: downloaded `artifact_url`, direct local `.wasm` file, checked-in `artifact` and build-generated artifact. A mismatch aborts before any file is created or replaced, and a checked-in artifact never falls back to an unverified `artifact_url` alternative.
+- `xfetch plugin install`, `xfetch effects install` and `xfetch extension install` accept `--sha256 <hex>`, which takes precedence over the manifest digest and is recorded in the installed sidecar. Supplying it for a native (non-wasm) source is now a hard error instead of a silent no-op.
+- The manifest `sha256` field is documented as integrity-only (same origin as the artifact); a `--sha256` value from a trusted separate channel is the real provenance pin. Remote installs without either still work for compatibility, but print a prominent unverified warning.
+- Remote installers sanitize the guest name used for temporary clone directories (`[A-Za-z0-9._-]`, no `.`/`..` or separators), create a fresh unique work directory (`0700` on Unix), reject empty or leading-`-` repository values and invoke `git clone --depth 1 -- <repo> <dest>` so repository values cannot be parsed as options. Direct URL installs validate the URL-derived guest name before using it in destination paths.
+- Verified wasm artifacts are read once and written from the verified buffer atomically, so replacing the source path after verification cannot bypass the digest.
+- Manifest build commands print the exact command and a warning that they run on the host, unsandboxed. Native plugin/effect/extension installs are labelled as unsandboxed in the install output and docs.
+- Stabilized the PTY hangup test by marking its descriptors close-on-exec, owning them with RAII cleanup and waiting for the kernel hangup transition.
+
 ## 2026-09-18 — v1.0.0
 
 - Fixed the live stats daemon losing the disk module on every platform: the default module lists said `"disks"` while the probe gate and renderer only know `"disk"`, so the module was silently skipped (Linux/macOS/Windows policies and `docs/DAEMON.md` now use `disk`).

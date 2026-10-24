@@ -679,9 +679,72 @@ impl crossterm::Command for ResetScrollRegion {
 #[cfg(all(test, unix))]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+    use std::time::{Duration, Instant};
+
+    /// Serializes tests that create ptys so their fd lifecycle cannot overlap.
+    static PTY_TEST_LOCK: Mutex<()> = Mutex::new(());
+
+    /// Closes the wrapped descriptor even when an assertion panics.
+    struct OwnedFd(libc::c_int);
+
+    impl Drop for OwnedFd {
+        fn drop(&mut self) {
+            if self.0 >= 0 {
+                unsafe {
+                    libc::close(self.0);
+                }
+            }
+        }
+    }
+
+    /// Keeps pty descriptors out of concurrently spawned child processes.
+    ///
+    /// `openpty` does not set `FD_CLOEXEC`; without this, another test thread
+    /// calling `fork`/`exec` can inherit the master and keep the slave from
+    /// reporting a hangup after we close our copy.
+    fn set_cloexec(fd: libc::c_int) -> Result<(), String> {
+        let flags = unsafe { libc::fcntl(fd, libc::F_GETFD) };
+        if flags < 0 {
+            return Err(format!(
+                "fcntl(F_GETFD) failed: {}",
+                std::io::Error::last_os_error()
+            ));
+        }
+        let rc = unsafe { libc::fcntl(fd, libc::F_SETFD, flags | libc::FD_CLOEXEC) };
+        if rc < 0 {
+            return Err(format!(
+                "fcntl(F_SETFD) failed: {}",
+                std::io::Error::last_os_error()
+            ));
+        }
+        Ok(())
+    }
+
+    /// Polls until the hangup is visible. Closing the master is synchronous,
+    /// but an inherited descriptor from a concurrently forked child (or a
+    /// scheduling delay) can make the transition visible a few milliseconds
+    /// later; a bounded wait keeps the test deterministic without hiding a
+    /// genuine failure.
+    fn wait_for_hangup(fd: libc::c_int) -> bool {
+        let deadline = Instant::now() + Duration::from_secs(2);
+        loop {
+            if fd_hung_up(fd) {
+                return true;
+            }
+            if Instant::now() >= deadline {
+                return false;
+            }
+            std::thread::sleep(Duration::from_millis(5));
+        }
+    }
 
     #[test]
     fn test_fd_hung_up_tracks_the_pty_master() {
+        let _guard = PTY_TEST_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+
         let mut master: libc::c_int = -1;
         let mut slave: libc::c_int = -1;
         let rc = unsafe {
@@ -695,13 +758,16 @@ mod tests {
         };
         assert_eq!(rc, 0, "openpty failed");
 
-        assert!(!fd_hung_up(slave), "live pty must not report a hangup");
-        unsafe {
-            libc::close(master);
-        }
-        assert!(fd_hung_up(slave), "closed master must report a hangup");
-        unsafe {
-            libc::close(slave);
-        }
+        let master = OwnedFd(master);
+        let slave = OwnedFd(slave);
+        set_cloexec(master.0).expect("mark pty master close-on-exec");
+        set_cloexec(slave.0).expect("mark pty slave close-on-exec");
+
+        assert!(!fd_hung_up(slave.0), "live pty must not report a hangup");
+        drop(master);
+        assert!(
+            wait_for_hangup(slave.0),
+            "closed master must report a hangup"
+        );
     }
 }

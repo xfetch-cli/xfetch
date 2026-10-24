@@ -7,7 +7,7 @@
 //! update, so no version graveyard accumulates).
 
 use super::github::{self, Client, Release};
-use sha2::{Digest, Sha256};
+use crate::hash::sha256_hex;
 use std::fs;
 use std::io::{Cursor, Read};
 use std::os::unix::fs::PermissionsExt;
@@ -94,16 +94,6 @@ pub fn release_target() -> Option<&'static str> {
     } else {
         None
     }
-}
-
-/// Lowercase hex SHA-256 of a byte slice.
-pub fn sha256_hex(bytes: &[u8]) -> String {
-    let digest = Sha256::digest(bytes);
-    let mut out = String::with_capacity(digest.len() * 2);
-    for byte in digest {
-        out.push_str(&format!("{:02x}", byte));
-    }
-    out
 }
 
 /// Extracts the `xfetch` entry from the release tarball into a temporary file.

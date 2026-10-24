@@ -17,6 +17,7 @@
 //! Remote sources can ship prebuilt artifacts through `artifact_url`, which
 //! lets users install wasm guests without any language toolchain installed.
 
+use crate::hash::{normalize_sha256, verify_sha256};
 use crate::wasm::detect::is_wasm_file;
 use crate::wasm::manifest::Manifest;
 use std::fs;
@@ -98,8 +99,15 @@ pub fn plan(dir: &Path, label: &str, name: &str) -> Result<SourceAction, String>
 }
 
 /// Runs the manifest build command inside the source directory.
+///
+/// Build commands are not sandboxed: they run on the host with the invoking
+/// user's privileges, so the exact command is printed before execution.
 pub fn run_build(dir: &Path, command: &str) -> Result<(), String> {
-    println!("Building wasm guest in '{}'...", dir.display());
+    println!("Running wasm build command in '{}':", dir.display());
+    println!("  {}", command);
+    println!(
+        "WARNING: manifest build commands run on the host, unsandboxed, with your user privileges."
+    );
 
     #[cfg(unix)]
     let mut builder = {
@@ -128,32 +136,106 @@ pub fn run_build(dir: &Path, command: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Resolves the digest to enforce: an explicit `--sha256` value wins over the
+/// manifest field. Both are normalized before use, so malformed digests fail
+/// before anything is downloaded or written.
+fn expected_sha256(
+    flag: Option<&str>,
+    manifest: Option<&Manifest>,
+) -> Result<Option<String>, String> {
+    let value = match flag {
+        Some(value) => Some(value),
+        None => manifest.and_then(|manifest| manifest.sha256.as_deref()),
+    };
+    value.map(normalize_sha256).transpose()
+}
+
 /// Copies an installed plan into the destination directory.
+///
+/// When a digest is supplied by `--sha256` or the plan's manifest, the artifact
+/// bytes are verified before the destination directory is created or any file
+/// is replaced.
 pub fn install(
-    plan: InstallPlan,
+    mut plan: InstallPlan,
+    sha256: Option<&str>,
     dest_dir: &Path,
     prefix: &str,
     name: &str,
     label: &str,
 ) -> Result<(), String> {
-    if !is_wasm_file(&plan.artifact) {
-        return Err(format!(
-            "Artifact '{}' is not a WebAssembly binary",
-            plan.artifact.display()
-        ));
+    let expected = expected_sha256(sha256, plan.manifest.as_ref())?;
+
+    // Persist a CLI-supplied pin in the installed sidecar when one is written.
+    if let (Some(manifest), Some(hash)) = (plan.manifest.as_mut(), expected.as_ref()) {
+        manifest.sha256 = Some(hash.clone());
     }
+
+    // With a digest, read the artifact exactly once and keep those bytes: the
+    // verified buffer is what gets written, so swapping the path after the
+    // check cannot bypass verification.
+    let verified_bytes = match expected.as_deref() {
+        Some(expected) => {
+            let bytes = fs::read(&plan.artifact).map_err(|err| {
+                format!(
+                    "Failed to read artifact '{}' for SHA-256 verification: {}",
+                    plan.artifact.display(),
+                    err
+                )
+            })?;
+            verify_sha256(&bytes, expected).map_err(|err| {
+                format!(
+                    "Refusing to install wasm {} '{}' from '{}': {}",
+                    label,
+                    name,
+                    plan.artifact.display(),
+                    err
+                )
+            })?;
+            if bytes
+                .get(..8)
+                .and_then(crate::wasm::detect::kind_from_header)
+                .is_none()
+            {
+                return Err(format!(
+                    "Artifact '{}' is not a WebAssembly binary",
+                    plan.artifact.display()
+                ));
+            }
+            println!("Verified SHA-256 {}", expected);
+            Some(bytes)
+        }
+        None => {
+            if !is_wasm_file(&plan.artifact) {
+                return Err(format!(
+                    "Artifact '{}' is not a WebAssembly binary",
+                    plan.artifact.display()
+                ));
+            }
+            None
+        }
+    };
 
     fs::create_dir_all(dest_dir)
         .map_err(|err| format!("Failed to create {} directory: {}", label, err))?;
 
     let wasm_dest = dest_dir.join(format!("{}{}.wasm", prefix, name));
-    crate::atomic_fs::copy_atomic(&plan.artifact, &wasm_dest).map_err(|err| {
-        format!(
-            "Failed to copy wasm artifact '{}': {}",
-            plan.artifact.display(),
-            err
-        )
-    })?;
+    if let Some(bytes) = &verified_bytes {
+        crate::atomic_fs::write_atomic(&wasm_dest, bytes).map_err(|err| {
+            format!(
+                "Failed to write verified wasm artifact '{}': {}",
+                plan.artifact.display(),
+                err
+            )
+        })?;
+    } else {
+        crate::atomic_fs::copy_atomic(&plan.artifact, &wasm_dest).map_err(|err| {
+            format!(
+                "Failed to copy wasm artifact '{}': {}",
+                plan.artifact.display(),
+                err
+            )
+        })?;
+    }
 
     if let (Some(manifest_path), Some(manifest)) = (&plan.manifest_path, &plan.manifest) {
         let sidecar = dest_dir.join(format!("{}{}.json", prefix, name));
@@ -177,14 +259,27 @@ pub fn install(
 
 /// Downloads a prebuilt artifact from `url` and installs it, optionally with
 /// the manifest shipped by the source repository.
+///
+/// `sha256` is the `--sha256` CLI value and takes precedence over the manifest
+/// `sha256` field. When neither supplies a digest the artifact is installed as
+/// before, after printing an explicit unverified-integrity warning.
 pub fn download_and_install(
     url: &str,
-    manifest: Option<Manifest>,
+    mut manifest: Option<Manifest>,
+    sha256: Option<&str>,
     dest_dir: &Path,
     prefix: &str,
     name: &str,
     label: &str,
 ) -> Result<(), String> {
+    let expected = expected_sha256(sha256, manifest.as_ref())?;
+
+    // Record the enforced digest in the installed sidecar so the provenance
+    // survives the install even when the source manifest lacked it.
+    if let (Some(manifest), Some(hash)) = (manifest.as_mut(), expected.as_ref()) {
+        manifest.sha256 = Some(hash.clone());
+    }
+
     println!("Downloading wasm {} '{}' from {}...", label, name, url);
 
     let response = ureq::get(url)
@@ -204,6 +299,24 @@ pub fn download_and_install(
             "Downloaded artifact exceeds the {} MiB limit",
             DOWNLOAD_LIMIT / (1024 * 1024)
         ));
+    }
+
+    if let Some(expected) = expected.as_deref() {
+        verify_sha256(&bytes, expected).map_err(|err| {
+            format!(
+                "Refusing to install wasm {} '{}' from '{}': {}",
+                label, name, url, err
+            )
+        })?;
+        println!("Verified SHA-256 {}", expected);
+    } else {
+        eprintln!(
+            "WARNING: no SHA-256 checksum supplied for '{}'; the downloaded wasm {} is UNVERIFIED.",
+            url, label
+        );
+        eprintln!(
+            "         Pass --sha256 <hex> or add a \"sha256\" field to the manifest to pin it."
+        );
     }
 
     fs::create_dir_all(dest_dir)
@@ -241,8 +354,11 @@ pub fn download_and_install(
 }
 
 /// Installs a single `.wasm` file chosen by the user.
+///
+/// `sha256` is enforced against the local file bytes before any write.
 pub fn install_file(
     artifact: &Path,
+    sha256: Option<&str>,
     dest_dir: &Path,
     prefix: &str,
     name: &str,
@@ -260,6 +376,7 @@ pub fn install_file(
             manifest_path,
             manifest,
         },
+        sha256,
         dest_dir,
         prefix,
         name,
@@ -352,6 +469,11 @@ fn declares_wasm(manifest: Option<&Manifest>) -> bool {
 mod tests {
     use super::*;
     use std::fs;
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+    use std::thread;
+
+    const MINIMAL_WASM: &[u8] = b"\0asm\x01\0\0\0";
 
     fn temp_dir(tag: &str) -> PathBuf {
         let dir = std::env::temp_dir().join(format!(
@@ -421,5 +543,138 @@ mod tests {
             plan(&dir, "plugin", "foo").expect("plan"),
             SourceAction::NotWasm
         ));
+    }
+
+    #[test]
+    fn local_artifact_with_matching_sha256_installs() {
+        let dir = temp_dir("local-ok");
+        let dest = dir.join("plugins");
+        let artifact = dir.join("xfetch-plugin-sample.wasm");
+        fs::write(&artifact, MINIMAL_WASM).expect("write wasm");
+        let hash = crate::hash::sha256_hex(MINIMAL_WASM);
+
+        install_file(
+            &artifact,
+            Some(&hash),
+            &dest,
+            "xfetch-plugin-",
+            "sample",
+            "plugin",
+        )
+        .expect("install verified artifact");
+
+        assert_eq!(
+            fs::read(dest.join("xfetch-plugin-sample.wasm")).expect("read installed"),
+            MINIMAL_WASM
+        );
+    }
+
+    #[test]
+    fn local_artifact_with_wrong_sha256_is_not_installed() {
+        let dir = temp_dir("local-bad");
+        let dest = dir.join("plugins");
+        let artifact = dir.join("xfetch-plugin-sample.wasm");
+        fs::write(&artifact, MINIMAL_WASM).expect("write wasm");
+        let wrong = "0".repeat(64);
+
+        let err = install_file(
+            &artifact,
+            Some(&wrong),
+            &dest,
+            "xfetch-plugin-",
+            "sample",
+            "plugin",
+        )
+        .expect_err("wrong digest must be rejected");
+
+        assert!(
+            err.contains("SHA-256 mismatch"),
+            "unexpected error: {}",
+            err
+        );
+        assert!(!dest.join("xfetch-plugin-sample.wasm").exists());
+    }
+
+    #[test]
+    fn checked_in_artifact_is_verified_instead_of_falling_back_to_url() {
+        let dir = temp_dir("checked-in");
+        let dest = dir.join("plugins");
+        fs::write(dir.join("chosen.wasm"), MINIMAL_WASM).expect("write wasm");
+        fs::write(
+            dir.join("xfetch-plugin.json"),
+            r#"{
+                "artifact": "chosen.wasm",
+                "artifact_url": "http://127.0.0.1:9/should-not-be-used.wasm"
+            }"#,
+        )
+        .expect("write manifest");
+
+        let plan = match plan(&dir, "plugin", "sample").expect("plan") {
+            SourceAction::Install(plan) => plan,
+            other => panic!("expected checked-in artifact, got {:?}", other),
+        };
+        // The digest belongs to some other artifact: fail instead of silently
+        // downloading the artifact_url alternative.
+        let err = install(
+            plan,
+            Some(&"a".repeat(64)),
+            &dest,
+            "xfetch-plugin-",
+            "sample",
+            "plugin",
+        )
+        .expect_err("wrong checked-in digest must be rejected");
+
+        assert!(
+            err.contains("SHA-256 mismatch"),
+            "unexpected error: {}",
+            err
+        );
+        assert!(!dest.join("xfetch-plugin-sample.wasm").exists());
+    }
+
+    fn serve_once(body: Vec<u8>) -> (String, thread::JoinHandle<()>) {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind test server");
+        let addr = listener.local_addr().expect("test server address");
+        let handle = thread::spawn(move || {
+            let (mut stream, _) = listener.accept().expect("accept request");
+            let mut request = [0u8; 2048];
+            let _ = stream.read(&mut request);
+            write!(
+                stream,
+                "HTTP/1.1 200 OK\r\nContent-Type: application/wasm\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                body.len()
+            )
+            .expect("write headers");
+            stream.write_all(&body).expect("write body");
+            stream.flush().expect("flush response");
+        });
+        (format!("http://{}/plugin.wasm", addr), handle)
+    }
+
+    #[test]
+    fn download_with_matching_sha256_still_installs() {
+        let body = MINIMAL_WASM.to_vec();
+        let (url, server) = serve_once(body.clone());
+        let dir = temp_dir("download-ok");
+        let dest = dir.join("plugins");
+        let hash = crate::hash::sha256_hex(&body);
+
+        download_and_install(
+            &url,
+            None,
+            Some(&hash),
+            &dest,
+            "xfetch-plugin-",
+            "remote",
+            "plugin",
+        )
+        .expect("download and verify");
+        server.join().expect("test server");
+
+        assert_eq!(
+            fs::read(dest.join("xfetch-plugin-remote.wasm")).expect("read installed"),
+            body
+        );
     }
 }

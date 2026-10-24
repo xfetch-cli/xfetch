@@ -5,7 +5,9 @@ mod config;
 mod effects;
 mod error;
 mod extensions;
+mod hash;
 mod info;
+mod install_support;
 mod logos;
 mod plugins;
 mod subprocess;
@@ -73,8 +75,9 @@ fn run(cli: Cli) -> Result<(), error::XFetchError> {
 
     match cli.command {
         Some(Commands::Plugin { action }) => match action {
-            PluginCommands::Install { path, repo } => {
-                install_plugin(&path, repo.as_deref()).map_err(error::XFetchError::Fatal)
+            PluginCommands::Install { path, repo, sha256 } => {
+                install_plugin(&path, repo.as_deref(), sha256.as_deref())
+                    .map_err(error::XFetchError::Fatal)
             }
             PluginCommands::List => {
                 list_plugins()
@@ -100,8 +103,9 @@ fn run(cli: Cli) -> Result<(), error::XFetchError> {
         },
         Some(Commands::Extension { action }) => {
             match action {
-                ExtensionCommands::Install { path, repo } => {
-                    install_extension(&path, repo.as_deref()).map_err(error::XFetchError::Fatal)
+                ExtensionCommands::Install { path, repo, sha256 } => {
+                    install_extension(&path, repo.as_deref(), sha256.as_deref())
+                        .map_err(error::XFetchError::Fatal)
                 }
                 ExtensionCommands::List => list_extensions()
                     .map_err(error::XFetchError::Fatal)
@@ -255,8 +259,9 @@ fn run(cli: Cli) -> Result<(), error::XFetchError> {
             }
         },
         Some(Commands::Effects { action }) => match action {
-            EffectCommands::Install { path, repo } => {
-                install_effect(&path, repo.as_deref()).map_err(error::XFetchError::Fatal)
+            EffectCommands::Install { path, repo, sha256 } => {
+                install_effect(&path, repo.as_deref(), sha256.as_deref())
+                    .map_err(error::XFetchError::Fatal)
             }
             EffectCommands::List => {
                 list_effects()

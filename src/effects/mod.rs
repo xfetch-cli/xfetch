@@ -31,7 +31,6 @@ const CONFIG_DIR_NAME: &str = "xfetch";
 const TARGET_RELEASE: &str = "target/release";
 const CARGO_TOML: &str = "Cargo.toml";
 const CARGO_CMD: &str = "cargo";
-const GIT_CMD: &str = "git";
 const ENV_CARGO_NET_GIT_FETCH_WITH_CLI: &str = "CARGO_NET_GIT_FETCH_WITH_CLI";
 const ENV_EFFECT_REPO: &str = "XFETCH_EFFECT_REPO";
 

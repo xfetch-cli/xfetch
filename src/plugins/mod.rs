@@ -21,7 +21,6 @@ const CONFIG_DIR_NAME: &str = "xfetch";
 const TARGET_RELEASE: &str = "target/release";
 const CARGO_TOML: &str = "Cargo.toml";
 const CARGO_CMD: &str = "cargo";
-const GIT_CMD: &str = "git";
 const ENV_PATH: &str = "PATH";
 const ENV_PLUGIN_REPO: &str = "XFETCH_PLUGIN_REPO";
 const ENV_PLUGIN_DEV_DIR: &str = "XFETCH_PLUGIN_DEV_DIR";
