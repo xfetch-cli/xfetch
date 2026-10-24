@@ -25,7 +25,7 @@
 ### Installer and packaging
 
 - `install-prebuilt.sh` now uses a portable SHA-256 implementation (`sha256sum`, `shasum -a 256` or `openssl`), so verification also works on stock macOS.
-- `SHA256SUMS` is mandatory. Releases from v1.0.1 onward also require a `SHA256SUMS.bundle`; a missing or invalid signature aborts the install. `--require-signature` makes cosign mandatory and `--allow-unsigned` is an explicit opt-out for missing bundles; `--no-checksum` disables both checks with a loud warning.
+- `SHA256SUMS` is mandatory. Releases from v1.0.1 onward also require a `SHA256SUMS.bundle`; a missing or invalid signature aborts the install. The bundle-presence check runs before the cosign availability check, so a missing bundle is fatal even on machines where cosign is not installed. `--require-signature` makes cosign mandatory and `--allow-unsigned` is an explicit opt-out for missing bundles; `--no-checksum` disables both checks with a loud warning.
 - The installer derives the version from the release `tag_name` (not from the asset filename), validates it, cross-checks `--version`, and selects the exact expected asset name. This closes the old-version/asset-spoof downgrade path.
 - Remote artifacts without a digest still install for compatibility but print a prominent unverified warning.
 

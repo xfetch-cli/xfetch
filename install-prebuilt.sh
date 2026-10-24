@@ -389,21 +389,15 @@ verify_signature() {
         expects_signature=1
     fi
 
-    if ! command -v cosign >/dev/null 2>&1; then
-        if [ "${FLAG_REQUIRE_SIGNATURE}" -eq 1 ]; then
-            die "--require-signature was given but cosign is not installed. Install cosign from https://docs.sigstore.dev/cosign/system_config/installation/ and retry."
-        fi
-        if [ "${expects_signature}" -eq 1 ]; then
-            warn "cosign is not installed — the signature for v${VERSION} will NOT be verified."
-            warn "Install cosign, or re-run with --require-signature to make this fatal."
-        else
-            warn "cosign is not installed — v${VERSION} predates signed releases; signature not verified."
-        fi
-        return 0
+    # Check bundle presence before looking for cosign: the signed-release
+    # policy must not become fail-open just because cosign is not installed.
+    local bundle_present=0
+    if curl -fsSL --max-time 30 "${bundle_url}" -o "${bundle_path}" 2>/dev/null \
+        && [ -s "${bundle_path}" ]; then
+        bundle_present=1
     fi
 
-    if ! curl -fsSL --max-time 30 "${bundle_url}" -o "${bundle_path}" 2>/dev/null \
-        || [ ! -s "${bundle_path}" ]; then
+    if [ "${bundle_present}" -eq 0 ]; then
         if [ "${FLAG_REQUIRE_SIGNATURE}" -eq 1 ]; then
             die "--require-signature was given but no signature bundle was found for v${VERSION} (${bundle_url}). Refusing to install."
         fi
@@ -415,6 +409,15 @@ verify_signature() {
             die "SHA256SUMS.bundle is missing for v${VERSION}, which is expected to be signed. Refusing to install. Re-run with --allow-unsigned to accept SHA-256-only verification (not recommended)."
         fi
         warn "No signature bundle for v${VERSION} (releases before v${SIGNED_MIN_VERSION} were unsigned); SHA-256 only."
+        return 0
+    fi
+
+    if ! command -v cosign >/dev/null 2>&1; then
+        if [ "${FLAG_REQUIRE_SIGNATURE}" -eq 1 ]; then
+            die "--require-signature was given but cosign is not installed. Install cosign from https://docs.sigstore.dev/cosign/system_config/installation/ and retry."
+        fi
+        warn "cosign is not installed — the signature for v${VERSION} will NOT be verified."
+        warn "Install cosign, or re-run with --require-signature to make this fatal."
         return 0
     fi
 
