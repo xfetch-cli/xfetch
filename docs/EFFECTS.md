@@ -49,6 +49,20 @@ xfetch effects install ./effects/wasm-python-pulse</code></pre>
   and host-call rules apply. See <a href="WASM.md">WASM.md</a>.
 </p>
 
+<p>
+  Pin an effect with <code>--sha256 &lt;64-hex-digest&gt;</code> from a channel
+  independent of the artifact; the digest is enforced on downloaded,
+  checked-in, built and direct-file wasm installs. A manifest
+  <code>sha256</code> field is checked too, but it is integrity-only because
+  it shares the artifact's origin. A mismatch aborts the install; an unpinned
+  download prints an unverified integrity warning.
+</p>
+
+<p>
+  Native effects run as ordinary processes, <strong>unsandboxed</strong>, with
+  your user privileges; only wasm effects use the wasmtime sandbox.
+</p>
+
 <h2>Configuration</h2>
 
 <pre><code class="language-jsonc">{

@@ -58,6 +58,7 @@ xfetch wasm wit
 xfetch plugin install ./plugins/wasm-pacman
 xfetch plugin install wasm-crypto
 xfetch plugin install https://example.com/releases/plugin.wasm
+xfetch plugin install https://example.com/releases/plugin.wasm --sha256 &lt;64-hex-digest&gt;
 xfetch effects install ./effects/wasm-matrix
 xfetch extension install ./extensions/wasm-night-mode</code></pre>
 
@@ -99,6 +100,7 @@ xfetch extension install ./extensions/wasm-night-mode</code></pre>
   "build": "cargo build --release --target wasm32-wasip1",
   "artifact": "../../target/wasm32-wasip1/release/xfetch-plugin-wasm-crypto.wasm",
   "artifact_url": "https://github.com/user/repo/releases/latest/download/plugin.wasm",
+  "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
   "capabilities": {
     "http": { "allow": ["https://api.example.com/*"] },
     "exec": { "allow": ["git"], "env": ["PATH"] },
@@ -133,6 +135,7 @@ xfetch extension install ./extensions/wasm-night-mode</code></pre>
     <tr><td><code>entry</code></td><td>string</td><td>Component export name; defaults to <code>run</code>.</td></tr>
     <tr><td><code>artifact</code></td><td>string</td><td>Relative path to a prebuilt artifact in the source directory.</td></tr>
     <tr><td><code>artifact_url</code></td><td>string</td><td>Absolute URL of a prebuilt artifact for remote installs that cannot build locally.</td></tr>
+    <tr><td><code>sha256</code></td><td>string</td><td>Expected SHA-256 of the artifact, as 64 hex characters. Integrity-only: it shares the artifact's origin and cannot defend against a malicious manifest publisher. A mismatch aborts the install.</td></tr>
     <tr><td><code>build</code></td><td>string</td><td>Command executed in the source directory when no artifact is present.</td></tr>
   </tbody>
 </table>
@@ -338,20 +341,65 @@ xfetch extension install ./extensions/wasm-night-mode</code></pre>
   manifest with <code>artifact_url</code> (prebuilt GitHub releases).
 </p>
 
+<p>
+  Digests are enforced on every wasm install path: a direct local
+  <code>.wasm</code> file, a checked-in <code>artifact</code>, a
+  build-generated artifact and a downloaded <code>artifact_url</code>. Pass
+  <code>--sha256 &lt;hex&gt;</code> on the install command or set the manifest
+  <code>sha256</code> field; the command-line value takes precedence. The
+  installer hashes the artifact bytes and refuses to create or replace any
+  file when the digest does not match. When a checked-in artifact and an
+  <code>artifact_url</code> are both present, the selected checked-in artifact
+  is verified and the installer never falls back to the unverified
+  alternative. Supplying <code>--sha256</code> for a native (non-wasm) source
+  is an error rather than a silent no-op.
+</p>
+
+<blockquote>
+  <strong>Integrity vs. provenance:</strong> a manifest <code>sha256</code> is
+  integrity-only because it comes from the same origin as the artifact. A
+  malicious repository can change both. Use <code>--sha256</code> with a
+  digest obtained from a separate trusted channel for the real pin.
+</blockquote>
+
+<blockquote>
+  <strong>Unverified downloads:</strong> when neither the flag nor the
+  manifest supplies a digest, the install still proceeds for backwards
+  compatibility, but xfetch prints a prominent warning that the remote
+  artifact's integrity is unverified. Pin a digest for any artifact you do not
+  build locally.
+</blockquote>
+
+<blockquote>
+  <strong>Build commands run on the host:</strong> a manifest <code>build</code>
+  command is executed unsandboxed with the invoking user's privileges. The
+  installer prints the exact command and a warning before running it; review
+  the manifest before installing a third-party source.
+</blockquote>
+
 <h2>Security Model</h2>
 
 <p>
   Wasm guests start with no ambient authority: no filesystem, network,
   environment or process access. Every host operation is checked against the
   manifest, and limits bound time, memory and output. Native plugins are
-  unchanged and keep their full process privileges; choosing wasm is choosing
-  the sandbox.
+  unchanged and run <strong>unsandboxed</strong>, with their full process
+  privileges; choosing wasm is choosing the sandbox.
 </p>
 
 <p>
   Redirects are re-validated per hop, <code>exec</code> never invokes a shell
   and clears the environment except for allowlisted names, and filesystem
   access is limited to explicit preopens.
+</p>
+
+<p>
+  Artifact verification is opt-in but enforced when declared: a manifest
+  <code>sha256</code> or <code>--sha256</code> digest is checked against the
+  artifact bytes before any file is written, and a mismatch is a hard error.
+  A manifest digest is same-origin integrity only; a <code>--sha256</code>
+  value from a separate trusted channel is the actual provenance pin.
+  Unpinned remote downloads are reported as unverified.
 </p>
 
 <h2>Compilation Cache</h2>

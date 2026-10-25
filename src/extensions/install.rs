@@ -21,7 +21,6 @@ fn extension_name_from_wasm_file(path: &Path) -> Option<String> {
 
 const CARGO_CMD: &str = "cargo";
 const CARGO_TOML: &str = "Cargo.toml";
-const GIT_CMD: &str = "git";
 const TARGET_RELEASE: &str = "target/release";
 const ENV_CARGO_NET_GIT_FETCH_WITH_CLI: &str = "CARGO_NET_GIT_FETCH_WITH_CLI";
 
@@ -60,7 +59,11 @@ fn resolve_local_extension_dir(path: &str) -> Result<PathBuf, String> {
     Err(format!("Extension not found locally: '{}'", path))
 }
 
-pub fn install_extension(name_or_path: &str, repo: Option<&str>) -> Result<(), String> {
+pub fn install_extension(
+    name_or_path: &str,
+    repo: Option<&str>,
+    sha256: Option<&str>,
+) -> Result<(), String> {
     // Direct URL: download a prebuilt wasm artifact from a release.
     if is_url(name_or_path) {
         let name = crate::wasm::install::name_from_path(name_or_path).ok_or_else(|| {
@@ -69,9 +72,16 @@ pub fn install_extension(name_or_path: &str, repo: Option<&str>) -> Result<(), S
                 name_or_path
             )
         })?;
+        crate::install_support::validate_guest_name(&name).map_err(|err| {
+            format!(
+                "Invalid extension name '{}' derived from URL '{}': {}",
+                name, name_or_path, err
+            )
+        })?;
         return crate::wasm::install::download_and_install(
             name_or_path,
             None,
+            sha256,
             &default_extension_dir(),
             EXTENSION_PREFIX,
             &name,
@@ -86,6 +96,7 @@ pub fn install_extension(name_or_path: &str, repo: Option<&str>) -> Result<(), S
             .ok_or_else(|| format!("Cannot derive an extension name from '{}'", name_or_path))?;
         return crate::wasm::install::install_file(
             &direct,
+            sha256,
             &default_extension_dir(),
             EXTENSION_PREFIX,
             &name,
@@ -93,20 +104,32 @@ pub fn install_extension(name_or_path: &str, repo: Option<&str>) -> Result<(), S
         );
     }
 
+    if direct.is_file() && sha256.is_some() {
+        return Err(format!(
+            "'{}' is not a WebAssembly artifact; --sha256 cannot be enforced for a native \
+             extension install",
+            direct.display()
+        ));
+    }
+
     let ext_dir = resolve_local_extension_dir(name_or_path);
 
     match ext_dir {
-        Ok(dir) => build_and_install_extension(&dir, name_or_path),
+        Ok(dir) => build_and_install_extension(&dir, name_or_path, sha256),
         Err(_) if repo.is_some() || has_path_separator(name_or_path) => {
             let default_repo = DEFAULT_EXTENSION_REPO;
             let repo_url = repo.unwrap_or(default_repo);
-            install_remote_extension(name_or_path, repo_url)
+            install_remote_extension(name_or_path, repo_url, sha256)
         }
-        Err(_) => install_remote_extension(name_or_path, DEFAULT_EXTENSION_REPO),
+        Err(_) => install_remote_extension(name_or_path, DEFAULT_EXTENSION_REPO, sha256),
     }
 }
 
-fn build_and_install_extension(ext_dir: &Path, name: &str) -> Result<(), String> {
+fn build_and_install_extension(
+    ext_dir: &Path,
+    name: &str,
+    sha256: Option<&str>,
+) -> Result<(), String> {
     let ext_name = ext_dir
         .file_name()
         .and_then(|n| n.to_str())
@@ -119,6 +142,7 @@ fn build_and_install_extension(ext_dir: &Path, name: &str) -> Result<(), String>
         SourceAction::Install(plan) => {
             return crate::wasm::install::install(
                 plan,
+                sha256,
                 &default_extension_dir(),
                 EXTENSION_PREFIX,
                 ext_name,
@@ -129,6 +153,7 @@ fn build_and_install_extension(ext_dir: &Path, name: &str) -> Result<(), String>
             return crate::wasm::install::download_and_install(
                 &url,
                 manifest,
+                sha256,
                 &default_extension_dir(),
                 EXTENSION_PREFIX,
                 ext_name,
@@ -140,6 +165,7 @@ fn build_and_install_extension(ext_dir: &Path, name: &str) -> Result<(), String>
             return match crate::wasm::install::plan(ext_dir, "extension", ext_name)? {
                 SourceAction::Install(plan) => crate::wasm::install::install(
                     plan,
+                    sha256,
                     &default_extension_dir(),
                     EXTENSION_PREFIX,
                     ext_name,
@@ -151,7 +177,16 @@ fn build_and_install_extension(ext_dir: &Path, name: &str) -> Result<(), String>
                 )),
             };
         }
-        SourceAction::NotWasm => {}
+        SourceAction::NotWasm => {
+            if sha256.is_some() {
+                return Err(format!(
+                    "Extension source '{}' is not a WebAssembly artifact; --sha256 cannot be \
+                     enforced. Remove --sha256 for a native extension install, or install a wasm \
+                     artifact.",
+                    ext_dir.display()
+                ));
+            }
+        }
     }
 
     if !ext_dir.join(CARGO_TOML).exists() {
@@ -167,7 +202,10 @@ fn build_and_install_extension(ext_dir: &Path, name: &str) -> Result<(), String>
         ));
     }
 
-    println!("Building extension '{}'...", ext_name);
+    println!(
+        "Building extension '{}' (native executable, unsandboxed)...",
+        ext_name
+    );
     let status = Command::new(CARGO_CMD)
         .args(["build", "--release"])
         .env(ENV_CARGO_NET_GIT_FETCH_WITH_CLI, "true")
@@ -209,35 +247,28 @@ fn build_and_install_extension(ext_dir: &Path, name: &str) -> Result<(), String>
         .map_err(|err| format!("Failed to copy extension binary: {}", err))?;
 
     println!(
-        "Installed extension '{}' to {}",
+        "Installed extension '{}' to {} (native executable, unsandboxed)",
         ext_name,
         dest_path.display()
     );
     Ok(())
 }
 
-fn install_remote_extension(name: &str, repo_url: &str) -> Result<(), String> {
-    let temp_dir = env::temp_dir().join(format!("{}{}", EXTENSION_PREFIX, name));
-
-    if temp_dir.exists() {
-        fs::remove_dir_all(&temp_dir)
-            .map_err(|err| format!("Failed to clean temp directory: {}", err))?;
-    }
+fn install_remote_extension(
+    name: &str,
+    repo_url: &str,
+    sha256: Option<&str>,
+) -> Result<(), String> {
+    crate::install_support::validate_repo(repo_url)?;
+    let work_dir = crate::install_support::temp_work_dir(EXTENSION_PREFIX, name)?;
+    let temp_dir = work_dir.join("repo");
 
     let repo_display = repo_url.trim_end_matches(".git");
     println!("Fetching extension '{}' from {}...", name, repo_display);
 
-    let status = Command::new(GIT_CMD)
-        .args(["clone", "--depth", "1", repo_url])
-        .arg(&temp_dir)
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .status()
-        .map_err(|err| format!("Failed to run git: {}. Is git installed?", err))?;
-
-    if !status.success() {
-        let _ = fs::remove_dir_all(&temp_dir);
-        return Err("Failed to clone repository".to_string());
+    if let Err(err) = crate::install_support::clone_repository(repo_url, &temp_dir, "extension") {
+        let _ = fs::remove_dir_all(&work_dir);
+        return Err(err);
     }
 
     // The official repository nests extension crates under
@@ -255,7 +286,7 @@ fn install_remote_extension(name: &str, repo_url: &str) -> Result<(), String> {
     .find(|path| path.is_dir());
 
     let Some(ext_path) = ext_path else {
-        let _ = fs::remove_dir_all(&temp_dir);
+        let _ = fs::remove_dir_all(&work_dir);
         return Err(format!(
             "Extension '{}' not found in repository '{}'.\n\
              Available extensions can be found in the repository root or under {}/tree/main/extensions",
@@ -263,8 +294,8 @@ fn install_remote_extension(name: &str, repo_url: &str) -> Result<(), String> {
         ));
     };
 
-    let result = build_and_install_extension(&ext_path, name);
+    let result = build_and_install_extension(&ext_path, name, sha256);
 
-    let _ = fs::remove_dir_all(&temp_dir);
+    let _ = fs::remove_dir_all(&work_dir);
     result
 }

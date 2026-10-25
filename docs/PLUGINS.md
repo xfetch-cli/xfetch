@@ -61,6 +61,7 @@ XFETCH_PLUGIN_REPO=https://github.com/user/plugins.git xfetch plugin install my-
 
 <pre><code class="language-bash">xfetch plugin install ./plugins/wasm-pacman
 xfetch plugin install https://example.com/releases/plugin.wasm
+xfetch plugin install https://example.com/releases/plugin.wasm --sha256 &lt;64-hex-digest&gt;
 xfetch wasm inspect ~/.config/xfetch/plugins/xfetch-plugin-wasm-pacman.wasm
 xfetch wasm run ./plugin.wasm --request '{"version":1,"kind":"info_provider"}'</code></pre>
 
@@ -70,6 +71,26 @@ xfetch wasm run ./plugin.wasm --request '{"version":1,"kind":"info_provider"}'</
   <a href="WASM.md">WASM.md</a> for the full reference and the example
   plugins.
 </p>
+
+<blockquote>
+  <strong>Artifact integrity:</strong> pass <code>--sha256 &lt;hex&gt;</code>
+  from a channel independent of the artifact (release notes, a signed
+  announcement, a digest you computed yourself) to pin a plugin. A
+  manifest-supplied <code>"sha256"</code> is integrity-only: it shares the
+  artifact's origin, so it detects corruption but cannot protect against a
+  repository that changes both the artifact and the manifest. A mismatch
+  aborts the install before anything is written, and <code>--sha256</code> is
+  enforced on every wasm install path (downloaded, checked-in, built and
+  direct file). When neither source supplies a digest, the download still
+  succeeds but xfetch prints a warning that the artifact is unverified.
+</blockquote>
+
+<blockquote>
+  <strong>Sandbox boundary:</strong> wasm guests run inside the wasmtime
+  sandbox with deny-by-default capabilities. Native plugins execute as
+  ordinary processes, <strong>unsandboxed</strong>, with the full privileges
+  of your user. Install native plugins only from sources you trust.
+</blockquote>
 
 <blockquote>
   <strong>Timeouts:</strong> wasm guests do not use

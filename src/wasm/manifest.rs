@@ -76,6 +76,11 @@ pub struct Manifest {
     /// Absolute URL of a prebuilt artifact (for example a GitHub release
     /// download) used by remote installs that cannot build locally.
     pub artifact_url: Option<String>,
+    /// Expected lowercase-hex SHA-256 of the downloaded artifact. When present,
+    /// the installer verifies the bytes before writing them; absent keeps the
+    /// legacy unverified behavior (with a warning).
+    #[serde(default)]
+    pub sha256: Option<String>,
 }
 
 impl Default for Manifest {
@@ -93,6 +98,7 @@ impl Default for Manifest {
             artifact: None,
             build: None,
             artifact_url: None,
+            sha256: None,
         }
     }
 }
@@ -376,6 +382,34 @@ mod tests {
         }
         assert_eq!(manifest.limits.timeout_ms, 5000);
         assert_eq!(manifest.limits.memory_bytes(), 64 * 1024 * 1024);
+    }
+
+    #[test]
+    fn parses_sha256_and_defaults_to_none() {
+        let with_hash = r#"{
+            "sha256": "BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD"
+        }"#;
+        let manifest: Manifest = serde_json::from_str(with_hash).expect("parse sha256");
+        assert_eq!(
+            manifest.sha256.as_deref(),
+            Some("BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD")
+        );
+
+        let without_hash: Manifest =
+            serde_json::from_str(r#"{ "name": "legacy" }"#).expect("parse");
+        assert!(without_hash.sha256.is_none());
+        assert!(Manifest::default().sha256.is_none());
+    }
+
+    #[test]
+    fn sha256_roundtrips_through_serialization() {
+        let manifest = Manifest {
+            sha256: Some("a".repeat(64)),
+            ..Manifest::default()
+        };
+        let json = serde_json::to_string(&manifest).expect("serialize");
+        let parsed: Manifest = serde_json::from_str(&json).expect("parse");
+        assert_eq!(parsed.sha256, manifest.sha256);
     }
 
     #[test]

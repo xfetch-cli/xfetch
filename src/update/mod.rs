@@ -40,6 +40,7 @@ pub struct UpdateOptions {
     /// Force the in-place prebuilt update (Unix only).
     pub prebuilt: bool,
     /// Directory that holds the xfetch binary (with `--prebuilt`).
+    #[cfg_attr(not(unix), allow(dead_code))]
     pub bin_dir: Option<PathBuf>,
     /// Answer yes to confirmation prompts.
     pub yes: bool,
@@ -177,11 +178,11 @@ fn install_prebuilt(
     #[cfg(not(unix))]
     {
         let _ = (client, release, current, executable, options);
-        return Err(format!(
+        Err(format!(
             "Prebuilt updates are not supported on this platform yet. \
              Install xfetch {} with: cargo install xfetch-cli --force",
             release.version
-        ));
+        ))
     }
 
     #[cfg(unix)]

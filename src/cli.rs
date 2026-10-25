@@ -104,6 +104,9 @@ pub enum PluginCommands {
         path: String,
         #[arg(long, short)]
         repo: Option<String>,
+        /// Expected SHA-256 (hex) of a downloaded wasm artifact.
+        #[arg(long, value_name = "HEX")]
+        sha256: Option<String>,
     },
     List,
     Remove {
@@ -117,6 +120,9 @@ pub enum ExtensionCommands {
         path: String,
         #[arg(long, short)]
         repo: Option<String>,
+        /// Expected SHA-256 (hex) of a downloaded wasm artifact.
+        #[arg(long, value_name = "HEX")]
+        sha256: Option<String>,
     },
     List,
     Remove {
@@ -138,6 +144,9 @@ pub enum EffectCommands {
         path: String,
         #[arg(long, short)]
         repo: Option<String>,
+        /// Expected SHA-256 (hex) of a downloaded wasm artifact.
+        #[arg(long, value_name = "HEX")]
+        sha256: Option<String>,
     },
     List,
     Remove {

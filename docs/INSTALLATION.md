@@ -295,6 +295,90 @@ makepkg -si</code></pre>
 
 <hr>
 
+<h2>Verifying Release Signatures</h2>
+
+<p>
+  Every release publishes <code>SHA256SUMS</code>. From <strong>v1.0.1</strong>
+  onward each release also ships
+  <a href="https://docs.sigstore.dev/cosign/overview/">sigstore</a> (cosign)
+  signature material, <code>SHA256SUMS.bundle</code>, produced by the release
+  workflow through GitHub Actions OIDC — there is no long-lived signing key to
+  trust — plus a GitHub build provenance attestation per archive.
+</p>
+
+<p>
+  Download the checksums, the bundle and (optionally) the archive you want, then
+  verify manually (requires
+  <a href="https://docs.sigstore.dev/cosign/system_config/installation/">cosign</a>
+  and <code>gh</code>):
+</p>
+
+<pre><code class="language-bash">VERSION=1.0.1
+ASSET="xfetch-${VERSION}-x86_64-unknown-linux-gnu.tar.gz"
+BASE="https://github.com/xfetch-cli/xfetch/releases/download/v${VERSION}"
+
+curl -fsSLO "${BASE}/SHA256SUMS"
+curl -fsSLO "${BASE}/SHA256SUMS.bundle"
+curl -fsSLO "${BASE}/${ASSET}"
+
+# 1. Verify the signature over SHA256SUMS
+cosign verify-blob \
+  --bundle SHA256SUMS.bundle \
+  --certificate-identity "https://github.com/xfetch-cli/xfetch/.github/workflows/release.yml@refs/tags/v${VERSION}" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+  SHA256SUMS
+
+# 2. Verify the archive against the signed checksums
+sha256sum -c SHA256SUMS --ignore-missing
+# macOS without coreutils:
+#   shasum -a 256 -c SHA256SUMS --ignore-missing
+# neither available:
+#   openssl dgst -sha256 "${ASSET}"   (compare by hand)
+
+# 3. Check the build provenance attestation
+gh attestation verify "${ASSET}" --repo xfetch-cli/xfetch</code></pre>
+
+<p>
+  The expected signing identity is
+  <code>https://github.com/xfetch-cli/xfetch/.github/workflows/release.yml@refs/tags/v*</code>
+  and the OIDC issuer is <code>https://token.actions.githubusercontent.com</code>.
+</p>
+
+<h3>What the prebuilt installer enforces</h3>
+
+<p>
+  <code>install-prebuilt.sh</code> is fail-closed by default:
+</p>
+
+<ul>
+  <li><strong>The release tag is authoritative.</strong> The version comes from the release JSON <code>tag_name</code> (validated as a strict dotted numeric version), never from the asset filename. The asset must be named exactly <code>xfetch-&lt;tag-version&gt;-&lt;target&gt;.tar.gz</code> (or <code>.zip</code>), and <code>--version</code> must match the tag; otherwise the installer aborts.</li>
+  <li><strong>SHA256SUMS is mandatory.</strong> If it cannot be fetched, is empty, does not list the archive, or the digest does not match, the installer aborts.</li>
+  <li><strong>Signatures are mandatory from v1.0.1.</strong> If <code>SHA256SUMS.bundle</code> is missing for such a release, the installer aborts; a signature that fails to verify always aborts, even with <code>--allow-unsigned</code>.</li>
+  <li><strong>Older releases</strong> (before v1.0.1) were never signed: their missing bundle produces a warning and SHA-256-only install.</li>
+  <li><strong>No cosign installed</strong> produces a warning and continues after the SHA-256 check. Pass <code>--require-signature</code> to make a missing cosign (or missing bundle) fatal.</li>
+  <li><strong>Hashing tools:</strong> <code>sha256sum</code>, then <code>shasum -a 256</code> (macOS), then <code>openssl dgst -sha256</code>. If none exists the installer aborts rather than skipping verification.</li>
+</ul>
+
+<p>
+  Escape hatches, both of which are explicit and noisy:
+</p>
+
+<ul>
+  <li><code>--allow-unsigned</code> accepts a v1.0.1+ release whose signature bundle is missing (SHA-256 only). It does <em>not</em> accept an invalid signature.</li>
+  <li><code>--no-checksum</code> disables <strong>both</strong> the SHA-256 and the signature checks. It is dangerous and only appropriate for an archive you obtained through an already-authenticated channel. It cannot be combined with <code>--require-signature</code>.</li>
+</ul>
+
+<p>
+  <code>install.sh</code> builds from source and never downloads release
+  binaries, so the signature check does not apply to it; the same is true for
+  <code>cargo install</code>, Homebrew and AUR installs, whose integrity is
+  guaranteed by the registry or package manager you use. The Windows prebuilt
+  installer (<code>install-prebuilt.ps1</code>) verifies <code>SHA256SUMS</code>
+  but does not yet verify the cosign bundle.
+</p>
+
+<hr>
+
 <h2>Updating</h2>
 
 <p>
