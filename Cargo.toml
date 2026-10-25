@@ -36,7 +36,7 @@ sysinfo = "0.39.6"
 ureq = { version = "2.12", features = ["tls"] }
 url = { version = "2", optional = true }
 viuer = { version = "0.11.0", default-features = false }
-wasmtime = { version = "48", optional = true, default-features = false, features = [
+wasmtime = { version = "50", optional = true, default-features = false, features = [
     "std",
     "runtime",
     "cranelift",
