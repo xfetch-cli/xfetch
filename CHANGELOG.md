@@ -29,6 +29,10 @@
 - The installer derives the version from the release `tag_name` (not from the asset filename), validates it, cross-checks `--version`, and selects the exact expected asset name. This closes the old-version/asset-spoof downgrade path.
 - Remote artifacts without a digest still install for compatibility but print a prominent unverified warning.
 
+### Windows
+
+- `scripts/ci.ps1` is green on Windows again. The Unix-only updater helpers in `update/github.rs` and the `UpdateOptions::bin_dir` field are now `#[cfg_attr(not(unix), allow(dead_code))]`, and the Linux-only `bracket_content` GPU helper is `#[cfg_attr(not(target_os = "linux"), allow(dead_code))]`; the non-Unix prebuilt-update stub no longer uses a needless `return`. These are lint-only/platform-gated changes: Linux, macOS and WSL keep their existing code paths and behavior. Verified with Rust 1.98.1 and 1.99.1: `cargo fmt --check`, `clippy --all-targets -- -D warnings`, the 233-test suite and the release build all pass on Windows.
+
 ## 2026-09-18 — v1.0.0
 
 - Fixed the live stats daemon losing the disk module on every platform: the default module lists said `"disks"` while the probe gate and renderer only know `"disk"`, so the module was silently skipped (Linux/macOS/Windows policies and `docs/DAEMON.md` now use `disk`).

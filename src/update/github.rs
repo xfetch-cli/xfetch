@@ -80,6 +80,7 @@ impl Client {
     }
 
     /// Downloads a binary asset with a bounded size.
+    #[cfg_attr(not(unix), allow(dead_code))]
     pub fn get_bytes(&self, url: &str, cap: usize) -> Result<Vec<u8>, String> {
         let response = self.request(url, Duration::from_secs(300))?;
         let declared = response
@@ -178,17 +179,20 @@ pub fn parse_release(body: &str) -> Result<Release, String> {
 }
 
 /// Release asset name for one target, as produced by the release workflow.
+#[cfg_attr(not(unix), allow(dead_code))]
 pub fn asset_name(version: &Version, target: &str) -> String {
     format!("xfetch-{}-{}.tar.gz", version, target)
 }
 
 /// Finds the prebuilt asset for `target`.
+#[cfg_attr(not(unix), allow(dead_code))]
 pub fn choose_asset<'a>(release: &'a Release, target: &str) -> Option<&'a Asset> {
     let name = asset_name(&release.version, target);
     release.assets.iter().find(|asset| asset.name == name)
 }
 
 /// Finds the `SHA256SUMS` asset.
+#[cfg_attr(not(unix), allow(dead_code))]
 pub fn checksums_asset(release: &Release) -> Option<&Asset> {
     release
         .assets
@@ -197,6 +201,7 @@ pub fn checksums_asset(release: &Release) -> Option<&Asset> {
 }
 
 /// Parses one hash out of a `sha256sum`-style file.
+#[cfg_attr(not(unix), allow(dead_code))]
 pub fn parse_checksum(sums: &str, file: &str) -> Option<String> {
     for line in sums.lines() {
         let mut parts = line.split_whitespace();

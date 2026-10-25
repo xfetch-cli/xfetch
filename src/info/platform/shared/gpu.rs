@@ -7,6 +7,7 @@ use std::collections::HashMap;
 
 /// Content of the last `[...]` group in a line (lspci device descriptions
 /// like `"GP106 [GeForce GTX 1060 6GB]"`), when present.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 pub fn bracket_content(line: &str) -> Option<&str> {
     let start = line.find('[')?;
     let end = line[start + 1..].find(']')? + start + 1;
