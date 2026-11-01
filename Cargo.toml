@@ -45,7 +45,7 @@ wasmtime = { version = "48", optional = true, default-features = false, features
     "cache",
     "parallel-compilation",
 ] }
-wasmtime-wasi = { version = "48", optional = true, default-features = false, features = [
+wasmtime-wasi = { version = "50", optional = true, default-features = false, features = [
     "p1",
     "p2",
 ] }
