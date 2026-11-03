@@ -48,6 +48,28 @@ XFETCH_PLUGIN_REPO=https://github.com/user/plugins.git xfetch plugin install my-
   an extra development directory to that search path.
 </p>
 
+<h2>Manage installed plugins</h2>
+
+<pre><code class="language-bash">xfetch plugin list
+xfetch plugin list --verbose
+xfetch plugin info &lt;name&gt;
+xfetch plugin remove &lt;name&gt;</code></pre>
+
+<p>
+  After a successful install, xfetch prints the configuration snippet required
+  to enable the plugin, plus the declared capabilities and limits.
+  <code>list --verbose</code> adds the manifest kind, runtime, version,
+  capabilities and whether the plugin is currently enabled. <code>info</code>
+  prints the same details for one installed plugin.
+</p>
+
+<p>
+  Direct wasm files and URLs accept <code>--name &lt;name&gt;</code> to
+  override the installed name and <code>--manifest &lt;file&gt;</code> to
+  attach a sidecar manifest. These options do not apply to directory or
+  repository installs, which already provide their own name and manifest.
+</p>
+
 <h2>WebAssembly Plugins</h2>
 
 <p>

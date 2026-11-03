@@ -24,8 +24,20 @@
 
 <p>Manage installed effects:</p>
 
-<pre><code class="language-bash">xfetch effects list      # list installed effects
+<pre><code class="language-bash">xfetch effects list
+xfetch effects list --verbose
+xfetch effects info decrypt
 xfetch effects remove decrypt</code></pre>
+
+<p>
+  After a successful install, xfetch prints the <code>"effects"</code> config
+  entry, the declared capabilities and the manifest limits.
+  <code>list --verbose</code> adds the manifest kind, runtime, version and
+  whether the effect is enabled; <code>info</code> prints the details for one
+  effect. Direct wasm files and URLs accept <code>--name</code> and
+  <code>--manifest</code>; directory and repository installs use their own
+  name and manifest.
+</p>
 
 <p>Binaries are stored in <code>~/.config/xfetch/effects/</code>. Use
 <code>--repo &lt;url&gt;</code> (or the <code>XFETCH_EFFECT_REPO</code> env var) to install

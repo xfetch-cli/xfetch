@@ -21,10 +21,22 @@
 <pre><code class="language-bash">xfetch extension install /path/to/xfetch-extension-name
 xfetch extension install my-extension --repo https://github.com/user/extensions.git</code></pre>
 
-<p>List and remove installed extensions:</p>
+<p>List, inspect and remove installed extensions:</p>
 
 <pre><code class="language-bash">xfetch extension list
+xfetch extension list --verbose
+xfetch extension info &lt;name&gt;
 xfetch extension remove &lt;name&gt;</code></pre>
+
+<p>
+  After a successful install, xfetch prints the
+  <code>"config_providers"</code> entry, the declared capabilities and the
+  manifest limits. <code>list --verbose</code> adds the manifest kind, runtime,
+  version and whether the extension is enabled; <code>info</code> prints the
+  details for one extension. Direct wasm files and URLs accept
+  <code>--name</code> and <code>--manifest</code>; directory and repository
+  installs use their own name and manifest.
+</p>
 
 <p>Installed binaries live in <code>~/.config/xfetch/extensions/</code> and are named
 <code>xfetch-extension-&lt;name&gt;</code> (<code>.exe</code> on Windows).</p>

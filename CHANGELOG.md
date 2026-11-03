@@ -15,6 +15,13 @@
 - Updated the semver-compatible dependency graph with `cargo update` and bumped the manifest floors for `clap`, `console`, `image`, `serde`, `serde_json` and `wat`.
 - Updated the GitHub Actions group: `actions/checkout` to 7.0.1, `actions/setup-python` to 7.1.0 and the pinned `dtolnay/rust-toolchain` commit. All actions remain pinned by commit SHA.
 
+### Addon tooling
+
+- `xfetch plugin`, `xfetch effects` and `xfetch extension` installs now print the configuration snippet required to enable the installed addon, along with its declared capabilities and limits.
+- Added `list --verbose` and `info <name>` for plugins, effects and extensions. They report the manifest kind, runtime, version, capabilities, limits and whether the addon is enabled.
+- Direct wasm files and URLs now accept `--name` and `--manifest` on install; directory and repository installs keep using their own name and manifest.
+- Added command aliases `plugins`, `effect`, and `extensions` for the existing command families.
+
 ### Release
 
 - Bumped the crate version to 1.0.2 and updated the installer and verification examples to 1.0.2. The signature policy threshold remains v1.0.1.
