@@ -197,9 +197,13 @@ xfetch --config path/to/config.jsonc
 xfetch --gen-config             # generate a starter config
 xfetch --clean-cache            # clear the module cache
 xfetch plugin install <name>    # install a plugin
+xfetch plugin search <query>    # search the plugin catalog
+xfetch plugin available         # list the plugin catalog
 xfetch extension install <name> # install an extension
+xfetch extension search <query> # search the extension catalog
 xfetch theme list               # list themes
 xfetch effects install <name>   # install an intro effect (e.g. decrypt)
+xfetch effects search <query>   # search the effect catalog
 xfetch update --check           # check for a newer release
 xfetch update                   # update to the latest release
 ```

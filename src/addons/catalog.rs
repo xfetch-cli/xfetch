@@ -145,7 +145,14 @@ fn load(kind: AddonKind) -> Result<Catalog, String> {
         fs::read_to_string(&source)
             .map_err(|err| format!("Failed to read catalog '{}': {}", source, err))?
     };
-    parse(&body).map_err(|err| format!("Invalid catalog '{}': {}", source, err))
+    let catalog = parse(&body).map_err(|err| format!("Invalid catalog '{}': {}", source, err))?;
+    if catalog.schema_version != 1 {
+        return Err(format!(
+            "Unsupported catalog schema version {} in '{}'",
+            catalog.schema_version, source
+        ));
+    }
+    Ok(catalog)
 }
 
 fn catalog_source(kind: AddonKind) -> String {
