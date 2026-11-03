@@ -1,12 +1,5 @@
 # Changelog
 
-## Unreleased
-
-### Dependencies
-
-- Updated the semver-compatible dependency graph with `cargo update` and bumped the manifest floors for `clap`, `console`, `image`, `serde`, `serde_json` and `wat`.
-- Migrated from `ureq` 2.12 to 3.5.1. The updater, public IP probe and wasm HTTP host now use `Agent::config_builder`, `Error::StatusCode`, `Body` readers and request-level timeouts. No user-facing behavior change is intended.
-
 ## 2026-11-03 — v1.0.2
 
 ### Security
@@ -18,6 +11,8 @@
 ### Dependencies
 
 - Updated `sysinfo` from 0.39.6 to 0.40.1 and adapted the fallible constructors and static getters (`System::new`, `new_all`, `new_with_specifics`, `name`, `os_version`, `kernel_version`, `host_name`, `uptime`) plus the `OsString` network interface names. No user-visible output changes.
+- Migrated from `ureq` 2.12 to 3.5.1. The updater, public IP probe and wasm HTTP host now use `Agent::config_builder`, `Error::StatusCode`, `Body` readers and request-level timeouts. A local HTTP success test covers the wasm host path. No user-facing behavior change is intended.
+- Updated the semver-compatible dependency graph with `cargo update` and bumped the manifest floors for `clap`, `console`, `image`, `serde`, `serde_json` and `wat`.
 - Updated the GitHub Actions group: `actions/checkout` to 7.0.1, `actions/setup-python` to 7.1.0 and the pinned `dtolnay/rust-toolchain` commit. All actions remain pinned by commit SHA.
 
 ### Release
