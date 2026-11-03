@@ -12,6 +12,7 @@
 
 - Added crates.io metadata: `repository`, `homepage`, `documentation`,
   `readme`, `keywords` and `categories`.
+- The crate description now starts with `Fast` instead of `A fast`.
 
 ### Release
 
