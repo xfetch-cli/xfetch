@@ -1,9 +1,15 @@
 [package]
 name = "xfetch-cli"
-version = "1.0.2"
+version = "1.0.3"
 edition = "2024"
 license = "MIT"
 description = "XFetch — a fast, customizable system information fetch tool for the terminal"
+repository = "https://github.com/xfetch-cli/xfetch"
+homepage = "https://xfetch-cli.github.io/web/"
+documentation = "https://docs.rs/xfetch-cli"
+readme = "README.md"
+keywords = ["system-information", "fetch", "cli", "terminal", "neofetch"]
+categories = ["command-line-utilities"]
 
 [[bin]]
 name = "xfetch"
@@ -49,9 +55,9 @@ wasmtime-wasi = { version = "50.0.1", optional = true, default-features = false,
     "p1",
     "p2",
 ] }
-xfetch-plugin-api = { version = "0.2.0", package = "xfetch-plugin-api" }
-xfetch-extension-api = { version = "0.2.0", package = "xfetch-extension-api" }
-xfetch-effect-api = { version = "0.2.0", package = "xfetch-effect-api" }
+xfetch-plugin-api = { version = "0.3.0", package = "xfetch-plugin-api" }
+xfetch-extension-api = { version = "0.3.0", package = "xfetch-extension-api" }
+xfetch-effect-api = { version = "0.3.0", package = "xfetch-effect-api" }
 
 # Windows-only native probes: CPU/date/battery/GPU are read through the Win32
 # API instead of PDH counters or PowerShell subprocesses (see

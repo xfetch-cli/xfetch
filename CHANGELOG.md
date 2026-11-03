@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-11-03 — v1.0.3
+
+### Dependencies
+
+- Adopted the xfetch SDK 0.3.0: `xfetch-api-common` 0.3.0 plus
+  `xfetch-plugin-api`, `xfetch-extension-api` and `xfetch-effect-api` 0.3.0.
+  The JSON wire protocol remains `1` and the WIT remains `0.1.0`.
+
+### Packaging
+
+- Added crates.io metadata: `repository`, `homepage`, `documentation`,
+  `readme`, `keywords` and `categories`.
+
+### Release
+
+- Bumped the crate version to 1.0.3 and the installer examples to 1.0.3.
+  The published v1.0.2 tag and its assets remain unchanged.
+
+
 ## 2026-11-03 — v1.0.2
 
 ### Security
