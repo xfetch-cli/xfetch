@@ -237,6 +237,19 @@ pub fn get_packages_breakdown() -> Vec<(String, String)> {
         breakdown.push((label.to_string(), format_package_count(count, label)));
     }
 
+    let covered = breakdown
+        .iter()
+        .any(|(label, _)| label == xpm::XPM_LABEL || label == PACMAN_CMD);
+    if !covered && let Some(count) = xpm::pacman_db_package_count() {
+        breakdown.insert(
+            0,
+            (
+                PACMAN_CMD.to_string(),
+                format_package_count(count, PACMAN_CMD),
+            ),
+        );
+    }
+
     breakdown
 }
 

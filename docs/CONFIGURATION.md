@@ -147,7 +147,7 @@
     </tr>
     <tr>
       <td><code>packages:pacman</code></td><td>Arch (pacman)</td>
-      <td>Official repository packages only (<code>pacman -Qn</code>).</td>
+      <td>Official repository packages only (<code>pacman -Qn</code>); falls back to the local database when the binary is unavailable.</td>
     </tr>
     <tr>
       <td><code>packages:aur</code></td><td>Arch (pacman)</td>
@@ -155,7 +155,7 @@
     </tr>
     <tr>
       <td><code>packages:xpm</code></td><td>X Linux (xpm)</td>
-      <td>Installed packages in the xpm local database.</td>
+      <td>Installed packages visible to xpm (its database plus the pacman local database it shares).</td>
     </tr>
     <tr>
       <td><code>packages:xp</code></td><td>X Linux (xpm)</td>

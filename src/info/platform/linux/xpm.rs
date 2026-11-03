@@ -2,17 +2,22 @@
 //! (`xpm-aur`).
 //!
 //! `xpm` keeps its own local database at `/var/lib/xpm/local` and mirrors
-//! transactions into pacman's database. Each `<package>/version` file marks a
-//! valid installed package and `<package>/origin` records the repository it
-//! came from. The native X repository is `x`, so packages with that origin are
-//! reported as `xp` (native `.xp` packages). Packages pulled from Arch
-//! repositories through xpm's pacman compatibility layer still count towards
-//! the `xpm` total but not towards `xp`.
+//! transactions into pacman's local database at `/var/lib/pacman/local`. The
+//! `xpm` count is the union of both databases, which is the locally installed
+//! set xpm can see; pacman-only packages are included because xpm shares that
+//! database through the mirror.
+//!
+//! Each xpm `<package>/version` file marks a valid installed package and
+//! `<package>/origin` records the repository it came from. The native X
+//! repository is `x`, so packages with that origin are reported as `xp`
+//! (native `.xp` packages). Packages pulled from Arch repositories through
+//! xpm's pacman compatibility layer still count towards the `xpm` total but
+//! not towards `xp`.
 //!
 //! `xpm-aur` tracks the AUR packages it installed in
 //! `$XDG_STATE_HOME/xpm-aur/state.json`; the count is the number of installed
 //! split outputs across all tracked package bases. The sidecar is intersected
-//! with the xpm local database so only packages that are actually installed
+//! with the shared installed set so only packages that are actually installed
 //! are counted.
 
 use std::collections::{BTreeMap, HashSet};
@@ -25,6 +30,10 @@ pub const XP_LABEL: &str = "xp";
 pub const XPM_AUR_LABEL: &str = "xpm-aur";
 
 const XPM_DB_DIR: &str = "/var/lib/xpm/local";
+const PACMAN_DB_DIR: &str = "/var/lib/pacman/local";
+const PACMAN_DESC_FILE: &str = "desc";
+const PACMAN_NAME_TAG: &str = "%NAME%";
+const XPM_BINARY: &str = "xpm";
 const XPM_AUR_FALLBACK_DIR: &str = "/var/lib/xpm-aur";
 
 /// Repository names that publish native X packages. `x` is the native endpoint
@@ -49,19 +58,25 @@ struct AurRecord {
 
 /// Returns the `xpm`, `xp` and `xpm-aur` counts that apply to this machine.
 ///
-/// The list is empty when `xpm` has no local database. `xp` is always present
-/// alongside `xpm` (it may be zero) so the native package count is explicit.
-/// `xpm-aur` is only present when its state file can be read. Every count is
-/// derived from locally installed packages; remote catalogs are never queried.
+/// The list is empty when xpm is not present. `xp` is always present alongside
+/// `xpm` (it may be zero) so the native package count is explicit. `xpm-aur`
+/// is only present when its state file can be read. Every count is derived
+/// from locally installed packages; remote catalogs are never queried.
 pub fn package_counts() -> Vec<(&'static str, usize)> {
-    let db = Path::new(XPM_DB_DIR);
-    let Some(installed) = installed_package_names(db) else {
+    let xpm_db = Path::new(XPM_DB_DIR);
+    let xpm_names = installed_package_names(xpm_db).unwrap_or_default();
+    let pacman_names = pacman_package_names(Path::new(PACMAN_DB_DIR)).unwrap_or_default();
+
+    if xpm_names.is_empty() && !xpm_db.is_dir() && !command_exists(XPM_BINARY) {
         return Vec::new();
-    };
+    }
+
+    let mut installed = xpm_names.clone();
+    installed.extend(pacman_names);
 
     let mut counts = vec![(XPM_LABEL, installed.len())];
 
-    let native = count_xp_packages(db, &installed, X_NATIVE_REPOS);
+    let native = count_xp_packages(xpm_db, &xpm_names, X_NATIVE_REPOS);
     counts.push((XP_LABEL, native));
 
     let state = xpm_aur_state_path();
@@ -96,6 +111,66 @@ fn installed_package_names(db: &Path) -> Option<HashSet<String>> {
     }
 
     Some(names)
+}
+
+/// Returns the names of packages in pacman's local database.
+///
+/// pacman names its entries `<package>-<version>-<release>` and stores the
+/// exact name in `desc`; xpm-mirrored entries also land here in that format.
+/// xpm-style entries (`<package>/version`) are accepted too, in case xpm is
+/// configured to use this directory directly.
+fn pacman_package_names(db: &Path) -> Option<HashSet<String>> {
+    let mut names = HashSet::new();
+
+    for entry in std::fs::read_dir(db).ok()?.filter_map(Result::ok) {
+        if !entry.file_type().map(|kind| kind.is_dir()).unwrap_or(false) {
+            continue;
+        }
+        if is_dot_entry(&entry.file_name()) {
+            continue;
+        }
+
+        if entry.path().join(VERSION_FILE).is_file() {
+            names.insert(entry.file_name().to_string_lossy().into_owned());
+            continue;
+        }
+
+        if let Some(name) = pacman_desc_name(&entry.path()) {
+            names.insert(name);
+        }
+    }
+
+    Some(names)
+}
+
+/// Counts the packages in pacman's local database.
+///
+/// Used as a fallback when neither xpm nor the `pacman` command is available
+/// but the shared database still exists.
+pub(crate) fn pacman_db_package_count() -> Option<usize> {
+    pacman_package_names(Path::new(PACMAN_DB_DIR)).map(|names| names.len())
+}
+
+fn pacman_desc_name(pkg_dir: &Path) -> Option<String> {
+    let desc = std::fs::read_to_string(pkg_dir.join(PACMAN_DESC_FILE)).ok()?;
+    let mut lines = desc.lines();
+
+    while let Some(line) = lines.next() {
+        if line.trim() == PACMAN_NAME_TAG {
+            return lines
+                .next()
+                .map(str::trim)
+                .filter(|name| !name.is_empty())
+                .map(str::to_string);
+        }
+    }
+
+    None
+}
+
+fn command_exists(name: &str) -> bool {
+    std::env::var_os("PATH")
+        .is_some_and(|paths| std::env::split_paths(&paths).any(|dir| dir.join(name).is_file()))
 }
 
 /// Counts installed packages whose recorded origin is a native X repository.
@@ -185,6 +260,27 @@ mod tests {
         assert_eq!(installed.len(), 2);
         assert!(installed.contains("foo"));
         assert!(installed.contains("bar"));
+        let _ = std::fs::remove_dir_all(&db);
+    }
+
+    #[test]
+    fn test_pacman_package_names_reads_desc_and_xpm_style_entries() {
+        let db = temp_dir("pacman_total");
+        let desc_dir = db.join("foo-1.0-1");
+        std::fs::create_dir_all(&desc_dir).unwrap();
+        std::fs::write(
+            desc_dir.join(PACMAN_DESC_FILE),
+            "%NAME%\nfoo\n\n%VERSION%\n1.0-1\n",
+        )
+        .unwrap();
+        package(&db, "bar", None);
+        std::fs::create_dir_all(db.join("incomplete-1.0-1")).unwrap();
+        std::fs::write(db.join("db.lck"), "").unwrap();
+
+        let names = pacman_package_names(&db).unwrap();
+        assert_eq!(names.len(), 2);
+        assert!(names.contains("foo"));
+        assert!(names.contains("bar"));
         let _ = std::fs::remove_dir_all(&db);
     }
 
