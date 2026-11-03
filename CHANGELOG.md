@@ -20,6 +20,7 @@
 - `xfetch plugin`, `xfetch effects` and `xfetch extension` installs now print the configuration snippet required to enable the installed addon, along with its declared capabilities and limits.
 - Added `list --verbose` and `info <name>` for plugins, effects and extensions. They report the manifest kind, runtime, version, capabilities, limits and whether the addon is enabled.
 - Direct wasm files and URLs now accept `--name` and `--manifest` on install; directory and repository installs keep using their own name and manifest.
+- Added `search` (alias `available`) for the remote plugin, effect and extension catalogs, with optional `--json` output and `XFETCH_PLUGIN_INDEX`/`XFETCH_EFFECT_INDEX`/`XFETCH_EXTENSION_INDEX` overrides.
 - Added command aliases `plugins`, `effect`, and `extensions` for the existing command families.
 
 ### Release

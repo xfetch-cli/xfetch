@@ -53,7 +53,17 @@ XFETCH_PLUGIN_REPO=https://github.com/user/plugins.git xfetch plugin install my-
 <pre><code class="language-bash">xfetch plugin list
 xfetch plugin list --verbose
 xfetch plugin info &lt;name&gt;
+xfetch plugin search &lt;query&gt;
+xfetch plugin available
 xfetch plugin remove &lt;name&gt;</code></pre>
+
+<p>
+  <code>search</code> reads the repository catalog (<code>index.json</code>),
+  filters by name, description, kind or runtime, and prints the matching
+  install command. <code>available</code> is an alias with an empty query, and
+  <code>--json</code> emits machine-readable results. Set
+  <code>XFETCH_PLUGIN_INDEX</code> to use a local file or a fork's catalog.
+</p>
 
 <p>
   After a successful install, xfetch prints the configuration snippet required

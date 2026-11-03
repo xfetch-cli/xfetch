@@ -27,7 +27,16 @@
 <pre><code class="language-bash">xfetch effects list
 xfetch effects list --verbose
 xfetch effects info decrypt
+xfetch effects search &lt;query&gt;
+xfetch effects available
 xfetch effects remove decrypt</code></pre>
+
+<p>
+  <code>search</code> reads the effects catalog (<code>index.json</code>),
+  filters by name, description or runtime, and prints the matching install
+  command. <code>available</code> lists the whole catalog, <code>--json</code>
+  emits JSON, and <code>XFETCH_EFFECT_INDEX</code> overrides the catalog URL.
+</p>
 
 <p>
   After a successful install, xfetch prints the <code>"effects"</code> config

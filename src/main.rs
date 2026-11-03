@@ -131,6 +131,10 @@ fn run(cli: Cli) -> Result<(), error::XFetchError> {
                 addons::report::print_info(&entry);
                 Ok(())
             }
+            PluginCommands::Search { query, json } => {
+                addons::catalog::print_search(AddonKind::Plugin, query.as_deref(), json)
+                    .map_err(error::XFetchError::Fatal)
+            }
             PluginCommands::Remove { name } => {
                 remove_plugin(&name).map_err(error::XFetchError::Fatal)
             }
@@ -191,6 +195,10 @@ fn run(cli: Cli) -> Result<(), error::XFetchError> {
                 let entry = AddonEntry::load(AddonKind::Extension, &name, &path, &config);
                 addons::report::print_info(&entry);
                 Ok(())
+            }
+            ExtensionCommands::Search { query, json } => {
+                addons::catalog::print_search(AddonKind::Extension, query.as_deref(), json)
+                    .map_err(error::XFetchError::Fatal)
             }
             ExtensionCommands::Remove { name } => {
                 remove_extension(&name).map_err(error::XFetchError::Fatal)
@@ -379,6 +387,10 @@ fn run(cli: Cli) -> Result<(), error::XFetchError> {
                 let entry = AddonEntry::load(AddonKind::Effect, &name, &path, &config);
                 addons::report::print_info(&entry);
                 Ok(())
+            }
+            EffectCommands::Search { query, json } => {
+                addons::catalog::print_search(AddonKind::Effect, query.as_deref(), json)
+                    .map_err(error::XFetchError::Fatal)
             }
             EffectCommands::Remove { name } => {
                 remove_effect(&name).map_err(error::XFetchError::Fatal)
