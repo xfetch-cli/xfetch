@@ -45,6 +45,11 @@ struct WireAsset {
     size: u64,
 }
 
+struct HttpResponse {
+    content_length: Option<u64>,
+    body: ureq::Body,
+}
+
 /// Small HTTP client with xfetch's user agent and optional auth.
 pub struct Client {
     agent: ureq::Agent,
@@ -53,10 +58,12 @@ pub struct Client {
 
 impl Client {
     pub fn new() -> Result<Self, String> {
-        let agent = ureq::AgentBuilder::new()
+        let agent: ureq::Agent = ureq::Agent::config_builder()
             .user_agent(concat!("xfetch/", env!("CARGO_PKG_VERSION")))
-            .redirects(5)
-            .build();
+            .max_redirects(5)
+            .http_status_as_error(false)
+            .build()
+            .into();
         let token = std::env::var("GH_TOKEN")
             .or_else(|_| std::env::var("GITHUB_TOKEN"))
             .ok()
@@ -66,10 +73,13 @@ impl Client {
 
     /// Fetches a small JSON/text document with a bounded size.
     pub fn get_text(&self, url: &str, cap: usize, timeout: Duration) -> Result<String, String> {
-        let response = self.request(url, timeout)?;
+        let mut response = self.request(url, timeout)?;
         let mut body = Vec::new();
         response
-            .into_reader()
+            .body
+            .with_config()
+            .limit(cap as u64 + 1)
+            .reader()
             .take(cap as u64 + 1)
             .read_to_end(&mut body)
             .map_err(|err| format!("Failed to read '{}': {}", url, err))?;
@@ -82,11 +92,8 @@ impl Client {
     /// Downloads a binary asset with a bounded size.
     #[cfg_attr(not(unix), allow(dead_code))]
     pub fn get_bytes(&self, url: &str, cap: usize) -> Result<Vec<u8>, String> {
-        let response = self.request(url, Duration::from_secs(300))?;
-        let declared = response
-            .header("content-length")
-            .and_then(|value| value.parse::<u64>().ok())
-            .unwrap_or(0);
+        let mut response = self.request(url, Duration::from_secs(300))?;
+        let declared = response.content_length.unwrap_or(0);
         if declared > cap as u64 {
             return Err(format!(
                 "Asset from '{}' is larger than the {} MiB limit",
@@ -97,7 +104,10 @@ impl Client {
 
         let mut body = Vec::new();
         response
-            .into_reader()
+            .body
+            .with_config()
+            .limit(cap as u64 + 1)
+            .reader()
             .take(cap as u64 + 1)
             .read_to_end(&mut body)
             .map_err(|err| format!("Failed to download '{}': {}", url, err))?;
@@ -108,40 +118,47 @@ impl Client {
     }
 
     /// Sends a GET with the standard headers.
-    fn request(&self, url: &str, timeout: Duration) -> Result<ureq::Response, String> {
+    fn request(&self, url: &str, timeout: Duration) -> Result<HttpResponse, String> {
         let mut request = self
             .agent
             .get(url)
-            .timeout(timeout)
-            .set("Accept", "application/vnd.github+json");
+            .config()
+            .timeout_global(Some(timeout))
+            .build()
+            .header("Accept", "application/vnd.github+json");
         if let Some(token) = &self.token {
-            request = request.set("Authorization", &format!("Bearer {}", token));
+            request = request.header("Authorization", format!("Bearer {}", token));
         }
 
-        request.call().map_err(|err| http_error(url, err))
-    }
-}
-
-/// Turns a ureq error into an actionable message.
-fn http_error(url: &str, err: ureq::Error) -> String {
-    match err {
-        ureq::Error::Status(code, response) => {
-            if code == 403 {
-                format!(
+        let mut response = request
+            .call()
+            .map_err(|err| format!("Request to '{}' failed: {}", url, err))?;
+        let status = response.status().as_u16();
+        if !(200..300).contains(&status) {
+            if status == 403 {
+                return Err(format!(
                     "'{}' returned HTTP 403 (rate limit?). Set GH_TOKEN or try again later.",
                     url
-                )
-            } else {
-                let body = response
-                    .into_string()
-                    .unwrap_or_default()
-                    .chars()
-                    .take(160)
-                    .collect::<String>();
-                format!("'{}' returned HTTP {}: {}", url, code, body)
+                ));
             }
+            let body = response
+                .body_mut()
+                .with_config()
+                .limit(160)
+                .read_to_string()
+                .unwrap_or_default();
+            return Err(format!("'{}' returned HTTP {}: {}", url, status, body));
         }
-        ureq::Error::Transport(err) => format!("Request to '{}' failed: {}", url, err),
+
+        let content_length = response
+            .headers()
+            .get("content-length")
+            .and_then(|value| value.to_str().ok())
+            .and_then(|value| value.parse::<u64>().ok());
+        Ok(HttpResponse {
+            content_length,
+            body: response.into_body(),
+        })
     }
 }
 

@@ -6,6 +6,8 @@
 
 <h2>Built-in Layouts</h2>
 
+<p>Run <code>xfetch --list-layouts</code> to print every accepted layout name.</p>
+
 <h3>1. Default Layout (Classic)</h3>
 
 <p>

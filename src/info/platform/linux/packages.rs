@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use crate::info::platform::linux::xpm;
 use crate::info::platform::shared::packages::{
     PACKAGE_CHECK_TIMEOUT, PackageCheck, SNAP_CHECK_TIMEOUT, format_package_count,
     run_package_checks,
@@ -216,7 +217,7 @@ pub fn get_packages_breakdown() -> Vec<(String, String)> {
         .cloned()
         .collect();
     let cmd_counts = run_package_checks(&pending);
-    CHECKS
+    let mut breakdown: Vec<(String, String)> = CHECKS
         .iter()
         .filter_map(|check| {
             if let Some((_, n)) = db_counts.iter().find(|(c, _)| *c == check.label) {
@@ -230,7 +231,26 @@ pub fn get_packages_breakdown() -> Vec<(String, String)> {
                 cmd_counts.iter().find(|(c, _)| c == check.label).cloned()
             }
         })
-        .collect()
+        .collect();
+
+    for (label, count) in xpm::package_counts() {
+        breakdown.push((label.to_string(), format_package_count(count, label)));
+    }
+
+    let covered = breakdown
+        .iter()
+        .any(|(label, _)| label == xpm::XPM_LABEL || label == PACMAN_CMD);
+    if !covered && let Some(count) = xpm::pacman_db_package_count() {
+        breakdown.insert(
+            0,
+            (
+                PACMAN_CMD.to_string(),
+                format_package_count(count, PACMAN_CMD),
+            ),
+        );
+    }
+
+    breakdown
 }
 
 #[cfg(test)]

@@ -42,7 +42,7 @@ pub fn macos_version_id(version: &str) -> Option<&'static str> {
 /// mapped.
 pub fn detect_os_ids() -> (String, Vec<String>) {
     let mut ids = Vec::new();
-    if let Some(v) = sysinfo::System::os_version()
+    if let Ok(v) = sysinfo::System::os_version()
         && let Some(specific) = macos_version_id(&v)
     {
         ids.push(specific.to_string());

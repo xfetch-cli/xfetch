@@ -62,7 +62,7 @@ pub fn detect_os_ids() -> (String, Vec<String>) {
     #[cfg(target_os = "windows")]
     {
         let mut ids = Vec::new();
-        if let Some(v) = sysinfo::System::os_version()
+        if let Ok(v) = sysinfo::System::os_version()
             && let Some(specific) = windows::version::windows_version_id(&v)
         {
             ids.push(specific.to_string());

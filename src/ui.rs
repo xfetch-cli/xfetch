@@ -20,7 +20,7 @@ mod win_daemon;
 mod x;
 #[cfg(unix)]
 pub use daemon::{draw_daemon, stop_daemon};
-pub use layout::is_known_layout;
+pub use layout::{LAYOUT_NAMES, is_known_layout};
 #[cfg(unix)]
 pub use live::{draw_live_daemon, stop_live_daemon};
 #[cfg(windows)]

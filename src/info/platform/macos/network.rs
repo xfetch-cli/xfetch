@@ -42,7 +42,7 @@ pub fn get_local_ip_info(networks: &Networks) -> String {
             if let std::net::IpAddr::V4(ipv4) = ip.addr
                 && !ipv4.is_loopback()
             {
-                if is_virtual(name) {
+                if is_virtual(name.to_string_lossy().as_ref()) {
                     virtual_fallback.get_or_insert_with(|| ipv4.to_string());
                 } else {
                     return ipv4.to_string();

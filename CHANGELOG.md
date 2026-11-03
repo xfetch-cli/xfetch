@@ -1,5 +1,41 @@
 # Changelog
 
+## 2026-11-03 — v1.0.2
+
+### Security
+
+- Updated `wasmtime` and `wasmtime-wasi` to 50.0.1 and `zstd`/`zstd-safe` to 0.13.4/7.4.0. This closes RUSTSEC-2026-0391, RUSTSEC-2026-0395 through RUSTSEC-2026-0406, RUSTSEC-2026-0420 and RUSTSEC-2026-0422 through RUSTSEC-2026-0424. `cargo audit --deny warnings` reports no vulnerabilities and no warnings.
+- **Binaries built from v1.0.1 remain affected by these advisories; upgrade to v1.0.2.**
+- The wasm runtime moves from the 48.x line to 50.0.1. The guest ABI and WIT worlds are unchanged; the wasm end-to-end suite is part of the release gate.
+
+### Dependencies
+
+- Updated `sysinfo` from 0.39.6 to 0.40.1 and adapted the fallible constructors and static getters (`System::new`, `new_all`, `new_with_specifics`, `name`, `os_version`, `kernel_version`, `host_name`, `uptime`) plus the `OsString` network interface names. No user-visible output changes.
+- Migrated from `ureq` 2.12 to 3.5.1. The updater, public IP probe and wasm HTTP host now use `Agent::config_builder`, `Error::StatusCode`, `Body` readers and request-level timeouts. A local HTTP success test covers the wasm host path. No user-facing behavior change is intended.
+- Updated the semver-compatible dependency graph with `cargo update` and bumped the manifest floors for `clap`, `console`, `image`, `serde`, `serde_json` and `wat`.
+- Updated the GitHub Actions group: `actions/checkout` to 7.0.1, `actions/setup-python` to 7.1.0 and the pinned `dtolnay/rust-toolchain` commit. All actions remain pinned by commit SHA.
+
+### Package counts
+
+- Added `xpm`, `xp` and `xpm-aur` labels to the Linux package breakdown. They read only local installation state: xpm's database (`/var/lib/xpm/local`) and pacman's local database (`/var/lib/pacman/local`), which xpm mirrors its transactions into, so packages from both managers are counted once. `xp` is the installed subset from the native `x` repository; `xpm` is the shared total. The xpm-aur sidecar is intersected with that set so stale records are ignored. When the `pacman` binary is unavailable, the local database is counted directly instead of showing `unknown`. Remote catalogs are never queried and existing managers are unchanged.
+
+### CLI
+
+- Added `xfetch --list-layouts`, which prints every name accepted by `--layout`. Corrected the `--layout` help: `--gen-config` defaults to the `section` layout, and unknown names keep that fallback.
+
+### Addon tooling
+
+- `xfetch plugin`, `xfetch effects` and `xfetch extension` installs now print the configuration snippet required to enable the installed addon, along with its declared capabilities and limits.
+- Added `list --verbose` and `info <name>` for plugins, effects and extensions. They report the manifest kind, runtime, version, capabilities, limits and whether the addon is enabled.
+- Direct wasm files and URLs now accept `--name` and `--manifest` on install; directory and repository installs keep using their own name and manifest.
+- Added `search` (alias `available`) for the remote plugin, effect and extension catalogs, with optional `--json` output and `XFETCH_PLUGIN_INDEX`/`XFETCH_EFFECT_INDEX`/`XFETCH_EXTENSION_INDEX` overrides.
+- Added command aliases `plugins`, `effect`, and `extensions` for the existing command families.
+
+### Release
+
+- Bumped the crate version to 1.0.2 and updated the installer and verification examples to 1.0.2. The signature policy threshold remains v1.0.1.
+- CI push triggers are limited to `main`; release branches are validated through their pull requests, avoiding duplicate runs.
+
 ## 2026-10-24 — v1.0.1
 
 ### Security

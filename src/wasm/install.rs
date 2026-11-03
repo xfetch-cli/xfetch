@@ -282,14 +282,19 @@ pub fn download_and_install(
 
     println!("Downloading wasm {} '{}' from {}...", label, name, url);
 
-    let response = ureq::get(url)
-        .timeout(Duration::from_secs(120))
+    let mut response = ureq::get(url)
+        .config()
+        .timeout_global(Some(Duration::from_secs(120)))
+        .build()
         .call()
         .map_err(|err| format!("Failed to download '{}': {}", url, err))?;
 
     let mut bytes = Vec::new();
     response
-        .into_reader()
+        .body_mut()
+        .with_config()
+        .limit(DOWNLOAD_LIMIT + 1)
+        .reader()
         .take(DOWNLOAD_LIMIT + 1)
         .read_to_end(&mut bytes)
         .map_err(|err| format!("Failed to read '{}': {}", url, err))?;

@@ -48,7 +48,7 @@ Signing uses GitHub Actions OIDC; there is no long-lived release key.
 ### Verify the checksums signature
 
 ```bash
-VERSION=1.0.1   # the release you downloaded
+VERSION=1.0.2   # the release you downloaded
 BASE="https://github.com/xfetch-cli/xfetch/releases/download/v${VERSION}"
 
 curl -fsSLO "${BASE}/SHA256SUMS"
@@ -73,7 +73,7 @@ exists, `openssl dgst -sha256 <file>` prints the digest to compare by hand.
 ### Verify the build provenance attestation
 
 ```bash
-VERSION=1.0.1
+VERSION=1.0.2
 gh attestation verify "xfetch-${VERSION}-x86_64-unknown-linux-gnu.tar.gz" \
   --repo xfetch-cli/xfetch
 ```

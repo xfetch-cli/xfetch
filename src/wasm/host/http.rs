@@ -38,40 +38,54 @@ pub fn request(args: &Value, ctx: &HostContext) -> HostCallResult {
     let mut current = Url::parse(url)
         .map_err(|err| HostCallError::failed(format!("invalid URL '{}': {}", url, err)))?;
 
-    let agent = ureq::AgentBuilder::new()
-        .redirects(0)
-        .timeout(timeout)
+    let config = ureq::Agent::config_builder()
+        .max_redirects(0)
+        .timeout_global(Some(timeout))
+        .http_status_as_error(false)
         .build();
+    let agent: ureq::Agent = config.into();
 
     for _ in 0..=MAX_REDIRECTS {
         let started = Instant::now();
-        let mut request = agent.request(&method, current.as_str());
-        for (name, value) in &headers {
-            request = request.set(name, value);
-        }
-
+        let build = || {
+            let mut builder = ureq::http::Request::builder()
+                .method(method.as_str())
+                .uri(current.as_str());
+            for (name, value) in &headers {
+                builder = builder.header(name.as_str(), value.as_str());
+            }
+            builder
+        };
         let response = match body.as_deref() {
-            Some(bytes) => request.send_bytes(bytes),
-            None => request.call(),
+            Some(bytes) => {
+                let request = build().body(bytes).map_err(|err| {
+                    HostCallError::failed(format!("invalid HTTP request: {}", err))
+                })?;
+                agent.run(request)
+            }
+            None => {
+                let request = build().body(()).map_err(|err| {
+                    HostCallError::failed(format!("invalid HTTP request: {}", err))
+                })?;
+                agent.run(request)
+            }
         };
 
         let response = match response {
             Ok(response) => response,
-            // Non-2xx statuses are still valid responses: return them.
-            Err(ureq::Error::Status(_, response)) => response,
-            Err(ureq::Error::Transport(err)) => {
-                return Err(transport_error(err.to_string(), started, timeout));
-            }
+            Err(err) => return Err(transport_error(err.to_string(), started, timeout)),
         };
 
-        let status = response.status();
+        let status = response.status().as_u16();
         if (300..400).contains(&status) {
             let location = response
-                .header("location")
+                .headers()
+                .get("location")
+                .and_then(|value| value.to_str().ok())
+                .map(str::to_string)
                 .ok_or_else(|| {
                     HostCallError::failed("redirect response without a Location header")
-                })?
-                .to_string();
+                })?;
             let next = current.join(&location).map_err(|err| {
                 HostCallError::failed(format!("invalid redirect target '{}': {}", location, err))
             })?;
@@ -92,20 +106,27 @@ pub fn request(args: &Value, ctx: &HostContext) -> HostCallResult {
 }
 
 /// Collects response metadata and the capped body.
-fn read_response(response: ureq::Response, ctx: &HostContext) -> HostCallResult {
-    let status = response.status();
+fn read_response(
+    mut response: ureq::http::Response<ureq::Body>,
+    ctx: &HostContext,
+) -> HostCallResult {
+    let status = response.status().as_u16();
 
     let mut headers = Vec::new();
-    for name in response.headers_names() {
-        for value in response.all(&name) {
-            headers.push(json!([name, value]));
-        }
+    for (name, value) in response.headers() {
+        headers.push(json!([
+            name.as_str(),
+            String::from_utf8_lossy(value.as_bytes()).to_string()
+        ]));
     }
 
     let cap = ctx.policy.host_call_bytes;
     let mut bytes = Vec::new();
     response
-        .into_reader()
+        .body_mut()
+        .with_config()
+        .limit(cap as u64 + 1)
+        .reader()
         .take(cap as u64 + 1)
         .read_to_end(&mut bytes)
         .map_err(|err| HostCallError::failed(format!("failed to read response body: {}", err)))?;
@@ -219,5 +240,38 @@ mod tests {
             err.kind,
             HostErrorKind::Failed | HostErrorKind::Timeout
         ));
+    }
+
+    #[test]
+    fn successful_request_returns_status_headers_and_body() {
+        use std::io::{Read, Write};
+        use std::net::TcpListener;
+
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+        let port = listener.local_addr().expect("addr").port();
+        let server = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().expect("accept");
+            let mut buf = [0u8; 1024];
+            let _ = stream.read(&mut buf);
+            stream
+                .write_all(
+                    b"HTTP/1.1 200 OK\r\nContent-Length: 5\r\nContent-Type: text/plain\r\nX-Test: yes\r\n\r\nhello",
+                )
+                .expect("write");
+        });
+
+        let url = format!("http://127.0.0.1:{port}/");
+        let allow = format!(r#"{{ "capabilities": {{ "http": {{ "allow": ["{url}"] }} }} }}"#);
+        let ctx = context(&allow);
+        let result = request(&json!({ "url": url, "timeout_ms": 2000 }), &ctx).expect("request");
+        server.join().expect("server");
+
+        assert_eq!(result["status"], 200);
+        assert_eq!(result["body_base64"], "aGVsbG8=");
+        assert!(result["headers"].as_array().is_some_and(|headers| {
+            headers
+                .iter()
+                .any(|header| header[0] == "x-test" && header[1] == "yes")
+        }));
     }
 }

@@ -1,3 +1,4 @@
+mod addons;
 mod atomic_fs;
 mod cache;
 mod cli;
@@ -17,6 +18,8 @@ mod ui;
 mod update;
 mod wasm;
 
+use crate::addons::install::infer_name;
+use crate::addons::model::{AddonEntry, AddonKind};
 use crate::config::{generate_config, load_config};
 use crate::effects::{install_effect, list_effects, remove_effect};
 use crate::extensions::{install_extension, list_extensions, remove_extension};
@@ -36,6 +39,13 @@ fn main() {
 }
 
 fn run(cli: Cli) -> Result<(), error::XFetchError> {
+    if cli.list_layouts {
+        for name in crate::ui::LAYOUT_NAMES {
+            println!("{name}");
+        }
+        return Ok(());
+    }
+
     if cli.clean_cache {
         return cache::clean()
             .map_err(|err| error::XFetchError::CleanCache(err.to_string()))
@@ -75,59 +85,132 @@ fn run(cli: Cli) -> Result<(), error::XFetchError> {
 
     match cli.command {
         Some(Commands::Plugin { action }) => match action {
-            PluginCommands::Install { path, repo, sha256 } => {
-                install_plugin(&path, repo.as_deref(), sha256.as_deref())
-                    .map_err(error::XFetchError::Fatal)
+            PluginCommands::Install {
+                path,
+                repo,
+                sha256,
+                name,
+                manifest,
+            } => {
+                let direct = name.is_some() || manifest.is_some();
+                let installed = if direct {
+                    if repo.is_some() {
+                        return Err(error::XFetchError::Fatal(
+                            "--name/--manifest apply to direct wasm files or URLs; omit --repo"
+                                .to_string(),
+                        ));
+                    }
+                    addons::install::install_direct(
+                        AddonKind::Plugin,
+                        &path,
+                        sha256.as_deref(),
+                        name.as_deref(),
+                        manifest.as_deref(),
+                    )
+                    .map_err(error::XFetchError::Fatal)?
+                } else {
+                    install_plugin(&path, repo.as_deref(), sha256.as_deref())
+                        .map_err(error::XFetchError::Fatal)?;
+                    infer_name(AddonKind::Plugin, &path, None).map_err(error::XFetchError::Fatal)?
+                };
+                addons::report::print_install_guidance(AddonKind::Plugin, &installed);
+                Ok(())
             }
-            PluginCommands::List => {
-                list_plugins()
+            PluginCommands::List { verbose } => {
+                let installed = list_plugins().map_err(error::XFetchError::Fatal)?;
+                let config = load_config(cli.config.clone());
+                let entries = installed
+                    .into_iter()
+                    .map(|(name, path)| AddonEntry::load(AddonKind::Plugin, &name, &path, &config))
+                    .collect::<Vec<_>>();
+                addons::report::print_list(AddonKind::Plugin, &entries, verbose);
+                Ok(())
+            }
+            PluginCommands::Info { name } => {
+                let path = AddonKind::Plugin
+                    .installed_path(&name)
+                    .or_else(|| plugins::find_plugin_binary(&name))
+                    .ok_or_else(|| {
+                        error::XFetchError::Fatal(format!("Plugin '{}' is not installed.", name))
+                    })?;
+                let config = load_config(cli.config.clone());
+                let entry = AddonEntry::load(AddonKind::Plugin, &name, &path, &config);
+                addons::report::print_info(&entry);
+                Ok(())
+            }
+            PluginCommands::Search { query, json } => {
+                addons::catalog::print_search(AddonKind::Plugin, query.as_deref(), json)
                     .map_err(error::XFetchError::Fatal)
-                    .map(|plugins| {
-                        if plugins.is_empty() {
-                            println!("No plugins installed.");
-                            println!(
-                                "Plugin directory: {}",
-                                plugins::default_plugin_dir().display()
-                            );
-                        } else {
-                            println!("Installed plugins:");
-                            for (name, path) in &plugins {
-                                println!("  {}  ({})", name, path.display());
-                            }
-                        }
-                    })
             }
             PluginCommands::Remove { name } => {
                 remove_plugin(&name).map_err(error::XFetchError::Fatal)
             }
         },
-        Some(Commands::Extension { action }) => {
-            match action {
-                ExtensionCommands::Install { path, repo, sha256 } => {
+        Some(Commands::Extension { action }) => match action {
+            ExtensionCommands::Install {
+                path,
+                repo,
+                sha256,
+                name,
+                manifest,
+            } => {
+                let direct = name.is_some() || manifest.is_some();
+                let installed = if direct {
+                    if repo.is_some() {
+                        return Err(error::XFetchError::Fatal(
+                            "--name/--manifest apply to direct wasm files or URLs; omit --repo"
+                                .to_string(),
+                        ));
+                    }
+                    addons::install::install_direct(
+                        AddonKind::Extension,
+                        &path,
+                        sha256.as_deref(),
+                        name.as_deref(),
+                        manifest.as_deref(),
+                    )
+                    .map_err(error::XFetchError::Fatal)?
+                } else {
                     install_extension(&path, repo.as_deref(), sha256.as_deref())
-                        .map_err(error::XFetchError::Fatal)
-                }
-                ExtensionCommands::List => list_extensions()
-                    .map_err(error::XFetchError::Fatal)
-                    .map(|extensions| {
-                        if extensions.is_empty() {
-                            println!("No extensions installed.");
-                            println!(
-                                "Extension directory: {}",
-                                extensions::default_extension_dir().display()
-                            );
-                        } else {
-                            println!("Installed extensions:");
-                            for (name, path) in &extensions {
-                                println!("  {}  ({})", name, path.display());
-                            }
-                        }
-                    }),
-                ExtensionCommands::Remove { name } => {
-                    remove_extension(&name).map_err(error::XFetchError::Fatal)
-                }
+                        .map_err(error::XFetchError::Fatal)?;
+                    infer_name(AddonKind::Extension, &path, None)
+                        .map_err(error::XFetchError::Fatal)?
+                };
+                addons::report::print_install_guidance(AddonKind::Extension, &installed);
+                Ok(())
             }
-        }
+            ExtensionCommands::List { verbose } => {
+                let installed = list_extensions().map_err(error::XFetchError::Fatal)?;
+                let config = load_config(cli.config.clone());
+                let entries = installed
+                    .into_iter()
+                    .map(|(name, path)| {
+                        AddonEntry::load(AddonKind::Extension, &name, &path, &config)
+                    })
+                    .collect::<Vec<_>>();
+                addons::report::print_list(AddonKind::Extension, &entries, verbose);
+                Ok(())
+            }
+            ExtensionCommands::Info { name } => {
+                let path = AddonKind::Extension
+                    .installed_path(&name)
+                    .or_else(|| extensions::find_extension_binary(&name))
+                    .ok_or_else(|| {
+                        error::XFetchError::Fatal(format!("Extension '{}' is not installed.", name))
+                    })?;
+                let config = load_config(cli.config.clone());
+                let entry = AddonEntry::load(AddonKind::Extension, &name, &path, &config);
+                addons::report::print_info(&entry);
+                Ok(())
+            }
+            ExtensionCommands::Search { query, json } => {
+                addons::catalog::print_search(AddonKind::Extension, query.as_deref(), json)
+                    .map_err(error::XFetchError::Fatal)
+            }
+            ExtensionCommands::Remove { name } => {
+                remove_extension(&name).map_err(error::XFetchError::Fatal)
+            }
+        },
         Some(Commands::Theme { action }) => match action {
             ThemeCommands::List => list_themes()
                 .map_err(error::XFetchError::Fatal)
@@ -259,27 +342,62 @@ fn run(cli: Cli) -> Result<(), error::XFetchError> {
             }
         },
         Some(Commands::Effects { action }) => match action {
-            EffectCommands::Install { path, repo, sha256 } => {
-                install_effect(&path, repo.as_deref(), sha256.as_deref())
-                    .map_err(error::XFetchError::Fatal)
+            EffectCommands::Install {
+                path,
+                repo,
+                sha256,
+                name,
+                manifest,
+            } => {
+                let direct = name.is_some() || manifest.is_some();
+                let installed = if direct {
+                    if repo.is_some() {
+                        return Err(error::XFetchError::Fatal(
+                            "--name/--manifest apply to direct wasm files or URLs; omit --repo"
+                                .to_string(),
+                        ));
+                    }
+                    addons::install::install_direct(
+                        AddonKind::Effect,
+                        &path,
+                        sha256.as_deref(),
+                        name.as_deref(),
+                        manifest.as_deref(),
+                    )
+                    .map_err(error::XFetchError::Fatal)?
+                } else {
+                    install_effect(&path, repo.as_deref(), sha256.as_deref())
+                        .map_err(error::XFetchError::Fatal)?;
+                    infer_name(AddonKind::Effect, &path, None).map_err(error::XFetchError::Fatal)?
+                };
+                addons::report::print_install_guidance(AddonKind::Effect, &installed);
+                Ok(())
             }
-            EffectCommands::List => {
-                list_effects()
+            EffectCommands::List { verbose } => {
+                let installed = list_effects().map_err(error::XFetchError::Fatal)?;
+                let config = load_config(cli.config.clone());
+                let entries = installed
+                    .into_iter()
+                    .map(|(name, path)| AddonEntry::load(AddonKind::Effect, &name, &path, &config))
+                    .collect::<Vec<_>>();
+                addons::report::print_list(AddonKind::Effect, &entries, verbose);
+                Ok(())
+            }
+            EffectCommands::Info { name } => {
+                let path = AddonKind::Effect
+                    .installed_path(&name)
+                    .or_else(|| effects::find_effect_binary(&name))
+                    .ok_or_else(|| {
+                        error::XFetchError::Fatal(format!("Effect '{}' is not installed.", name))
+                    })?;
+                let config = load_config(cli.config.clone());
+                let entry = AddonEntry::load(AddonKind::Effect, &name, &path, &config);
+                addons::report::print_info(&entry);
+                Ok(())
+            }
+            EffectCommands::Search { query, json } => {
+                addons::catalog::print_search(AddonKind::Effect, query.as_deref(), json)
                     .map_err(error::XFetchError::Fatal)
-                    .map(|effects| {
-                        if effects.is_empty() {
-                            println!("No effects installed.");
-                            println!(
-                                "Effect directory: {}",
-                                effects::default_effect_dir().display()
-                            );
-                        } else {
-                            println!("Installed effects:");
-                            for (name, path) in &effects {
-                                println!("  {}  ({})", name, path.display());
-                            }
-                        }
-                    })
             }
             EffectCommands::Remove { name } => {
                 remove_effect(&name).map_err(error::XFetchError::Fatal)

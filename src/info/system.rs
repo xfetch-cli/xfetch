@@ -1,4 +1,3 @@
-use std::io::Read;
 use std::net::IpAddr;
 use std::sync::LazyLock;
 use std::thread;
@@ -9,7 +8,7 @@ use ureq::Agent;
 const PUBLIC_IP_HOSTS: [&str; 3] = ["ifconfig.me", "api.ipify.org", "icanhazip.com"];
 
 pub fn get_os_info() -> String {
-    let name = System::name().unwrap_or_else(super::unknown);
+    let name = System::name().unwrap_or_else(|_| super::unknown());
     let version = System::os_version().unwrap_or_default();
     let arch = std::env::consts::ARCH;
     if version.is_empty() {
@@ -20,15 +19,15 @@ pub fn get_os_info() -> String {
 }
 
 pub fn get_kernel_info() -> String {
-    System::kernel_version().unwrap_or_else(super::unknown)
+    System::kernel_version().unwrap_or_else(|_| super::unknown())
 }
 
 pub fn get_host_name() -> String {
-    System::host_name().unwrap_or_else(super::unknown)
+    System::host_name().unwrap_or_else(|_| super::unknown())
 }
 
 pub fn get_uptime_info() -> String {
-    let uptime = System::uptime();
+    let uptime = System::uptime().unwrap_or(0);
     let hours = uptime / 3600;
     let mins = (uptime % 3600) / 60;
     let hour_label = if hours == 1 { "hour" } else { "hours" };
@@ -61,11 +60,12 @@ pub fn get_ipv6_info(networks: &Networks) -> String {
 /// No redirects: the IP endpoints serve the address directly, and a
 /// redirect to plaintext HTTP would silently downgrade the request.
 static AGENT: LazyLock<Agent> = LazyLock::new(|| {
-    ureq::AgentBuilder::new()
-        .timeout_connect(Duration::from_secs(3))
-        .timeout_read(Duration::from_secs(5))
-        .redirects(0)
-        .build()
+    let config = Agent::config_builder()
+        .timeout_connect(Some(Duration::from_secs(3)))
+        .timeout_per_read(Some(Duration::from_secs(5)))
+        .max_redirects(0)
+        .build();
+    config.into()
 });
 
 /// Validates the response body is a real IP address. Stricter than the old
@@ -81,12 +81,12 @@ fn parse_public_ip(body: &str) -> Option<IpAddr> {
 
 fn fetch_public_ip_from(host: &str) -> Option<String> {
     // Cap the body at 64 bytes: a public IP is at most 45 chars.
-    let response = AGENT.get(&format!("https://{host}/")).call().ok()?;
-    let mut body = String::new();
-    response
-        .into_reader()
-        .take(64)
-        .read_to_string(&mut body)
+    let mut response = AGENT.get(&format!("https://{host}/")).call().ok()?;
+    let body = response
+        .body_mut()
+        .with_config()
+        .limit(64)
+        .read_to_string()
         .ok()?;
     parse_public_ip(&body).map(|ip| ip.to_string())
 }
@@ -134,9 +134,9 @@ pub fn get_network_interfaces_info(networks: &Networks) -> String {
             .collect();
         if !ips.is_empty() {
             let label = if mac.is_empty() {
-                format!("{} {}", name, ips.join(", "))
+                format!("{} {}", name.to_string_lossy(), ips.join(", "))
             } else {
-                format!("{} [{}] {}", name, mac, ips.join(", "))
+                format!("{} [{}] {}", name.to_string_lossy(), mac, ips.join(", "))
             };
             parts.push(label);
         }

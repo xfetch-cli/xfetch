@@ -313,7 +313,7 @@ makepkg -si</code></pre>
   and <code>gh</code>):
 </p>
 
-<pre><code class="language-bash">VERSION=1.0.1
+<pre><code class="language-bash">VERSION=1.0.2
 ASSET="xfetch-${VERSION}-x86_64-unknown-linux-gnu.tar.gz"
 BASE="https://github.com/xfetch-cli/xfetch/releases/download/v${VERSION}"
 

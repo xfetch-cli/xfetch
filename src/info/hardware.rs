@@ -69,13 +69,15 @@ mod tests {
 
     #[test]
     fn test_get_memory_info() {
-        let mem = get_memory_info(&System::new_all());
+        let sys = System::new_all().expect("system information");
+        let mem = get_memory_info(&sys);
         assert!(mem.contains("GiB"), "memory should show GiB");
     }
 
     #[test]
     fn test_get_swap_info() {
-        let swap = get_swap_info(&System::new_all());
+        let sys = System::new_all().expect("system information");
+        let swap = get_swap_info(&sys);
         assert!(swap.contains("GiB") || swap == "0 B / 0 B (0%)");
     }
 }

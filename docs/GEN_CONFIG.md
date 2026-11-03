@@ -43,7 +43,7 @@
 
 <pre><code class="language-jsonc">{
     "ascii": "/home/jan/.config/xfetch/logos/ubuntu.txt",
-    "layout": "pacman",
+    "layout": "section",
     // ...
 }</code></pre>
 
@@ -92,7 +92,8 @@ xfetch --gen-config --logo macos-ventura</code></pre>
 <p>
   The template ships with the <code>section</code> layout (grouped Hardware/Software/Session
   modules). Use <code>--layout</code> to generate it with any of the built-in layouts (see
-  <a href="LAYOUTS.md">LAYOUTS.md</a>):
+  <a href="LAYOUTS.md">LAYOUTS.md</a>). Run <code>xfetch --list-layouts</code> to print every
+  accepted name:
 </p>
 
 <pre><code>xfetch --gen-config --layout pacman
@@ -108,7 +109,7 @@ xfetch --gen-config --layout compact</code></pre>
   <li><code>horizontal</code>, <code>bottom</code> (vertical layouts)</li>
 </ul>
 
-<p>An unknown layout name warns and keeps <code>pacman</code>.</p>
+<p>An unknown layout name warns and keeps <code>section</code>.</p>
 
 <h2>Combined Example</h2>
 
