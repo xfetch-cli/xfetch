@@ -42,6 +42,7 @@
     <tr><td><code>xfetch --daemon-live-stop</code></td><td>Stop the running live stats daemon.</td></tr>
     <tr><td><code>xfetch --daemon-live-reload</code></td><td>Force hot reload in the live stats daemon (same as <code>"daemon_live_reload": true</code>).</td></tr>
     <tr><td><code>xfetch --gen-config</code></td><td>Generate a starter config at the default location. See <a href="GEN_CONFIG.md">GEN_CONFIG.md</a>.</td></tr>
+    <tr><td><code>xfetch --list-layouts</code></td><td>Print the layout names accepted by <code>--layout</code>.</td></tr>
     <tr><td><code>xfetch --clean-cache</code></td><td>Clear the module cache.</td></tr>
     <tr><td><code>xfetch --benchmark</code></td><td>Print benchmarking info for the info gathering step.</td></tr>
     <tr><td><code>xfetch plugin install|list|remove &lt;name&gt;</code></td><td>Manage plugins. See <a href="PLUGINS.md">PLUGINS.md</a>.</td></tr>

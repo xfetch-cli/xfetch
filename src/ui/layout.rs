@@ -82,6 +82,11 @@ mod tests {
     use crate::config::Config;
 
     #[test]
+    fn test_layout_names_include_generated_default() {
+        assert!(LAYOUT_NAMES.contains(&"section"));
+    }
+
+    #[test]
     fn test_get_content_lines_empty() {
         // Verify that the layout correctly handles an empty list of nodes without crashing
         let config = Config::default();

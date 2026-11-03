@@ -39,6 +39,13 @@ fn main() {
 }
 
 fn run(cli: Cli) -> Result<(), error::XFetchError> {
+    if cli.list_layouts {
+        for name in crate::ui::LAYOUT_NAMES {
+            println!("{name}");
+        }
+        return Ok(());
+    }
+
     if cli.clean_cache {
         return cache::clean()
             .map_err(|err| error::XFetchError::CleanCache(err.to_string()))

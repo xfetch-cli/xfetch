@@ -6,7 +6,7 @@ use clap::{Parser, Subcommand};
     version,
     about,
     long_about = None,
-    after_help = "Examples:\n  xfetch\n  xfetch --config ~/.config/xfetch/config.jsonc\n  xfetch --gen-config\n  xfetch --clean-cache\n  xfetch --daemon\n  xfetch --daemon-stop\n  xfetch --no-daemon-live\n  xfetch --daemon-live-stop\n  xfetch --daemon-live-reload\n  xfetch update --check\n  xfetch update\n  xfetch plugin install animate-logo\n  xfetch plugin list --verbose\n  xfetch plugin info animate-logo\n  xfetch plugin search logo\n  xfetch plugin remove animate-logo\n  xfetch effects install decrypt\n  xfetch effects list --verbose\n  xfetch effects info decrypt\n  xfetch effects available\n  xfetch effects remove decrypt\n  xfetch extension install config-roulette\n  xfetch extension list --verbose\n  xfetch extension info config-roulette\n  xfetch extension search night\n  xfetch extension remove config-roulette\n  xfetch wasm inspect ./plugin.wasm\n  xfetch wasm run ./plugin.wasm --request '{\"version\":1,\"kind\":\"info_provider\"}'\n  xfetch wasm wit\n  xfetch theme list\n  xfetch theme set dracula\n  xfetch theme remove dracula\n  xfetch theme export my-theme"
+    after_help = "Examples:\n  xfetch\n  xfetch --config ~/.config/xfetch/config.jsonc\n  xfetch --gen-config\n  xfetch --gen-config --layout tree\n  xfetch --list-layouts\n  xfetch --clean-cache\n  xfetch --daemon\n  xfetch --daemon-stop\n  xfetch --no-daemon-live\n  xfetch --daemon-live-stop\n  xfetch --daemon-live-reload\n  xfetch update --check\n  xfetch update\n  xfetch plugin install animate-logo\n  xfetch plugin list --verbose\n  xfetch plugin info animate-logo\n  xfetch plugin search logo\n  xfetch plugin remove animate-logo\n  xfetch effects install decrypt\n  xfetch effects list --verbose\n  xfetch effects info decrypt\n  xfetch effects available\n  xfetch effects remove decrypt\n  xfetch extension install config-roulette\n  xfetch extension list --verbose\n  xfetch extension info config-roulette\n  xfetch extension search night\n  xfetch extension remove config-roulette\n  xfetch wasm inspect ./plugin.wasm\n  xfetch wasm run ./plugin.wasm --request '{\"version\":1,\"kind\":\"info_provider\"}'\n  xfetch wasm wit\n  xfetch theme list\n  xfetch theme set dracula\n  xfetch theme remove dracula\n  xfetch theme export my-theme"
 )]
 pub struct Cli {
     #[command(subcommand)]
@@ -25,9 +25,14 @@ pub struct Cli {
     pub logo: Option<String>,
 
     /// Layout for the generated config (e.g. `section`, `tree`, `compact`).
-    /// Only used with `--gen-config`; defaults to `pacman`.
+    /// Only used with `--gen-config`; defaults to `section`. Run
+    /// `xfetch --list-layouts` to see every accepted name.
     #[arg(long, global = true)]
     pub layout: Option<String>,
+
+    /// Print the layout names accepted by `--layout` and exit.
+    #[arg(long, global = true)]
+    pub list_layouts: bool,
 
     #[arg(long, global = true)]
     pub clean_cache: bool,

@@ -19,6 +19,10 @@
 
 - Added `xpm`, `xp` and `xpm-aur` labels to the Linux package breakdown. They read only local installation state: xpm's database (`/var/lib/xpm/local`) and pacman's local database (`/var/lib/pacman/local`), which xpm mirrors its transactions into, so packages from both managers are counted once. `xp` is the installed subset from the native `x` repository; `xpm` is the shared total. The xpm-aur sidecar is intersected with that set so stale records are ignored. When the `pacman` binary is unavailable, the local database is counted directly instead of showing `unknown`. Remote catalogs are never queried and existing managers are unchanged.
 
+### CLI
+
+- Added `xfetch --list-layouts`, which prints every name accepted by `--layout`. Corrected the `--layout` help: `--gen-config` defaults to the `section` layout, and unknown names keep that fallback.
+
 ### Addon tooling
 
 - `xfetch plugin`, `xfetch effects` and `xfetch extension` installs now print the configuration snippet required to enable the installed addon, along with its declared capabilities and limits.
