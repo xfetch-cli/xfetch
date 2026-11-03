@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Dependencies
+
+- Updated the semver-compatible dependency graph with `cargo update` and bumped the manifest floors for `clap`, `console`, `image`, `serde`, `serde_json` and `wat`.
+- Migrated from `ureq` 2.12 to 3.5.1. The updater, public IP probe and wasm HTTP host now use `Agent::config_builder`, `Error::StatusCode`, `Body` readers and request-level timeouts. No user-facing behavior change is intended.
+
 ## 2026-11-03 — v1.0.2
 
 ### Security

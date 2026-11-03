@@ -1,4 +1,3 @@
-use std::io::Read;
 use std::net::IpAddr;
 use std::sync::LazyLock;
 use std::thread;
@@ -61,11 +60,12 @@ pub fn get_ipv6_info(networks: &Networks) -> String {
 /// No redirects: the IP endpoints serve the address directly, and a
 /// redirect to plaintext HTTP would silently downgrade the request.
 static AGENT: LazyLock<Agent> = LazyLock::new(|| {
-    ureq::AgentBuilder::new()
-        .timeout_connect(Duration::from_secs(3))
-        .timeout_read(Duration::from_secs(5))
-        .redirects(0)
-        .build()
+    let config = Agent::config_builder()
+        .timeout_connect(Some(Duration::from_secs(3)))
+        .timeout_per_read(Some(Duration::from_secs(5)))
+        .max_redirects(0)
+        .build();
+    config.into()
 });
 
 /// Validates the response body is a real IP address. Stricter than the old
@@ -81,12 +81,12 @@ fn parse_public_ip(body: &str) -> Option<IpAddr> {
 
 fn fetch_public_ip_from(host: &str) -> Option<String> {
     // Cap the body at 64 bytes: a public IP is at most 45 chars.
-    let response = AGENT.get(&format!("https://{host}/")).call().ok()?;
-    let mut body = String::new();
-    response
-        .into_reader()
-        .take(64)
-        .read_to_string(&mut body)
+    let mut response = AGENT.get(&format!("https://{host}/")).call().ok()?;
+    let body = response
+        .body_mut()
+        .with_config()
+        .limit(64)
+        .read_to_string()
         .ok()?;
     parse_public_ip(&body).map(|ip| ip.to_string())
 }
