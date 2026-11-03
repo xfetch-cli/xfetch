@@ -15,6 +15,10 @@
 - Updated the semver-compatible dependency graph with `cargo update` and bumped the manifest floors for `clap`, `console`, `image`, `serde`, `serde_json` and `wat`.
 - Updated the GitHub Actions group: `actions/checkout` to 7.0.1, `actions/setup-python` to 7.1.0 and the pinned `dtolnay/rust-toolchain` commit. All actions remain pinned by commit SHA.
 
+### Package counts
+
+- Added `xpm`, `xp` and `xpm-aur` labels to the Linux package breakdown. They read xpm's local database (`/var/lib/xpm/local`) and the xpm-aur state sidecar, so machines using the X package manager report their counts without extra subprocesses. `xp` is the subset installed from the native `x` repository; `xpm` remains the total. Existing managers are unchanged.
+
 ### Addon tooling
 
 - `xfetch plugin`, `xfetch effects` and `xfetch extension` installs now print the configuration snippet required to enable the installed addon, along with its declared capabilities and limits.

@@ -11,6 +11,7 @@ pub mod live;
 pub mod network;
 pub mod os_release;
 pub mod packages;
+mod xpm;
 
 pub use battery::get_battery_info;
 pub use datetime::get_datetime_info;

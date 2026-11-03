@@ -154,6 +154,18 @@
       <td>AUR and manually installed packages (<code>pacman -Qm</code>).</td>
     </tr>
     <tr>
+      <td><code>packages:xpm</code></td><td>X Linux (xpm)</td>
+      <td>Installed packages in the xpm local database.</td>
+    </tr>
+    <tr>
+      <td><code>packages:xp</code></td><td>X Linux (xpm)</td>
+      <td>Native X packages installed from the <code>x</code> repository (subset of <code>xpm</code>).</td>
+    </tr>
+    <tr>
+      <td><code>packages:xpm-aur</code></td><td>X Linux (xpm-aur)</td>
+      <td>AUR packages tracked by xpm-aur.</td>
+    </tr>
+    <tr>
       <td><code>packages:dpkg</code></td><td>Debian, Ubuntu</td>
       <td>apt packages.</td>
     </tr>
