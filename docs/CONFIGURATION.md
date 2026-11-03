@@ -163,7 +163,7 @@
     </tr>
     <tr>
       <td><code>packages:xpm-aur</code></td><td>X Linux (xpm-aur)</td>
-      <td>AUR packages tracked by xpm-aur.</td>
+      <td>Installed AUR packages tracked by xpm-aur.</td>
     </tr>
     <tr>
       <td><code>packages:dpkg</code></td><td>Debian, Ubuntu</td>

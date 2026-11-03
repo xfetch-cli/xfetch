@@ -11,9 +11,11 @@
 //!
 //! `xpm-aur` tracks the AUR packages it installed in
 //! `$XDG_STATE_HOME/xpm-aur/state.json`; the count is the number of installed
-//! split outputs across all tracked package bases.
+//! split outputs across all tracked package bases. The sidecar is intersected
+//! with the xpm local database so only packages that are actually installed
+//! are counted.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
@@ -49,69 +51,89 @@ struct AurRecord {
 ///
 /// The list is empty when `xpm` has no local database. `xp` is always present
 /// alongside `xpm` (it may be zero) so the native package count is explicit.
-/// `xpm-aur` is only present when its state file can be read.
+/// `xpm-aur` is only present when its state file can be read. Every count is
+/// derived from locally installed packages; remote catalogs are never queried.
 pub fn package_counts() -> Vec<(&'static str, usize)> {
     let db = Path::new(XPM_DB_DIR);
-    let Some(total) = count_xpm_packages(db) else {
+    let Some(installed) = installed_package_names(db) else {
         return Vec::new();
     };
 
-    let mut counts = vec![(XPM_LABEL, total)];
+    let mut counts = vec![(XPM_LABEL, installed.len())];
 
-    let native = count_xp_packages(db, X_NATIVE_REPOS).unwrap_or(0);
+    let native = count_xp_packages(db, &installed, X_NATIVE_REPOS);
     counts.push((XP_LABEL, native));
 
     let state = xpm_aur_state_path();
-    if let Some(count) = state.as_deref().and_then(count_xpm_aur_packages) {
+    if let Some(count) = state
+        .as_deref()
+        .and_then(|path| count_xpm_aur_packages(path, &installed))
+    {
         counts.push((XPM_AUR_LABEL, count));
     }
 
     counts
 }
 
-/// Counts directories in the xpm local database that contain a `version` file,
-/// matching what `xpm query` reports.
-fn count_xpm_packages(db: &Path) -> Option<usize> {
-    Some(
-        std::fs::read_dir(db)
-            .ok()?
-            .filter_map(|entry| entry.ok())
-            .filter(|entry| entry.file_type().map(|kind| kind.is_dir()).unwrap_or(false))
-            .filter(|entry| !is_dot_entry(&entry.file_name()))
-            .filter(|entry| entry.path().join(VERSION_FILE).is_file())
-            .count(),
-    )
+/// Returns the names of packages installed in the xpm local database.
+///
+/// A directory counts only when it contains a `version` file, matching what
+/// `xpm query` reports, and dot-prefixed entries are ignored.
+fn installed_package_names(db: &Path) -> Option<HashSet<String>> {
+    let mut names = HashSet::new();
+
+    for entry in std::fs::read_dir(db).ok()?.filter_map(Result::ok) {
+        if !entry.file_type().map(|kind| kind.is_dir()).unwrap_or(false) {
+            continue;
+        }
+        if is_dot_entry(&entry.file_name()) {
+            continue;
+        }
+        if !entry.path().join(VERSION_FILE).is_file() {
+            continue;
+        }
+        names.insert(entry.file_name().to_string_lossy().into_owned());
+    }
+
+    Some(names)
 }
 
 /// Counts installed packages whose recorded origin is a native X repository.
-fn count_xp_packages(db: &Path, native_repos: &[&str]) -> Option<usize> {
-    Some(
-        std::fs::read_dir(db)
-            .ok()?
-            .filter_map(|entry| entry.ok())
-            .filter(|entry| entry.file_type().map(|kind| kind.is_dir()).unwrap_or(false))
-            .filter(|entry| !is_dot_entry(&entry.file_name()))
-            .filter(|entry| entry.path().join(VERSION_FILE).is_file())
-            .filter(|entry| {
-                std::fs::read_to_string(entry.path().join(ORIGIN_FILE))
-                    .ok()
-                    .is_some_and(|origin| native_repos.contains(&origin.trim()))
-            })
-            .count(),
-    )
+fn count_xp_packages(db: &Path, installed: &HashSet<String>, native_repos: &[&str]) -> usize {
+    installed
+        .iter()
+        .filter(|name| {
+            std::fs::read_to_string(db.join(name).join(ORIGIN_FILE))
+                .ok()
+                .is_some_and(|origin| native_repos.contains(&origin.trim()))
+        })
+        .count()
 }
 
 /// Counts the installed package outputs recorded by `xpm-aur`.
-fn count_xpm_aur_packages(state_file: &Path) -> Option<usize> {
+///
+/// Records and split outputs that are no longer present in the xpm local
+/// database are ignored, so stale sidecar entries do not inflate the count.
+fn count_xpm_aur_packages(state_file: &Path, installed: &HashSet<String>) -> Option<usize> {
     let text = std::fs::read_to_string(state_file).ok()?;
     let state: AurState = serde_json::from_str(&text).ok()?;
-    Some(
-        state
-            .packages
-            .values()
-            .map(|record| record.packages.len().max(1))
-            .sum(),
-    )
+
+    let mut count = 0;
+    for (base, record) in &state.packages {
+        if record.packages.is_empty() {
+            if installed.contains(base) {
+                count += 1;
+            }
+        } else {
+            count += record
+                .packages
+                .iter()
+                .filter(|name| installed.contains(*name))
+                .count();
+        }
+    }
+
+    Some(count)
 }
 
 fn xpm_aur_state_path() -> Option<PathBuf> {
@@ -150,7 +172,7 @@ mod tests {
     }
 
     #[test]
-    fn test_count_xpm_packages_skips_incomplete_entries() {
+    fn test_installed_package_names_skips_incomplete_entries() {
         let db = temp_dir("xpm_total");
         package(&db, "foo", Some("x"));
         package(&db, "bar", Some("core"));
@@ -159,7 +181,10 @@ mod tests {
         std::fs::write(db.join(".partial").join(VERSION_FILE), "1.0").unwrap();
         std::fs::write(db.join("db.lck"), "").unwrap();
 
-        assert_eq!(count_xpm_packages(&db), Some(2));
+        let installed = installed_package_names(&db).unwrap();
+        assert_eq!(installed.len(), 2);
+        assert!(installed.contains("foo"));
+        assert!(installed.contains("bar"));
         let _ = std::fs::remove_dir_all(&db);
     }
 
@@ -172,8 +197,9 @@ mod tests {
         package(&db, "local", Some("local"));
         package(&db, "no-origin", None);
 
-        assert_eq!(count_xp_packages(&db, &["x"]), Some(2));
-        assert_eq!(count_xp_packages(&db, &["x", "x-extra"]), Some(2));
+        let installed = installed_package_names(&db).unwrap();
+        assert_eq!(count_xp_packages(&db, &installed, &["x"]), 2);
+        assert_eq!(count_xp_packages(&db, &installed, &["x", "x-extra"]), 2);
         let _ = std::fs::remove_dir_all(&db);
     }
 
@@ -201,13 +227,25 @@ mod tests {
                         "installed_at": 2,
                         "explicit": false,
                         "packages": []
+                    },
+                    "stale": {
+                        "base": "stale",
+                        "version": "3.0",
+                        "commit": "ghi",
+                        "installed_at": 3,
+                        "explicit": false,
+                        "packages": ["stale-pkg"]
                     }
                 }
             }"#,
         )
         .unwrap();
 
-        assert_eq!(count_xpm_aur_packages(&state), Some(3));
+        let installed: HashSet<String> = ["yay", "yay-debug", "old"]
+            .into_iter()
+            .map(String::from)
+            .collect();
+        assert_eq!(count_xpm_aur_packages(&state, &installed), Some(3));
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -216,8 +254,12 @@ mod tests {
         let dir = temp_dir("aur_invalid");
         let state = dir.join("state.json");
         std::fs::write(&state, "not json").unwrap();
-        assert_eq!(count_xpm_aur_packages(&state), None);
-        assert_eq!(count_xpm_aur_packages(&dir.join("missing.json")), None);
+        let installed = HashSet::new();
+        assert_eq!(count_xpm_aur_packages(&state, &installed), None);
+        assert_eq!(
+            count_xpm_aur_packages(&dir.join("missing.json"), &installed),
+            None
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

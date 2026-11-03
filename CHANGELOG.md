@@ -17,7 +17,7 @@
 
 ### Package counts
 
-- Added `xpm`, `xp` and `xpm-aur` labels to the Linux package breakdown. They read xpm's local database (`/var/lib/xpm/local`) and the xpm-aur state sidecar, so machines using the X package manager report their counts without extra subprocesses. `xp` is the subset installed from the native `x` repository; `xpm` remains the total. Existing managers are unchanged.
+- Added `xpm`, `xp` and `xpm-aur` labels to the Linux package breakdown. They read only local installation state: xpm's local database (`/var/lib/xpm/local`) and the xpm-aur sidecar, whose outputs are intersected with that database so stale records are ignored. `xp` is the installed subset from the native `x` repository; `xpm` remains the total. Remote catalogs are never queried and existing managers are unchanged.
 
 ### Addon tooling
 
