@@ -2,6 +2,7 @@ name: Security Audit
 
 on:
   push:
+    branches: [main]
   pull_request:
   schedule:
     # Weekly, Mondays at 06:17 UTC (off the top of the hour to reduce runner contention).

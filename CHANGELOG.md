@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-11-03 — v1.0.2
+
+### Security
+
+- Updated `wasmtime` and `wasmtime-wasi` to 50.0.1 and `zstd`/`zstd-safe` to 0.13.4/7.4.0. This closes RUSTSEC-2026-0391, RUSTSEC-2026-0395 through RUSTSEC-2026-0406, RUSTSEC-2026-0420 and RUSTSEC-2026-0422 through RUSTSEC-2026-0424. `cargo audit --deny warnings` reports no vulnerabilities and no warnings.
+- **Binaries built from v1.0.1 remain affected by these advisories; upgrade to v1.0.2.**
+- The wasm runtime moves from the 48.x line to 50.0.1. The guest ABI and WIT worlds are unchanged; the wasm end-to-end suite is part of the release gate.
+
+### Dependencies
+
+- Updated `sysinfo` from 0.39.6 to 0.40.1 and adapted the fallible constructors and static getters (`System::new`, `new_all`, `new_with_specifics`, `name`, `os_version`, `kernel_version`, `host_name`, `uptime`) plus the `OsString` network interface names. No user-visible output changes.
+- Updated the GitHub Actions group: `actions/checkout` to 7.0.1, `actions/setup-python` to 7.1.0 and the pinned `dtolnay/rust-toolchain` commit. All actions remain pinned by commit SHA.
+
+### Release
+
+- Bumped the crate version to 1.0.2 and updated the installer and verification examples to 1.0.2. The signature policy threshold remains v1.0.1.
+- CI push triggers are limited to `main`; release branches are validated through their pull requests, avoiding duplicate runs.
+
 ## 2026-10-24 — v1.0.1
 
 ### Security

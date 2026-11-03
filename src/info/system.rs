@@ -9,7 +9,7 @@ use ureq::Agent;
 const PUBLIC_IP_HOSTS: [&str; 3] = ["ifconfig.me", "api.ipify.org", "icanhazip.com"];
 
 pub fn get_os_info() -> String {
-    let name = System::name().unwrap_or_else(super::unknown);
+    let name = System::name().unwrap_or_else(|_| super::unknown());
     let version = System::os_version().unwrap_or_default();
     let arch = std::env::consts::ARCH;
     if version.is_empty() {
@@ -20,15 +20,15 @@ pub fn get_os_info() -> String {
 }
 
 pub fn get_kernel_info() -> String {
-    System::kernel_version().unwrap_or_else(super::unknown)
+    System::kernel_version().unwrap_or_else(|_| super::unknown())
 }
 
 pub fn get_host_name() -> String {
-    System::host_name().unwrap_or_else(super::unknown)
+    System::host_name().unwrap_or_else(|_| super::unknown())
 }
 
 pub fn get_uptime_info() -> String {
-    let uptime = System::uptime();
+    let uptime = System::uptime().unwrap_or(0);
     let hours = uptime / 3600;
     let mins = (uptime % 3600) / 60;
     let hour_label = if hours == 1 { "hour" } else { "hours" };
@@ -134,9 +134,9 @@ pub fn get_network_interfaces_info(networks: &Networks) -> String {
             .collect();
         if !ips.is_empty() {
             let label = if mac.is_empty() {
-                format!("{} {}", name, ips.join(", "))
+                format!("{} {}", name.to_string_lossy(), ips.join(", "))
             } else {
-                format!("{} [{}] {}", name, mac, ips.join(", "))
+                format!("{} [{}] {}", name.to_string_lossy(), mac, ips.join(", "))
             };
             parts.push(label);
         }

@@ -43,7 +43,7 @@ fn shell_label(name: &str) -> String {
 /// process chain. `None` when no known shell is found (e.g. launched by
 /// Explorer); the caller falls back to env detection.
 pub fn detect_shell_name() -> Option<String> {
-    let mut sys = System::new();
+    let mut sys = System::new().ok()?;
     sys.refresh_processes_specifics(ProcessesToUpdate::All, true, ProcessRefreshKind::nothing());
     let current = sysinfo::get_current_pid().ok()?;
     let mut proc = sys.process(current)?;

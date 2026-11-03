@@ -1,6 +1,6 @@
 [package]
 name = "xfetch-cli"
-version = "1.0.1"
+version = "1.0.2"
 edition = "2024"
 license = "MIT"
 description = "XFetch — a fast, customizable system information fetch tool for the terminal"
@@ -32,11 +32,11 @@ json_comments = "0.2.2"
 libc = "0.2"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.148"
-sysinfo = "0.39.6"
+sysinfo = "0.40.1"
 ureq = { version = "2.12", features = ["tls"] }
 url = { version = "2", optional = true }
 viuer = { version = "0.11.0", default-features = false }
-wasmtime = { version = "48", optional = true, default-features = false, features = [
+wasmtime = { version = "50.0.1", optional = true, default-features = false, features = [
     "std",
     "runtime",
     "cranelift",
@@ -45,7 +45,7 @@ wasmtime = { version = "48", optional = true, default-features = false, features
     "cache",
     "parallel-compilation",
 ] }
-wasmtime-wasi = { version = "48", optional = true, default-features = false, features = [
+wasmtime-wasi = { version = "50.0.1", optional = true, default-features = false, features = [
     "p1",
     "p2",
 ] }

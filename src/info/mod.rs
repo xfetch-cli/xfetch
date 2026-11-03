@@ -121,9 +121,9 @@ impl Info {
             let networks_h =
                 needs_network(&needed).then(|| s.spawn(Networks::new_with_refreshed_list));
             (
-                sys_h.and_then(|h| h.join().ok()),
-                disks_h.and_then(|h| h.join().ok()),
-                networks_h.and_then(|h| h.join().ok()),
+                sys_h.and_then(|h| h.join().ok()).and_then(|r| r.ok()),
+                disks_h.and_then(|h| h.join().ok()).and_then(|r| r.ok()),
+                networks_h.and_then(|h| h.join().ok()).and_then(|r| r.ok()),
             )
         });
 
