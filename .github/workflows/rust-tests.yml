@@ -34,4 +34,4 @@ jobs:
         uses: dtolnay/rust-toolchain@18f0487477426dce244608110aa2660c2893deb7 # stable
 
       - name: Run updater tests on Windows
-        run: cargo test --locked --no-default-features --features update --bin xfetch update::
+        run: 'cargo test --locked --no-default-features --features update --bin xfetch update::'
