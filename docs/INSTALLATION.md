@@ -395,11 +395,13 @@ xfetch update --yes     # skip the confirmation prompt</code></pre>
 
 <ul>
   <li>
-    <strong>Prebuilt installs</strong> (<code>install-prebuilt.sh</code>,
-    typically <code>~/.local/bin</code>): the matching release asset is
-    downloaded, verified against the published <code>SHA256SUMS</code>,
-    extracted and moved over the current executable with an atomic rename. A
-    single <code>xfetch.bak</code> keeps the previous binary and is
+    <strong>Prebuilt installs</strong> (<code>install-prebuilt.sh</code> on
+    Unix, <code>install-prebuilt.ps1</code> on Windows): the matching release
+    asset is downloaded, verified against the published
+    <code>SHA256SUMS</code>, extracted and moved over the current executable.
+    Unix uses an atomic rename; Windows uses a self-replace helper because a
+    running <code>.exe</code> cannot be deleted. A single <code>xfetch.bak</code>
+    (or <code>xfetch.exe.bak</code>) keeps the previous binary and is
     overwritten on the next update.
   </li>
   <li>
@@ -407,16 +409,38 @@ xfetch update --yes     # skip the confirmation prompt</code></pre>
     <code>cargo install xfetch-cli --force --locked</code>.
   </li>
   <li>
-    <strong>Package-manager installs and local builds</strong>: never replaced;
-    the command prints the right command instead.
+    <strong>Source builds</strong> (<code>install.ps1</code> or
+    <code>cargo install --path</code>): rebuilt from the source checkout when
+    it still exists; otherwise the command prints the rebuild command. They
+    are never replaced with the crates.io release.
+  </li>
+  <li>
+    <strong>winget installs</strong> (Windows): delegated to
+    <code>winget upgrade --id Xfetch-cli.Xfetch --exact</code>. xfetch never
+    overwrites a winget-managed file itself. winget may lag behind the GitHub
+    release while its manifest is reviewed; in that case the command reports
+    the pending manifest instead of pretending the update succeeded.
+  </li>
+  <li>
+    <strong>Manual copies and local builds</strong>: never replaced
+    automatically; the command prints the right command or the release URL.
   </li>
 </ul>
 
 <p>
+  The PowerShell installers write
+  <code>%LOCALAPPDATA%\xfetch\install.json</code> to record whether the binary
+  is a prebuilt install or a source build. This is what distinguishes a
+  script-installed binary from a manual copy in the same directory. Existing
+  installs without a receipt are treated conservatively as unknown.
+</p>
+
+<p>
   <code>xfetch update --prebuilt --bin-dir &lt;dir&gt;</code> forces the
-  in-place update of <code>&lt;dir&gt;/xfetch</code> (Unix only). On Windows
-  the prebuilt path is not available yet; use
-  <code>cargo install xfetch-cli --force</code> or your installer of choice.
+  in-place update of <code>&lt;dir&gt;/xfetch</code> (or
+  <code>&lt;dir&gt;\xfetch.exe</code> on Windows). It refuses to touch
+  binaries owned by cargo or winget. This is also the escape hatch for a
+  manually downloaded binary.
 </p>
 
 <p>

@@ -94,7 +94,7 @@ pub enum Commands {
         #[arg(long)]
         check: bool,
         /// Install the prebuilt release in place, even for local builds
-        /// (Unix only).
+        /// (Unix and Windows).
         #[arg(long)]
         prebuilt: bool,
         /// Directory holding the xfetch binary to replace (with --prebuilt).

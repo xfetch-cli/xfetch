@@ -8,6 +8,32 @@ param(
 
 Write-Host "Installing xfetch..." -ForegroundColor Cyan
 
+# Records that this binary came from a source checkout. The updater uses it
+# to distinguish a path install from `cargo install xfetch-cli`.
+function Write-InstallReceipt($Method, $Path, $Version, $Source, $SourcePath, $Repo, $Commit) {
+    if (-not $env:LOCALAPPDATA) { return }
+    try {
+        $receiptDir = Join-Path $env:LOCALAPPDATA "xfetch"
+        New-Item -ItemType Directory -Path $receiptDir -Force | Out-Null
+        $receipt = [ordered]@{
+            schema_version = 1
+            method         = $Method
+            path           = $Path
+            installed_at   = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+        }
+        if ($Version)    { $receipt.version = $Version }
+        if ($Source)     { $receipt.source = $Source }
+        if ($SourcePath) { $receipt.source_path = $SourcePath }
+        if ($Repo)       { $receipt.repo = $Repo }
+        if ($Commit)     { $receipt.commit = $Commit }
+        $json = $receipt | ConvertTo-Json -Compress
+        $utf8 = New-Object System.Text.UTF8Encoding -ArgumentList $false
+        [System.IO.File]::WriteAllText((Join-Path $receiptDir "install.json"), $json, $utf8)
+    } catch {
+        Write-Host "Could not write install receipt: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+}
+
 # Check for Rust/Cargo
 if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
     if ($Yes -or [Console]::IsInputRedirected) {
@@ -77,6 +103,17 @@ if ($UserPath -notlike "*$CargoBin*") {
     [Environment]::SetEnvironmentVariable("Path", "$UserPath;$CargoBin", "User")
     Write-Host "Added $CargoBin to user PATH." -ForegroundColor Green
 }
+
+# Record the source build before the temporary clone is removed.
+$InstalledVersion = ""
+try {
+    $InstalledVersion = ((& xfetch --version 2>$null) -replace '^xfetch(?:-cli)?\s+', '').Trim()
+} catch {}
+$Commit = ""
+try {
+    $Commit = (git -C $TempDir rev-parse HEAD 2>$null).Trim()
+} catch {}
+Write-InstallReceipt -Method "source" -Path (Join-Path $CargoBin "xfetch.exe") -Version $InstalledVersion -Source "install.ps1" -Repo $RepoUrl -Commit $Commit
 
 # Setup Config
 $ConfigDir = Join-Path $env:APPDATA "xfetch"

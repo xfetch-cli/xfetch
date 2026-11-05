@@ -14,6 +14,17 @@
   `readme`, `keywords` and `categories`.
 - The crate description now starts with `Fast` instead of `A fast`.
 
+### Windows updater
+
+- `xfetch update` now works on Windows. Prebuilt installs download the
+  `.zip` release asset, verify `SHA256SUMS`, keep `xfetch.exe.bak` and replace
+  the running executable with `self-replace`. winget installs are delegated to
+  `winget upgrade --id Xfetch-cli.Xfetch`; source builds are rebuilt from their
+  checkout instead of being replaced with the crates.io release.
+- The PowerShell installers write `%LOCALAPPDATA%\xfetch\install.json`, so a
+  prebuilt install, a source build and a manually copied binary are no longer
+  confused even when they share a directory.
+
 ### Release
 
 - Bumped the crate version to 1.0.3 and the installer examples to 1.0.3.
