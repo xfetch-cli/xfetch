@@ -35,6 +35,7 @@ use std::process::Command;
 const DEFAULT_UPDATE_API: &str = "https://api.github.com/repos/xfetch-cli/xfetch/releases/latest";
 
 /// Package identifier used by the winget manifest.
+#[cfg(windows)]
 pub const WINGET_PACKAGE_ID: &str = "Xfetch-cli.Xfetch";
 
 /// Options collected from the CLI.
@@ -130,9 +131,11 @@ pub fn run(options: UpdateOptions) -> Result<UpdateOutcome, String> {
                 ),
             }),
         },
+        #[cfg(windows)]
         InstallSource::Winget => {
             platform::run_winget_update(&latest, current, &executable, &options)
         }
+        #[cfg(unix)]
         InstallSource::PackageManager => Ok(UpdateOutcome::Manual {
             message: format!(
                 "xfetch {} is available, but this binary is managed by a package manager.\n\
@@ -171,9 +174,11 @@ fn recommended_command(detected: &DetectedInstall, release: &Release) -> String 
                 )
             },
         ),
+        #[cfg(windows)]
         InstallSource::Winget => {
             format!("winget upgrade --id {} --exact", WINGET_PACKAGE_ID)
         }
+        #[cfg(unix)]
         InstallSource::PackageManager => {
             "update through your package manager (pacman, apt, brew, ...)".to_string()
         }
@@ -354,7 +359,6 @@ mod tests {
             tag: format!("v{}", version),
             version: Version::parse(version).expect("version"),
             assets: Vec::new(),
-            html_url: String::new(),
         }
     }
 
@@ -379,10 +383,12 @@ mod tests {
             )
             .contains("--path")
         );
+        #[cfg(windows)]
         assert!(
             recommended_command(&detected(InstallSource::Winget, None), &release)
                 .contains("winget upgrade")
         );
+        #[cfg(unix)]
         assert!(
             recommended_command(&detected(InstallSource::PackageManager, None), &release)
                 .contains("package manager")
@@ -408,13 +414,13 @@ mod tests {
 
     #[test]
     fn package_managed_sources_refuse_forced_prebuilt() {
-        for source in [
-            InstallSource::Cargo,
-            InstallSource::SourceBuild,
-            InstallSource::Winget,
-        ] {
+        for source in [InstallSource::Cargo, InstallSource::SourceBuild] {
             assert!(source.is_package_managed(), "{source:?}");
         }
+        #[cfg(windows)]
+        assert!(InstallSource::Winget.is_package_managed());
+        #[cfg(unix)]
+        assert!(!InstallSource::PackageManager.is_package_managed());
         assert!(!InstallSource::Prebuilt.is_package_managed());
         assert!(!InstallSource::Unknown.is_package_managed());
     }

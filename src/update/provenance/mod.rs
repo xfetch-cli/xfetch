@@ -7,7 +7,7 @@
 
 #[cfg(unix)]
 mod unix;
-#[cfg(any(windows, test))]
+#[cfg(windows)]
 mod windows;
 
 use crate::update::receipt::InstallReceipt;
@@ -22,10 +22,10 @@ pub enum InstallSource {
     /// Built from a source checkout, usually by `install.ps1`.
     SourceBuild,
     /// Installed with winget on Windows.
-    #[cfg_attr(not(windows), allow(dead_code))]
+    #[cfg(windows)]
     Winget,
     /// Owned by a Unix package manager (`/usr/bin`, Homebrew, ...).
-    #[cfg_attr(not(unix), allow(dead_code))]
+    #[cfg(unix)]
     PackageManager,
     /// Installed by the prebuilt installer (`~/.local/bin`, `%LOCALAPPDATA%`).
     Prebuilt,
@@ -39,7 +39,9 @@ impl InstallSource {
         match self {
             Self::Cargo => "cargo install",
             Self::SourceBuild => "source build",
+            #[cfg(windows)]
             Self::Winget => "winget",
+            #[cfg(unix)]
             Self::PackageManager => "package manager",
             Self::Prebuilt => "prebuilt install",
             Self::Unknown => "local build or unknown",
@@ -48,7 +50,14 @@ impl InstallSource {
 
     /// Sources whose files belong to a package manager or build tool.
     pub const fn is_package_managed(self) -> bool {
-        matches!(self, Self::Cargo | Self::SourceBuild | Self::Winget)
+        match self {
+            Self::Cargo | Self::SourceBuild => true,
+            #[cfg(windows)]
+            Self::Winget => true,
+            #[cfg(unix)]
+            Self::PackageManager => false,
+            Self::Prebuilt | Self::Unknown => false,
+        }
     }
 }
 
@@ -73,11 +82,11 @@ impl DetectedInstall {
 /// Paths used by the platform classifiers.
 pub(crate) struct InstallPaths {
     pub home: Option<PathBuf>,
-    #[cfg_attr(not(any(windows, test)), allow(dead_code))]
+    #[cfg(windows)]
     pub local_app_data: Option<PathBuf>,
-    #[cfg_attr(not(any(windows, test)), allow(dead_code))]
+    #[cfg(windows)]
     pub program_files: Option<PathBuf>,
-    #[cfg_attr(not(any(windows, test)), allow(dead_code))]
+    #[cfg(windows)]
     pub program_files_x86: Option<PathBuf>,
 }
 
@@ -85,8 +94,11 @@ impl InstallPaths {
     fn from_env() -> Self {
         Self {
             home: dirs::home_dir(),
+            #[cfg(windows)]
             local_app_data: dirs::data_local_dir(),
+            #[cfg(windows)]
             program_files: std::env::var_os("ProgramFiles").map(PathBuf::from),
+            #[cfg(windows)]
             program_files_x86: std::env::var_os("ProgramFiles(x86)").map(PathBuf::from),
         }
     }
@@ -113,7 +125,10 @@ fn detect_with(
             crate::update::receipt::Method::Prebuilt => InstallSource::Prebuilt,
             crate::update::receipt::Method::Source => InstallSource::SourceBuild,
             crate::update::receipt::Method::Cargo => InstallSource::Cargo,
+            #[cfg(windows)]
             crate::update::receipt::Method::Winget => InstallSource::Winget,
+            #[cfg(not(windows))]
+            crate::update::receipt::Method::Winget => InstallSource::Unknown,
             crate::update::receipt::Method::Manual => InstallSource::Unknown,
         };
         return DetectedInstall {
@@ -200,8 +215,11 @@ pub(crate) fn parse_cargo_install_list(output: &str) -> Option<CargoInstallKind>
 fn detect_with_home(executable: &Path, home: Option<&Path>) -> DetectedInstall {
     let paths = InstallPaths {
         home: home.map(Path::to_path_buf),
+        #[cfg(windows)]
         local_app_data: None,
+        #[cfg(windows)]
         program_files: None,
+        #[cfg(windows)]
         program_files_x86: None,
     };
     detect_with(executable, &paths, None)
@@ -288,7 +306,10 @@ mod tests {
     fn package_managed_sources_are_flagged() {
         assert!(InstallSource::Cargo.is_package_managed());
         assert!(InstallSource::SourceBuild.is_package_managed());
+        #[cfg(windows)]
         assert!(InstallSource::Winget.is_package_managed());
+        #[cfg(unix)]
+        assert!(!InstallSource::PackageManager.is_package_managed());
         assert!(!InstallSource::Prebuilt.is_package_managed());
         assert!(!InstallSource::Unknown.is_package_managed());
     }
@@ -300,16 +321,14 @@ mod tests {
             method: crate::update::receipt::Method::Prebuilt,
             path: PathBuf::from("/home/u/.cargo/bin/xfetch"),
             source_path: None,
-            version: None,
-            source: None,
-            repo: None,
-            commit: None,
-            installed_at: None,
         };
         let paths = InstallPaths {
             home: Some(PathBuf::from("/home/u")),
+            #[cfg(windows)]
             local_app_data: None,
+            #[cfg(windows)]
             program_files: None,
+            #[cfg(windows)]
             program_files_x86: None,
         };
         let detected = detect_with(

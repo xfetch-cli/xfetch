@@ -14,8 +14,6 @@ use std::time::Duration;
 pub struct Asset {
     pub name: String,
     pub url: String,
-    #[allow(dead_code)]
-    pub size: u64,
 }
 
 /// A release with its parsed version.
@@ -24,15 +22,11 @@ pub struct Release {
     pub tag: String,
     pub version: Version,
     pub assets: Vec<Asset>,
-    #[allow(dead_code)]
-    pub html_url: String,
 }
 
 #[derive(Debug, Deserialize)]
 struct WireRelease {
     tag_name: String,
-    #[serde(default)]
-    html_url: String,
     #[serde(default)]
     assets: Vec<WireAsset>,
 }
@@ -41,8 +35,6 @@ struct WireRelease {
 struct WireAsset {
     name: String,
     browser_download_url: String,
-    #[serde(default)]
-    size: u64,
 }
 
 struct HttpResponse {
@@ -182,7 +174,6 @@ pub fn parse_release(body: &str) -> Result<Release, String> {
         .map(|asset| Asset {
             name: asset.name,
             url: asset.browser_download_url,
-            size: asset.size,
         })
         .collect();
 
@@ -190,7 +181,6 @@ pub fn parse_release(body: &str) -> Result<Release, String> {
         tag: wire.tag_name,
         version,
         assets,
-        html_url: wire.html_url,
     })
 }
 

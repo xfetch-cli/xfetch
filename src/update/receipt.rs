@@ -31,7 +31,10 @@ pub enum Method {
 }
 
 /// Contents of `install.json`.
-#[allow(dead_code)]
+///
+/// Installers may write extra diagnostic fields (version, source, repo,
+/// commit, installed_at); unknown fields are intentionally ignored so the
+/// receipt schema can grow without breaking older binaries.
 #[derive(Debug, Clone, Deserialize)]
 pub struct InstallReceipt {
     /// Must match [`SCHEMA_VERSION`].
@@ -43,21 +46,6 @@ pub struct InstallReceipt {
     /// Source checkout when `method` is `source`.
     #[serde(default)]
     pub source_path: Option<PathBuf>,
-    /// Installed version, when the installer knows it.
-    #[serde(default)]
-    pub version: Option<String>,
-    /// Human-readable installer name, for diagnostics.
-    #[serde(default)]
-    pub source: Option<String>,
-    /// Repository URL for source installs.
-    #[serde(default)]
-    pub repo: Option<String>,
-    /// Git commit for source installs.
-    #[serde(default)]
-    pub commit: Option<String>,
-    /// RFC 3339 timestamp written by the installer.
-    #[serde(default)]
-    pub installed_at: Option<String>,
 }
 
 impl InstallReceipt {
@@ -142,7 +130,6 @@ mod tests {
         let receipt: InstallReceipt = serde_json::from_str(text).expect("parse");
         assert_eq!(receipt.schema_version, 1);
         assert_eq!(receipt.method, Method::Prebuilt);
-        assert_eq!(receipt.version.as_deref(), Some("1.0.3"));
         assert!(receipt.source_path.is_none());
     }
 
