@@ -100,6 +100,8 @@
 - [x] Create binary releases for Linux x86_64 (#103)
 - [x] Create binary releases for macOS (Intel & ARM) (#104)
 - [x] Create binary releases for Windows (#105)
+- [x] Publish Windows packages to winget (#441119)
+- [x] Add Windows self-update for winget, cargo and prebuilt installs
 - [x] Setup AUR package for Arch Linux (#106)
 - [x] Setup Homebrew tap for macOS (#107)
 - [x] Setup PyPI or cargo registry for distribution (#108)
@@ -125,6 +127,7 @@
 - [x] Setup code formatter (rustfmt) (#122)
 - [x] Implement platform-specific tests for each OS (#123)
 - [x] Add cross-platform testing suite (#124)
+- [x] Run updater tests on Windows CI
 - [x] Setup code coverage reporting (#125)
 
 ## Phase 12 · Advanced Features <!-- phase:phase-12:advanced -->
