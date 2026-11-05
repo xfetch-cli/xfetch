@@ -48,6 +48,19 @@ if (Test-Path $PrebuiltBinary) {
     }
 }
 
+# Remove the install receipt written by the installers.
+if ($env:LOCALAPPDATA) {
+    $Receipt = Join-Path $env:LOCALAPPDATA "xfetch\install.json"
+    if (Test-Path $Receipt) {
+        Remove-Item $Receipt -Force
+        Write-Host "Removed install receipt: $Receipt" -ForegroundColor Green
+        $ReceiptDir = Split-Path $Receipt -Parent
+        if ((Test-Path $ReceiptDir) -and -not (Get-ChildItem $ReceiptDir -Recurse -File)) {
+            Remove-Item $ReceiptDir -Recurse -Force
+        }
+    }
+}
+
 # Remove config (only with -Purge)
 $ConfigDir = Join-Path $env:APPDATA "xfetch"
 if ($Purge) {

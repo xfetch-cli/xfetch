@@ -14,8 +14,6 @@ use std::time::Duration;
 pub struct Asset {
     pub name: String,
     pub url: String,
-    #[allow(dead_code)]
-    pub size: u64,
 }
 
 /// A release with its parsed version.
@@ -24,15 +22,11 @@ pub struct Release {
     pub tag: String,
     pub version: Version,
     pub assets: Vec<Asset>,
-    #[allow(dead_code)]
-    pub html_url: String,
 }
 
 #[derive(Debug, Deserialize)]
 struct WireRelease {
     tag_name: String,
-    #[serde(default)]
-    html_url: String,
     #[serde(default)]
     assets: Vec<WireAsset>,
 }
@@ -41,8 +35,6 @@ struct WireRelease {
 struct WireAsset {
     name: String,
     browser_download_url: String,
-    #[serde(default)]
-    size: u64,
 }
 
 struct HttpResponse {
@@ -90,7 +82,6 @@ impl Client {
     }
 
     /// Downloads a binary asset with a bounded size.
-    #[cfg_attr(not(unix), allow(dead_code))]
     pub fn get_bytes(&self, url: &str, cap: usize) -> Result<Vec<u8>, String> {
         let mut response = self.request(url, Duration::from_secs(300))?;
         let declared = response.content_length.unwrap_or(0);
@@ -183,7 +174,6 @@ pub fn parse_release(body: &str) -> Result<Release, String> {
         .map(|asset| Asset {
             name: asset.name,
             url: asset.browser_download_url,
-            size: asset.size,
         })
         .collect();
 
@@ -191,25 +181,28 @@ pub fn parse_release(body: &str) -> Result<Release, String> {
         tag: wire.tag_name,
         version,
         assets,
-        html_url: wire.html_url,
     })
 }
 
 /// Release asset name for one target, as produced by the release workflow.
-#[cfg_attr(not(unix), allow(dead_code))]
+///
+/// Unix targets are published as `.tar.gz`; the Windows target is a `.zip`.
 pub fn asset_name(version: &Version, target: &str) -> String {
-    format!("xfetch-{}-{}.tar.gz", version, target)
+    let extension = if target.contains("windows") {
+        "zip"
+    } else {
+        "tar.gz"
+    };
+    format!("xfetch-{}-{}.{}", version, target, extension)
 }
 
 /// Finds the prebuilt asset for `target`.
-#[cfg_attr(not(unix), allow(dead_code))]
 pub fn choose_asset<'a>(release: &'a Release, target: &str) -> Option<&'a Asset> {
     let name = asset_name(&release.version, target);
     release.assets.iter().find(|asset| asset.name == name)
 }
 
 /// Finds the `SHA256SUMS` asset.
-#[cfg_attr(not(unix), allow(dead_code))]
 pub fn checksums_asset(release: &Release) -> Option<&Asset> {
     release
         .assets
@@ -218,7 +211,6 @@ pub fn checksums_asset(release: &Release) -> Option<&Asset> {
 }
 
 /// Parses one hash out of a `sha256sum`-style file.
-#[cfg_attr(not(unix), allow(dead_code))]
 pub fn parse_checksum(sums: &str, file: &str) -> Option<String> {
     for line in sums.lines() {
         let mut parts = line.split_whitespace();
@@ -245,6 +237,11 @@ mod tests {
                 "size": 1234
             },
             {
+                "name": "xfetch-1.2.3-x86_64-pc-windows-msvc.zip",
+                "browser_download_url": "https://example.com/xfetch.zip",
+                "size": 2345
+            },
+            {
                 "name": "SHA256SUMS",
                 "browser_download_url": "https://example.com/SHA256SUMS",
                 "size": 42
@@ -257,15 +254,32 @@ mod tests {
         let release = parse_release(FIXTURE).expect("parse");
         assert_eq!(release.version, Version::parse("1.2.3").expect("version"));
         assert_eq!(release.tag, "v1.2.3");
-        assert_eq!(release.assets.len(), 2);
+        assert_eq!(release.assets.len(), 3);
 
         let asset = choose_asset(&release, "x86_64-unknown-linux-gnu").expect("asset");
         assert_eq!(asset.url, "https://example.com/xfetch.tar.gz");
+
+        let windows = choose_asset(&release, "x86_64-pc-windows-msvc").expect("windows asset");
+        assert_eq!(windows.url, "https://example.com/xfetch.zip");
+
         assert!(
             choose_asset(&release, "aarch64-apple-darwin").is_none(),
             "missing targets must not match"
         );
         assert!(checksums_asset(&release).is_some());
+    }
+
+    #[test]
+    fn asset_names_use_zip_for_windows() {
+        let version = Version::parse("1.2.3").expect("version");
+        assert_eq!(
+            asset_name(&version, "x86_64-unknown-linux-gnu"),
+            "xfetch-1.2.3-x86_64-unknown-linux-gnu.tar.gz"
+        );
+        assert_eq!(
+            asset_name(&version, "x86_64-pc-windows-msvc"),
+            "xfetch-1.2.3-x86_64-pc-windows-msvc.zip"
+        );
     }
 
     #[test]

@@ -20,7 +20,7 @@ path = "src/main.rs"
 # default; build with `--no-default-features` for a minimal binary.
 default = ["wasm", "update"]
 wasm = ["dep:wasmtime", "dep:wasmtime-wasi", "dep:anyhow", "dep:base64", "dep:url"]
-update = ["dep:flate2", "dep:semver", "dep:tar"]
+update = ["dep:flate2", "dep:semver", "dep:tar", "dep:zip", "dep:self-replace"]
 
 [dependencies]
 anyhow = { version = "1", optional = true }
@@ -63,6 +63,8 @@ xfetch-effect-api = { version = "0.3.0", package = "xfetch-effect-api" }
 # API instead of PDH counters or PowerShell subprocesses (see
 # src/info/platform/windows/). The dependency never enters other targets.
 [target.'cfg(windows)'.dependencies]
+self-replace = { version = "1.5", optional = true }
+zip = { version = "9", default-features = false, features = ["deflate"], optional = true }
 windows-sys = { version = "0.61", features = [
     "Win32_Foundation",
     "Win32_Graphics_Gdi",

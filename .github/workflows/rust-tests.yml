@@ -22,3 +22,16 @@ jobs:
 
       - name: Run tests
         run: cargo test --locked
+
+  windows-updater:
+    name: cargo test (windows updater)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install stable Rust toolchain
+        uses: dtolnay/rust-toolchain@18f0487477426dce244608110aa2660c2893deb7 # stable
+
+      - name: Run updater tests on Windows
+        run: 'cargo test --locked --no-default-features --features update --bin xfetch update::'
