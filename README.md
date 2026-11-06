@@ -205,6 +205,8 @@ xfetch config validate          # validate the config file
 xfetch config edit              # edit and validate the config
 xfetch --backup                 # back up the current config
 xfetch --restore                # restore the latest backup
+xfetch command install github   # install a command addon
+xfetch run github -- owner/repo # run it
 xfetch theme search dark        # search the remote theme registry
 xfetch logo preview arch        # preview a catalog logo
 xfetch schema fetch             # JSON Schema for machine output

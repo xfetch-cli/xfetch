@@ -112,6 +112,7 @@ fn list_installed(kind: AddonKind) -> Result<Vec<(String, std::path::PathBuf)>, 
         AddonKind::Plugin => list_plugins(),
         AddonKind::Effect => list_effects(),
         AddonKind::Extension => list_extensions(),
+        AddonKind::Command => crate::commands::list_commands(),
     }
     .map_err(XFetchError::Addon)
 }
@@ -121,6 +122,7 @@ fn find_installed(kind: AddonKind, name: &str) -> Option<std::path::PathBuf> {
         AddonKind::Plugin => crate::plugins::find_plugin_binary(name),
         AddonKind::Effect => crate::effects::find_effect_binary(name),
         AddonKind::Extension => crate::extensions::find_extension_binary(name),
+        AddonKind::Command => crate::commands::find_command_binary(name),
     })
 }
 
@@ -129,6 +131,7 @@ fn remove_addon(kind: AddonKind, name: &str) -> Result<(), XFetchError> {
         AddonKind::Plugin => remove_plugin(name),
         AddonKind::Effect => remove_effect(name),
         AddonKind::Extension => remove_extension(name),
+        AddonKind::Command => crate::commands::remove_command(name),
     }
     .map_err(XFetchError::Addon)
 }
@@ -224,6 +227,9 @@ fn install_addon(
             AddonKind::Plugin => install_plugin(&path, repo.as_deref(), sha256.as_deref()),
             AddonKind::Effect => install_effect(&path, repo.as_deref(), sha256.as_deref()),
             AddonKind::Extension => install_extension(&path, repo.as_deref(), sha256.as_deref()),
+            AddonKind::Command => {
+                crate::commands::install_command(&path, repo.as_deref(), sha256.as_deref())
+            }
         }
         .map_err(XFetchError::Addon)?;
         infer_name(kind, &path, None).map_err(XFetchError::Addon)?

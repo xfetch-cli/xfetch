@@ -824,3 +824,49 @@ fn help_is_available_for_command_groups() {
         assert!(!output.stdout.is_empty(), "empty help for {:?}", args);
     }
 }
+
+#[cfg(unix)]
+#[test]
+fn command_addon_list_run_and_remove() {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = temp_dir("command-addon");
+    let commands = dir.join("config").join("xfetch").join("commands");
+    fs::create_dir_all(&commands).unwrap();
+    let script = commands.join("xfetch-command-echo");
+    fs::write(
+        &script,
+        "#!/bin/sh\nprintf 'repo: %s\\nauthor: test\\n' \"$1\"\n",
+    )
+    .unwrap();
+    fs::set_permissions(&script, fs::Permissions::from_mode(0o755)).unwrap();
+
+    let list = command(&dir, &["--json", "command", "list"]);
+    assert!(list.status.success());
+    let value = stdout_json(&list);
+    assert_eq!(value["kind"], "command");
+    assert!(
+        value["addons"]
+            .as_array()
+            .is_some_and(|entries| entries.iter().any(|entry| entry["name"] == "echo"))
+    );
+
+    let run = command(&dir, &["run", "echo", "--", "owner/repo"]);
+    assert!(run.status.success());
+    let text = String::from_utf8_lossy(&run.stdout);
+    assert!(text.contains("repo: owner/repo"));
+    assert!(text.contains("author: test"));
+
+    let json = command(&dir, &["--json", "run", "echo", "--", "owner/repo"]);
+    assert!(json.status.success());
+    let value = stdout_json(&json);
+    assert_eq!(value["command"], "echo");
+    assert!(
+        value["lines"]
+            .as_array()
+            .is_some_and(|lines| lines.iter().any(|line| line == "repo: owner/repo"))
+    );
+
+    let remove = command(&dir, &["command", "remove", "echo"]);
+    assert!(remove.status.success());
+    assert!(!script.exists());
+}

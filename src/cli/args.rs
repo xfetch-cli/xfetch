@@ -168,6 +168,7 @@ pub enum AddonKindArg {
     Plugin,
     Effect,
     Extension,
+    Command,
 }
 
 #[derive(Subcommand, Debug)]
@@ -183,6 +184,23 @@ pub enum Commands {
     Extension {
         #[command(subcommand)]
         action: AddonCommands,
+    },
+    /// Manage CLI command addons.
+    #[command(alias = "commands")]
+    Command {
+        #[command(subcommand)]
+        action: AddonCommands,
+    },
+    /// Run an installed command addon.
+    Run {
+        /// Installed command name.
+        name: String,
+        /// Render the output through the core layout and logo.
+        #[arg(long)]
+        render: bool,
+        /// Arguments passed to the command.
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        args: Vec<String>,
     },
     /// Manage local and remote themes.
     Theme {
@@ -477,7 +495,7 @@ pub enum WasmCommands {
         #[arg(long)]
         timeout: Option<u64>,
         /// Guest contract used to select the component world.
-        #[arg(long, value_parser = ["plugin", "effect", "extension"], default_value = "plugin")]
+        #[arg(long, value_parser = ["plugin", "effect", "extension", "command"], default_value = "plugin")]
         kind: String,
     },
     /// Print the WIT package for component guests (componentize-py,

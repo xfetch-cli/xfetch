@@ -2,8 +2,8 @@ use crate::addons::model::AddonKind;
 use crate::cli::args::{AddonKindArg, Cli, Commands};
 use crate::cli::{
     Context, addon_cmd, backup_cmd, build_info_cmd, completions, config_cmd, doctor, env_cmd,
-    fetch, logo_cmd, modules, overrides, paths_cmd, schema_cmd, settings, theme_cmd, uninstall_cmd,
-    update_cmd, wasm_cmd,
+    fetch, logo_cmd, modules, overrides, paths_cmd, run_cmd, schema_cmd, settings, theme_cmd,
+    uninstall_cmd, update_cmd, wasm_cmd,
 };
 use crate::error::XFetchError;
 use crate::runtime;
@@ -124,6 +124,16 @@ pub fn run(mut cli: Cli) -> Result<(), XFetchError> {
             &ctx.overrides,
             ctx.config_path.clone(),
         ),
+        Some(Commands::Command { action }) => addon_cmd::run(
+            AddonKind::Command,
+            action,
+            &cli,
+            &ctx.overrides,
+            ctx.config_path.clone(),
+        ),
+        Some(Commands::Run { name, render, args }) => {
+            run_cmd::run(&name, &args, render, cli.json, &ctx)
+        }
         Some(Commands::Theme { action }) => theme_cmd::run(action, &cli, &ctx),
         Some(Commands::Logo { action }) => logo_cmd::run(action, cli.json),
         Some(Commands::Wasm { action }) => wasm_cmd::run(action, &cli),
@@ -168,5 +178,6 @@ fn addon_kind(kind: AddonKindArg) -> AddonKind {
         AddonKindArg::Plugin => AddonKind::Plugin,
         AddonKindArg::Effect => AddonKind::Effect,
         AddonKindArg::Extension => AddonKind::Extension,
+        AddonKindArg::Command => AddonKind::Command,
     }
 }

@@ -18,6 +18,8 @@ const PLUGIN_CATALOG: &str = "https://raw.githubusercontent.com/xfetch-cli/plugi
 const EFFECT_CATALOG: &str = "https://raw.githubusercontent.com/xfetch-cli/effects/main/index.json";
 const EXTENSION_CATALOG: &str =
     "https://raw.githubusercontent.com/xfetch-cli/extensions/main/index.json";
+const COMMAND_CATALOG: &str =
+    "https://raw.githubusercontent.com/xfetch-cli/commands/main/index.json";
 
 /// One addon advertised by a repository catalog.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -159,6 +161,7 @@ fn install_command(kind: AddonKind, name: &str) -> String {
         AddonKind::Plugin => format!("xfetch plugin install {}", name),
         AddonKind::Effect => format!("xfetch effects install {}", name),
         AddonKind::Extension => format!("xfetch extension install {}", name),
+        AddonKind::Command => format!("xfetch command install {}", name),
     }
 }
 
@@ -185,6 +188,7 @@ fn catalog_source(kind: AddonKind) -> String {
         AddonKind::Plugin => ("XFETCH_PLUGIN_INDEX", PLUGIN_CATALOG),
         AddonKind::Effect => ("XFETCH_EFFECT_INDEX", EFFECT_CATALOG),
         AddonKind::Extension => ("XFETCH_EXTENSION_INDEX", EXTENSION_CATALOG),
+        AddonKind::Command => ("XFETCH_COMMAND_INDEX", COMMAND_CATALOG),
     };
     std::env::var(env_name).unwrap_or_else(|_| default.to_string())
 }

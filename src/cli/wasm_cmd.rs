@@ -28,6 +28,7 @@ pub fn run(action: WasmCommands, cli: &Cli) -> Result<(), XFetchError> {
             let kind = match kind.as_str() {
                 "effect" => crate::wasm::GuestKind::Effect,
                 "extension" => crate::wasm::GuestKind::Extension,
+                "command" => crate::wasm::GuestKind::Command,
                 _ => crate::wasm::GuestKind::Plugin,
             };
             let timeout = timeout.map(std::time::Duration::from_secs);

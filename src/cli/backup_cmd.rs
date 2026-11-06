@@ -780,11 +780,17 @@ fn collect_addons(
     seen: &mut HashSet<String>,
 ) {
     let mut total = 0u64;
-    for kind in [AddonKind::Plugin, AddonKind::Effect, AddonKind::Extension] {
+    for kind in [
+        AddonKind::Plugin,
+        AddonKind::Effect,
+        AddonKind::Extension,
+        AddonKind::Command,
+    ] {
         let installed = match kind {
             AddonKind::Plugin => crate::plugins::list_plugins(),
             AddonKind::Effect => crate::effects::list_effects(),
             AddonKind::Extension => crate::extensions::list_extensions(),
+            AddonKind::Command => crate::commands::list_commands(),
         };
         let installed = match installed {
             Ok(installed) => installed,

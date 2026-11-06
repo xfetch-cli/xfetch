@@ -5,6 +5,8 @@ Usage: xfetch [OPTIONS] [COMMAND]
 Commands:
   plugin          Manage plugins
   extension       Manage config-provider extensions
+  command         Manage CLI command addons
+  run             Run an installed command addon
   theme           Manage local and remote themes
   logo            Browse and preview the ASCII logo catalog
   effects         Manage intro effects

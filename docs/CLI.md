@@ -205,6 +205,7 @@ plugins: {{#each plugin:banner}}{{this}}{{/each}}
     <tr><td><code>addon &lt;kind&gt; install --json</code></td><td><code>{schema_version, status, kind, name, path, source}</code> or an <code>installed</code> array with <code>--all</code>.</td></tr>
     <tr><td><code>addon &lt;kind&gt; rollback|remove --json</code></td><td><code>{schema_version, status, kind, name}</code>.</td></tr>
     <tr><td><code>addon &lt;kind&gt; update --check --json</code></td><td><code>{schema_version, kind, checks: [...]}</code>.</td></tr>
+    <tr><td><code>run &lt;name&gt; --json</code></td><td><code>{schema_version, command, args, lines}</code>.</td></tr>
     <tr><td><code>update --check --json</code></td><td><code>{schema_version, status, current, latest, method?, command?, path?, update_available}</code>.</td></tr>
     <tr><td><code>update --rollback --json</code></td><td><code>{schema_version, status: "rolled-back", path}</code>.</td></tr>
     <tr><td><code>doctor --json</code></td><td><code>{schema_version, version, platform, checks, fixes}</code>.</td></tr>
@@ -266,7 +267,9 @@ plugins: {{#each plugin:banner}}{{this}}{{/each}}
     <tr><td><code>plugin</code> (alias <code>plugins</code>)</td><td>Manage plugins. See <a href="PLUGINS.md">PLUGINS.md</a>.</td></tr>
     <tr><td><code>effects</code> (alias <code>effect</code>)</td><td>Manage intro effects. See <a href="EFFECTS.md">EFFECTS.md</a>.</td></tr>
     <tr><td><code>extension</code> (alias <code>extensions</code>)</td><td>Manage config providers. See <a href="EXTENSIONS.md">EXTENSIONS.md</a>.</td></tr>
-    <tr><td><code>addon &lt;kind&gt; &lt;action&gt;</code></td><td>Unified addon command. <code>kind</code> is <code>plugin</code>, <code>effect</code> or <code>extension</code>.</td></tr>
+    <tr><td><code>addon &lt;kind&gt; &lt;action&gt;</code></td><td>Unified addon command. <code>kind</code> is <code>plugin</code>, <code>effect</code>, <code>extension</code> or <code>command</code>.</td></tr>
+    <tr><td><code>command</code> (alias <code>commands</code>)</td><td>Manage CLI command addons: install, update, rollback, list, info, search and remove.</td></tr>
+    <tr><td><code>run &lt;name&gt; [--] &lt;args&gt;</code></td><td>Run an installed command addon. <code>--render</code> uses the core layout and logo.</td></tr>
     <tr><td><code>theme</code></td><td>Search, install, update, list, set, remove or export themes. See <a href="THEMES.md">THEMES.md</a>.</td></tr>
     <tr><td><code>logo</code></td><td>List and preview logos from the ASCII logo catalog.</td></tr>
     <tr><td><code>wasm</code></td><td>Inspect and run WebAssembly guests. See <a href="WASM.md">WASM.md</a>.</td></tr>
@@ -287,13 +290,16 @@ plugins: {{#each plugin:banner}}{{this}}{{/each}}
 <h2>Addon Commands</h2>
 
 <p>
-  The <code>plugin</code>, <code>effects</code> and <code>extension</code>
-  families accept the same actions. The unified form is equivalent:
+  The <code>plugin</code>, <code>effects</code>, <code>extension</code> and
+  <code>command</code> families accept the same management actions. The unified
+  form is equivalent:
 </p>
 
 <pre><code class="language-bash">xfetch addon plugin install banner
 xfetch addon effect install decrypt
 xfetch addon extension install config-roulette
+xfetch addon command install github
+xfetch command install github
 xfetch plugin install banner
 xfetch effects install decrypt
 xfetch extension install config-roulette</code></pre>
@@ -368,6 +374,51 @@ xfetch extension install config-roulette</code></pre>
     }
   ]
 }</code></pre>
+
+<h2>Command Addons</h2>
+
+<p>
+  Command addons expose extra CLI commands. They are installed and updated like
+  the other addon families, but they run on demand:
+</p>
+
+<pre><code class="language-bash">xfetch command install github
+xfetch command list
+xfetch command info github
+xfetch command update --all --check
+xfetch command update github
+xfetch command rollback github
+xfetch command remove github
+
+xfetch run github -- rust-lang/rust
+xfetch run github -- https://github.com/rust-lang/rust
+xfetch --json run github -- rust-lang/rust
+xfetch --layout right run github --render -- rust-lang/rust</code></pre>
+
+<p>
+  The command receives positional arguments and returns plain text, one field
+  per line. The core prints the text as-is by default; <code>--render</code>
+  passes the lines through the configured layout and logo. <code>--json</code>
+  wraps the output as
+  <code>{schema_version, command, args, lines}</code>.
+</p>
+
+<p>
+  Official command addons live in
+  <code>https://github.com/xfetch-cli/commands</code>. The catalog is at
+  <code>.../main/index.json</code> (<code>XFETCH_COMMAND_INDEX</code> overrides
+  it); <code>XFETCH_COMMAND_REPO</code> overrides the install repository and
+  <code>XFETCH_COMMAND_DEV_DIR</code> adds a development directory.
+  <code>--offline</code> blocks catalog and remote installs.
+</p>
+
+<p>
+  Wasm command addons use the <code>command</code> world in
+  <code>xfetch:runtime@0.1.0</code>; the request is JSON and the response is
+  plain text. Native commands may read argv and/or the JSON request on stdin.
+  See the <a href="WASM.md">WASM</a> guide and the API
+  <code>command-sdk.md</code>.
+</p>
 
 <h2>Theme and Logo Commands</h2>
 
@@ -801,6 +852,9 @@ xfetch man --output ~/.local/share/man/man1/xfetch.1</code></pre>
     <tr><td><code>XFETCH_EXTENSION_INDEX</code></td><td>Extension catalog URL or local path.</td></tr>
     <tr><td><code>XFETCH_LOGOS_URL</code></td><td>Base URL for the logo catalog.</td></tr>
     <tr><td><code>XFETCH_THEME_INDEX</code></td><td>Theme registry index URL or local path.</td></tr>
+    <tr><td><code>XFETCH_COMMAND_INDEX</code></td><td>Command addon catalog URL or local path.</td></tr>
+    <tr><td><code>XFETCH_COMMAND_REPO</code></td><td>Default command addon install repository.</td></tr>
+    <tr><td><code>XFETCH_COMMAND_DEV_DIR</code></td><td>Extra development directory for command lookup.</td></tr>
     <tr><td><code>XFETCH_BACKUP_PASSPHRASE</code></td><td>Passphrase for encrypted config backups.</td></tr>
     <tr><td><code>VISUAL</code>, <code>EDITOR</code></td><td>Editor used by <code>xfetch config edit</code>.</td></tr>
     <tr><td><code>XFETCH_PLUGIN_DEV_DIR</code></td><td>Extra development directory for plugin lookup.</td></tr>
@@ -880,6 +934,12 @@ xfetch theme install nord
 xfetch theme update --all --check
 xfetch logo list
 xfetch logo preview arch
+
+# Command addons
+xfetch command install github
+xfetch run github -- rust-lang/rust
+xfetch --json run github -- rust-lang/rust
+xfetch --layout right run github --render -- rust-lang/rust
 
 # Addons
 xfetch addon plugin install banner

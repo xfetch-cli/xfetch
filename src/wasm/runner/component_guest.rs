@@ -1,8 +1,9 @@
 //! Component-model runner for typed guests.
 //!
 //! Components implement one of the worlds in `wit/xfetch-runtime.wit`
-//! (`plugin`, `effect` or `extension`). The world's `run` export receives the
-//! JSON request string and returns the JSON response string; host
+//! (`plugin`, `effect`, `extension` or `command`). The world's `run` export
+//! receives the JSON request string and returns the response string (JSON for
+//! plugins/effects/extensions, plain text for commands); host
 //! capabilities arrive as typed WIT imports instead of the JSON bridge used by
 //! core modules. WASI preview 2 is linked as well, so componentized Python,
 //! JavaScript and `wit-bindgen` guests get clocks, random and preopened
@@ -35,6 +36,9 @@ pub mod bindings {
     }
     pub mod extension {
         wasmtime::component::bindgen!({ path: "wit/xfetch-runtime.wit", world: "extension" });
+    }
+    pub mod command {
+        wasmtime::component::bindgen!({ path: "wit/xfetch-runtime.wit", world: "command" });
     }
 }
 
@@ -151,6 +155,7 @@ macro_rules! impl_host_interface {
 impl_host_interface!(plugin, to_host_error_plugin);
 impl_host_interface!(effect, to_host_error_effect);
 impl_host_interface!(extension, to_host_error_extension);
+impl_host_interface!(command, to_host_error_command);
 
 /// Runs a component and returns its JSON response bytes.
 pub(super) fn run(
@@ -244,6 +249,26 @@ pub(super) fn run(
                 .map_err(|err| format!("Failed to prepare '{}': {}", name, err))?;
             let guest = bindings::extension::ExtensionPre::new(pre)
                 .map_err(|err| format!("Invalid extension world for '{}': {}", name, err))?
+                .instantiate(&mut store)
+                .map_err(|err| format!("Failed to instantiate '{}': {}", name, err))?;
+            call_guest(
+                &name,
+                deadline,
+                timeout,
+                guest.call_run(&mut store, request_json(request)),
+            )
+        }
+        GuestKind::Command => {
+            bindings::command::xfetch::runtime::host::add_to_linker::<
+                ComponentState,
+                HasSelf<ComponentState>,
+            >(&mut linker, |state| state)
+            .map_err(|err| format!("Failed to configure host for '{}': {}", name, err))?;
+            let pre = linker
+                .instantiate_pre(&component)
+                .map_err(|err| format!("Failed to prepare '{}': {}", name, err))?;
+            let guest = bindings::command::CommandPre::new(pre)
+                .map_err(|err| format!("Invalid command world for '{}': {}", name, err))?
                 .instantiate(&mut store)
                 .map_err(|err| format!("Failed to instantiate '{}': {}", name, err))?;
             call_guest(

@@ -292,6 +292,8 @@ fn installed_names(kind: AddonKind) -> Result<Vec<String>, String> {
             .map(|entries| entries.into_iter().map(|(name, _)| name).collect())?,
         AddonKind::Extension => crate::extensions::list_extensions()
             .map(|entries| entries.into_iter().map(|(name, _)| name).collect())?,
+        AddonKind::Command => crate::commands::list_commands()
+            .map(|entries| entries.into_iter().map(|(name, _)| name).collect())?,
     };
     Ok(entries)
 }
@@ -345,6 +347,7 @@ fn install_one(
         AddonKind::Plugin => crate::plugins::install_plugin(source, repo, sha256),
         AddonKind::Effect => crate::effects::install_effect(source, repo, sha256),
         AddonKind::Extension => crate::extensions::install_extension(source, repo, sha256),
+        AddonKind::Command => crate::commands::install_command(source, repo, sha256),
     }
 }
 
@@ -479,6 +482,7 @@ fn title(kind: AddonKind) -> &'static str {
         AddonKind::Plugin => "Plugin",
         AddonKind::Effect => "Effect",
         AddonKind::Extension => "Extension",
+        AddonKind::Command => "Command",
     }
 }
 

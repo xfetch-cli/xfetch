@@ -1,7 +1,7 @@
 //! Guest execution: routes an artifact to the right runtime.
 //!
-//! `run_request` is the single entry point used by the plugin, effect and
-//! extension runners. It loads the manifest, resolves the policy and deadline
+//! `run_request` is the single entry point used by the plugin, effect,
+//! extension and command runners. It loads the manifest, resolves the policy and deadline
 //! once, then delegates to the core-module (WASI preview 1) or component
 //! runner. Both runners return the raw JSON response bytes so the existing
 //! protocol parsing in the callers is reused unchanged.
@@ -18,7 +18,9 @@ use std::fs;
 use std::path::Path;
 use std::time::{Duration, Instant};
 
-/// Runs a wasm artifact with the JSON request and returns its JSON response.
+/// Runs a wasm artifact with the JSON request and returns its raw response.
+/// Plugin, effect and extension responses are JSON; command responses are
+/// plain text.
 ///
 /// `timeout` is the user-configured safety cap (`timeout_secs`); when absent,
 /// the manifest limit applies, falling back to the runtime default.
@@ -97,5 +99,6 @@ mod tests {
         assert_eq!(GuestKind::Plugin.as_str(), "plugin");
         assert_eq!(GuestKind::Effect.as_str(), "effect");
         assert_eq!(GuestKind::Extension.as_str(), "extension");
+        assert_eq!(GuestKind::Command.as_str(), "command");
     }
 }

@@ -421,6 +421,35 @@ PY
   expect 4 "$BIN" --offline theme search nord
 fi
 
+
+# Command addons.
+CMDS_REPO="$(cd "$SCRIPT_DIR/.." && pwd)/../commands"
+if [ -d "$CMDS_REPO/commands/github" ]; then
+  run "$BIN" command install "$CMDS_REPO/commands/github"
+  contains "Installed wasm command 'github'" command-install
+  run "$BIN" --json command list
+  json_check 'import json,sys; v=json.load(sys.stdin); assert any(a["name"]=="github" for a in v["addons"])'
+  run "$BIN" command info github
+  contains "github" command-info
+fi
+
+# Fake native command for the runner path.
+CMDS_DIR="$XDG_CONFIG_HOME/xfetch/commands"
+mkdir -p "$CMDS_DIR"
+cat >"$CMDS_DIR/xfetch-command-echo" <<'SH'
+#!/bin/sh
+printf 'repo: %s\nauthor: test\n' "$1"
+SH
+chmod +x "$CMDS_DIR/xfetch-command-echo"
+run "$BIN" --json command list
+json_check 'import json,sys; v=json.load(sys.stdin); assert any(a["name"]=="echo" for a in v["addons"])'
+run "$BIN" run echo -- owner/repo
+contains "repo: owner/repo" command-run
+run "$BIN" --json run echo -- owner/repo
+json_check 'import json,sys; v=json.load(sys.stdin); assert v["command"]=="echo" and v["lines"]'
+expect 5 "$BIN" run missing -- value
+run "$BIN" command remove echo
+
 # Conflicts.
 expect 2 "$BIN" --backup --restore
 expect 2 "$BIN" --backup modules

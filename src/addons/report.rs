@@ -125,5 +125,6 @@ fn title(kind: AddonKind) -> &'static str {
         AddonKind::Plugin => "Plugin",
         AddonKind::Effect => "Effect",
         AddonKind::Extension => "Extension",
+        AddonKind::Command => "Command",
     }
 }

@@ -466,11 +466,17 @@ fn image_protocol(config: &Config) -> &'static str {
 }
 
 fn check_addons(checks: &mut Vec<Check>) {
-    for kind in [AddonKind::Plugin, AddonKind::Effect, AddonKind::Extension] {
+    for kind in [
+        AddonKind::Plugin,
+        AddonKind::Effect,
+        AddonKind::Extension,
+        AddonKind::Command,
+    ] {
         let installed = match kind {
             AddonKind::Plugin => crate::plugins::list_plugins(),
             AddonKind::Effect => crate::effects::list_effects(),
             AddonKind::Extension => crate::extensions::list_extensions(),
+            AddonKind::Command => crate::commands::list_commands(),
         };
         match installed {
             Ok(entries) => {

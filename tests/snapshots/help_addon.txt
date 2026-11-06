@@ -13,7 +13,7 @@ Commands:
   help      Print this message or the help of the given subcommand(s)
 
 Arguments:
-  <KIND>  [possible values: plugin, effect, extension]
+  <KIND>  [possible values: plugin, effect, extension, command]
 
 Options:
   -c, --config <CONFIG>        

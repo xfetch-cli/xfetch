@@ -39,6 +39,9 @@
 - Added `--log-level` and `--log-json` structured logging.
 - Added complete help descriptions for every command group and subcommand,
   enforced by a test.
+- Added the `command` addon family and `xfetch run` for plain-text CLI
+  commands, with `--render` using the core layout and a separate command
+  catalog repository.
 
 ## 2026-11-03 — v1.0.3
 

@@ -27,6 +27,73 @@ pub(crate) fn logo_diagnostics(config: &Config, term_width: usize) -> LogoDiagno
     logo::diagnostics(config, term_width)
 }
 
+/// Renders arbitrary command output lines through the configured layout and
+/// logo. Used by `xfetch run --render`.
+pub(crate) fn print_custom_content(
+    config: &Config,
+    content_lines: Vec<String>,
+) -> Result<(), String> {
+    let content_lines = if config.no_color {
+        content_lines
+            .iter()
+            .map(|line| strip_ansi_codes(line).to_string())
+            .collect()
+    } else {
+        content_lines
+    };
+
+    if layout::is_minimal(config.layout.as_ref()) {
+        for line in &content_lines {
+            println!("{line}");
+        }
+        return Ok(());
+    }
+
+    let right = layout::is_right(config.layout.as_ref());
+    let term_width = crossterm::terminal::size()
+        .map(|(width, _)| width as usize)
+        .unwrap_or(80);
+    let term_width = if term_width == 0 { 80 } else { term_width };
+    let (ascii_lines, image_printed, ascii_width, image_height) =
+        if right && logo::is_image_logo(config) {
+            logo::get_logo_data_right(config, term_width)
+        } else {
+            logo::get_logo_data(config)
+        };
+
+    if layout::is_vertical(config.layout.as_ref()) {
+        print::print_stacked_output(
+            ascii_lines,
+            image_printed,
+            image_height,
+            content_lines,
+            config,
+            !layout::is_bottom(config.layout.as_ref()),
+        );
+    } else if right {
+        print::print_output_right(
+            ascii_lines,
+            image_printed,
+            ascii_width,
+            image_height,
+            content_lines,
+            config,
+            false,
+        );
+    } else {
+        print::print_output(
+            ascii_lines,
+            image_printed,
+            ascii_width,
+            image_height,
+            content_lines,
+            config,
+            false,
+        );
+    }
+    Ok(())
+}
+
 /// Prints only the configured logo. Used by `xfetch doctor --image`.
 pub(crate) fn preview_logo(config: &Config) -> Result<(), String> {
     let term_width = crossterm::terminal::size()

@@ -67,7 +67,9 @@
     <tr><td><code>xfetch config validate|print|get|set|unset|reset|edit|backups|prune|backup|restore</code></td><td>Validate, print, read, edit, back up or restore the configuration. See <a href="CLI.md">CLI.md</a>.</td></tr>
     <tr><td><code>xfetch completions &lt;shell&gt;</code></td><td>Generate shell completions (bash, zsh, fish, elvish, powershell).</td></tr>
     <tr><td><code>xfetch man [--output &lt;path&gt;]</code></td><td>Render the man page.</td></tr>
-    <tr><td><code>xfetch addon &lt;kind&gt; &lt;action&gt;</code></td><td>Unified addon command for plugins, effects and extensions.</td></tr>
+    <tr><td><code>xfetch addon &lt;kind&gt; &lt;action&gt;</code></td><td>Unified addon command for plugins, effects, extensions and commands.</td></tr>
+    <tr><td><code>xfetch command install|list|info|search|update|rollback|remove</code></td><td>Manage CLI command addons. See <a href="CLI.md">CLI.md</a>.</td></tr>
+    <tr><td><code>xfetch run &lt;name&gt; [--] &lt;args&gt;</code></td><td>Run an installed command addon; <code>--render</code> uses the core layout.</td></tr>
     <tr><td><code>xfetch theme search|info|install|update|list|set|remove|export</code></td><td>Manage local and remote themes. See <a href="THEMES.md">THEMES.md</a> and <a href="CLI.md">CLI.md</a>.</td></tr>
     <tr><td><code>xfetch logo list|preview</code></td><td>Browse and preview the ASCII logo catalog.</td></tr>
     <tr><td><code>xfetch schema [kind]</code></td><td>Print JSON Schema documents for machine-readable outputs.</td></tr>

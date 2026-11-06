@@ -14,6 +14,7 @@ pub mod modules;
 pub mod output;
 pub mod overrides;
 pub mod paths_cmd;
+pub mod run_cmd;
 pub mod schema_cmd;
 pub mod settings;
 pub mod template;

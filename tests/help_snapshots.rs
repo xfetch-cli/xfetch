@@ -39,6 +39,9 @@ fn snapshot(name: &str, actual: &str) {
         "help_build_info" => include_str!("snapshots/help_build_info.txt"),
         "help_plugin_install" => include_str!("snapshots/help_plugin_install.txt"),
         "help_theme_install" => include_str!("snapshots/help_theme_install.txt"),
+        "help_command" => include_str!("snapshots/help_command.txt"),
+        "help_run" => include_str!("snapshots/help_run.txt"),
+        "help_command_install" => include_str!("snapshots/help_command_install.txt"),
         "list_layouts" => include_str!("snapshots/list_layouts.txt"),
         "modules_json" => include_str!("snapshots/modules_json.txt"),
         "schema_fetch" => include_str!("snapshots/schema_fetch.txt"),
@@ -76,6 +79,12 @@ fn help_outputs_match_snapshots() {
         &run(&["plugin", "install", "--help"]),
     );
     snapshot("help_theme_install", &run(&["theme", "install", "--help"]));
+    snapshot("help_command", &run(&["command", "--help"]));
+    snapshot("help_run", &run(&["run", "--help"]));
+    snapshot(
+        "help_command_install",
+        &run(&["command", "install", "--help"]),
+    );
 }
 
 #[test]
@@ -109,6 +118,9 @@ fn help_output_is_ascii_and_has_no_emojis() {
         &["env", "--help"],
         &["build-info", "--help"],
         &["self-uninstall", "--help"],
+        &["command", "--help"],
+        &["command", "install", "--help"],
+        &["run", "--help"],
     ];
     for args in commands {
         let output = run(args);

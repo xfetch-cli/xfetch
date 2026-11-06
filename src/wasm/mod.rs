@@ -40,6 +40,7 @@ pub enum GuestKind {
     Plugin,
     Effect,
     Extension,
+    Command,
 }
 
 #[cfg_attr(not(feature = "wasm"), allow(dead_code))]
@@ -49,6 +50,7 @@ impl GuestKind {
             Self::Plugin => "plugin",
             Self::Effect => "effect",
             Self::Extension => "extension",
+            Self::Command => "command",
         }
     }
 }
@@ -60,7 +62,9 @@ impl GuestKind {
 /// drifts from it in a multi-repo checkout.
 pub const WIT: &str = include_str!("../../wit/xfetch-runtime.wit");
 
-/// Runs a wasm artifact with the JSON request and returns its JSON response.
+/// Runs a wasm artifact with the JSON request and returns its raw response.
+/// Plugin, effect and extension responses are JSON; command responses are
+/// plain text lines.
 ///
 /// `timeout` is the user-configured safety cap (`timeout_secs`); when absent,
 /// the manifest limit applies, falling back to the runtime default.

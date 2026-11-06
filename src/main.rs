@@ -2,6 +2,7 @@ mod addons;
 mod atomic_fs;
 mod cache;
 mod cli;
+mod commands;
 mod config;
 mod effects;
 mod error;
