@@ -23,14 +23,10 @@ pub fn collect() -> PlatformInfo {
     }
 }
 
+#[cfg(target_os = "linux")]
 pub fn command_exists(command: &str) -> bool {
     std::env::var_os("PATH")
-        .map(|paths| {
-            std::env::split_paths(&paths).any(|dir| {
-                let candidate = dir.join(command);
-                candidate.is_file() || cfg!(windows) && dir.join(format!("{command}.exe")).is_file()
-            })
-        })
+        .map(|paths| std::env::split_paths(&paths).any(|dir| dir.join(command).is_file()))
         .unwrap_or(false)
 }
 
