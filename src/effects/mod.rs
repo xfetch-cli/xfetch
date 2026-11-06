@@ -66,7 +66,7 @@ fn extract_effect_name(path: &Path) -> Option<String> {
     let filename = path.file_name()?.to_str()?;
     let name = filename.strip_prefix(EFFECT_PREFIX)?;
     // Sidecar manifests are not effects.
-    if name.ends_with(".json") {
+    if name.ends_with(".json") || name.ends_with(".bak") {
         return None;
     }
     let name = name.strip_suffix(".wasm").unwrap_or(name);
@@ -227,6 +227,18 @@ mod tests {
         } else {
             assert_eq!(name, "xfetch-effect-decrypt");
         }
+    }
+
+    #[test]
+    fn test_receipts_and_backups_are_not_effects() {
+        assert_eq!(
+            extract_effect_name(Path::new("xfetch-effect-decrypt.install.json")),
+            None
+        );
+        assert_eq!(
+            extract_effect_name(Path::new("xfetch-effect-decrypt.bak")),
+            None
+        );
     }
 
     #[test]

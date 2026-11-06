@@ -58,7 +58,7 @@ fn extract_plugin_name(path: &Path) -> Option<String> {
     let filename = path.file_name()?.to_str()?;
     let name = filename.strip_prefix(PLUGIN_PREFIX)?;
     // Sidecar manifests are not plugins.
-    if name.ends_with(".json") {
+    if name.ends_with(".json") || name.ends_with(".bak") {
         return None;
     }
     let name = name.strip_suffix(".wasm").unwrap_or(name);
@@ -236,6 +236,18 @@ mod tests {
     fn test_extract_plugin_name_no_match() {
         let path = Path::new("/usr/bin/something-else");
         assert_eq!(extract_plugin_name(path), None);
+    }
+
+    #[test]
+    fn test_receipts_and_backups_are_not_plugins() {
+        assert_eq!(
+            extract_plugin_name(Path::new("xfetch-plugin-weather.install.json")),
+            None
+        );
+        assert_eq!(
+            extract_plugin_name(Path::new("xfetch-plugin-weather.bak")),
+            None
+        );
     }
 
     #[test]

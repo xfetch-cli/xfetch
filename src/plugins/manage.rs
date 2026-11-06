@@ -1,3 +1,4 @@
+use crate::addons::model::AddonKind;
 use crate::plugins::{
     default_plugin_dir, extract_plugin_name, plugin_binary_name, plugin_manifest_name,
     plugin_wasm_name,
@@ -6,13 +7,24 @@ use std::fs;
 use std::path::PathBuf;
 
 /// Removes a plugin regardless of its runtime: the native binary, the wasm
-/// artifact and the wasm sidecar manifest are all cleaned up.
+/// artifact, the wasm sidecar manifest, the install receipt and the update
+/// backups are all cleaned up.
 pub fn remove_plugin(name: &str) -> Result<(), String> {
     let plugin_dir = default_plugin_dir();
+    let kind = AddonKind::Plugin;
+    let native = plugin_dir.join(plugin_binary_name(name));
+    let wasm = plugin_dir.join(plugin_wasm_name(name));
+    let manifest = plugin_dir.join(plugin_manifest_name(name));
+    let receipt = kind.receipt_path(name);
     let candidates = [
-        plugin_dir.join(plugin_binary_name(name)),
-        plugin_dir.join(plugin_wasm_name(name)),
-        plugin_dir.join(plugin_manifest_name(name)),
+        native.clone(),
+        wasm.clone(),
+        manifest.clone(),
+        receipt.clone(),
+        kind.backup_path(&native),
+        kind.backup_path(&wasm),
+        kind.backup_path(&manifest),
+        kind.backup_path(&receipt),
     ];
 
     let mut removed = false;

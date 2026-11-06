@@ -14,6 +14,22 @@
   `readme`, `keywords` and `categories`.
 - The crate description now starts with `Fast` instead of `A fast`.
 
+### Addon management
+
+- Installs now write an `.install.json` receipt beside each native or wasm
+  addon. The receipt records the installed version, source, repository, path,
+  catalog reference, SDK version and artifact SHA-256.
+- Added `update` and `rollback` for plugins, effects and extensions:
+  `--check` reports available versions, `--all` updates every installed addon,
+  and `--force` rebuilds even when the catalog version is not newer. Native
+  addons are rebuilt from their recorded source; wasm addons keep their
+  artifact/build flow. The previous artifact and receipt are kept as `.bak`
+  for rollback.
+- Added `install --all` for plugins, effects and extensions to install every
+  catalog entry, skipping already installed addons unless `--force` is used.
+- Catalogs accept optional `repo`, `ref`, `sdk_version` and
+  `min_xfetch_version` fields for source resolution and compatibility checks.
+
 ### Windows updater
 
 - `xfetch update` now works on Windows. Prebuilt installs download the

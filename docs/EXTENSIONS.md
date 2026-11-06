@@ -21,6 +21,11 @@
 <pre><code class="language-bash">xfetch extension install /path/to/xfetch-extension-name
 xfetch extension install my-extension --repo https://github.com/user/extensions.git</code></pre>
 
+<p>
+  Installs and updates write an <code>.install.json</code> receipt next to the
+  extension and keep the previous artifact as <code>.bak</code> for rollback.
+</p>
+
 <p>List, inspect and remove installed extensions:</p>
 
 <pre><code class="language-bash">xfetch extension list
@@ -28,6 +33,10 @@ xfetch extension list --verbose
 xfetch extension info &lt;name&gt;
 xfetch extension search &lt;query&gt;
 xfetch extension available
+xfetch extension update &lt;name&gt;
+xfetch extension update --all
+xfetch extension update --all --check
+xfetch extension rollback &lt;name&gt;
 xfetch extension remove &lt;name&gt;</code></pre>
 
 <p>

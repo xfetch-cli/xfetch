@@ -91,31 +91,28 @@ fn run(cli: Cli) -> Result<(), error::XFetchError> {
                 sha256,
                 name,
                 manifest,
-            } => {
-                let direct = name.is_some() || manifest.is_some();
-                let installed = if direct {
-                    if repo.is_some() {
-                        return Err(error::XFetchError::Fatal(
-                            "--name/--manifest apply to direct wasm files or URLs; omit --repo"
-                                .to_string(),
-                        ));
-                    }
-                    addons::install::install_direct(
-                        AddonKind::Plugin,
-                        &path,
-                        sha256.as_deref(),
-                        name.as_deref(),
-                        manifest.as_deref(),
-                    )
-                    .map_err(error::XFetchError::Fatal)?
-                } else {
-                    install_plugin(&path, repo.as_deref(), sha256.as_deref())
-                        .map_err(error::XFetchError::Fatal)?;
-                    infer_name(AddonKind::Plugin, &path, None).map_err(error::XFetchError::Fatal)?
-                };
-                addons::report::print_install_guidance(AddonKind::Plugin, &installed);
-                Ok(())
-            }
+                all,
+                force,
+            } => install_addon(
+                AddonKind::Plugin,
+                AddonInstallRequest {
+                    path,
+                    repo,
+                    sha256,
+                    name,
+                    manifest,
+                    all,
+                    force,
+                },
+            ),
+            PluginCommands::Update {
+                name,
+                all,
+                check,
+                force,
+            } => update_addon(AddonKind::Plugin, name, all, check, force),
+            PluginCommands::Rollback { name } => addons::update::rollback(AddonKind::Plugin, &name)
+                .map_err(error::XFetchError::Fatal),
             PluginCommands::List { verbose } => {
                 let installed = list_plugins().map_err(error::XFetchError::Fatal)?;
                 let config = load_config(cli.config.clone());
@@ -153,31 +150,29 @@ fn run(cli: Cli) -> Result<(), error::XFetchError> {
                 sha256,
                 name,
                 manifest,
-            } => {
-                let direct = name.is_some() || manifest.is_some();
-                let installed = if direct {
-                    if repo.is_some() {
-                        return Err(error::XFetchError::Fatal(
-                            "--name/--manifest apply to direct wasm files or URLs; omit --repo"
-                                .to_string(),
-                        ));
-                    }
-                    addons::install::install_direct(
-                        AddonKind::Extension,
-                        &path,
-                        sha256.as_deref(),
-                        name.as_deref(),
-                        manifest.as_deref(),
-                    )
-                    .map_err(error::XFetchError::Fatal)?
-                } else {
-                    install_extension(&path, repo.as_deref(), sha256.as_deref())
-                        .map_err(error::XFetchError::Fatal)?;
-                    infer_name(AddonKind::Extension, &path, None)
-                        .map_err(error::XFetchError::Fatal)?
-                };
-                addons::report::print_install_guidance(AddonKind::Extension, &installed);
-                Ok(())
+                all,
+                force,
+            } => install_addon(
+                AddonKind::Extension,
+                AddonInstallRequest {
+                    path,
+                    repo,
+                    sha256,
+                    name,
+                    manifest,
+                    all,
+                    force,
+                },
+            ),
+            ExtensionCommands::Update {
+                name,
+                all,
+                check,
+                force,
+            } => update_addon(AddonKind::Extension, name, all, check, force),
+            ExtensionCommands::Rollback { name } => {
+                addons::update::rollback(AddonKind::Extension, &name)
+                    .map_err(error::XFetchError::Fatal)
             }
             ExtensionCommands::List { verbose } => {
                 let installed = list_extensions().map_err(error::XFetchError::Fatal)?;
@@ -348,31 +343,28 @@ fn run(cli: Cli) -> Result<(), error::XFetchError> {
                 sha256,
                 name,
                 manifest,
-            } => {
-                let direct = name.is_some() || manifest.is_some();
-                let installed = if direct {
-                    if repo.is_some() {
-                        return Err(error::XFetchError::Fatal(
-                            "--name/--manifest apply to direct wasm files or URLs; omit --repo"
-                                .to_string(),
-                        ));
-                    }
-                    addons::install::install_direct(
-                        AddonKind::Effect,
-                        &path,
-                        sha256.as_deref(),
-                        name.as_deref(),
-                        manifest.as_deref(),
-                    )
-                    .map_err(error::XFetchError::Fatal)?
-                } else {
-                    install_effect(&path, repo.as_deref(), sha256.as_deref())
-                        .map_err(error::XFetchError::Fatal)?;
-                    infer_name(AddonKind::Effect, &path, None).map_err(error::XFetchError::Fatal)?
-                };
-                addons::report::print_install_guidance(AddonKind::Effect, &installed);
-                Ok(())
-            }
+                all,
+                force,
+            } => install_addon(
+                AddonKind::Effect,
+                AddonInstallRequest {
+                    path,
+                    repo,
+                    sha256,
+                    name,
+                    manifest,
+                    all,
+                    force,
+                },
+            ),
+            EffectCommands::Update {
+                name,
+                all,
+                check,
+                force,
+            } => update_addon(AddonKind::Effect, name, all, check, force),
+            EffectCommands::Rollback { name } => addons::update::rollback(AddonKind::Effect, &name)
+                .map_err(error::XFetchError::Fatal),
             EffectCommands::List { verbose } => {
                 let installed = list_effects().map_err(error::XFetchError::Fatal)?;
                 let config = load_config(cli.config.clone());
@@ -428,4 +420,117 @@ fn run(cli: Cli) -> Result<(), error::XFetchError> {
             Ok(())
         }
     }
+}
+
+struct AddonInstallRequest {
+    path: Option<String>,
+    repo: Option<String>,
+    sha256: Option<String>,
+    name: Option<String>,
+    manifest: Option<String>,
+    all: bool,
+    force: bool,
+}
+
+fn install_addon(kind: AddonKind, request: AddonInstallRequest) -> Result<(), error::XFetchError> {
+    let AddonInstallRequest {
+        path,
+        repo,
+        sha256,
+        name,
+        manifest,
+        all,
+        force,
+    } = request;
+    if all {
+        if path.is_some() || name.is_some() || manifest.is_some() || sha256.is_some() {
+            return Err(error::XFetchError::Fatal(
+                "--all cannot be combined with a path, --name, --manifest or --sha256".to_string(),
+            ));
+        }
+        return addons::update::install_all(kind, force).map_err(error::XFetchError::Fatal);
+    }
+
+    let path = path.ok_or_else(|| {
+        error::XFetchError::Fatal(format!(
+            "Specify a {} path/name or use --all.",
+            kind.label()
+        ))
+    })?;
+    let direct = name.is_some() || manifest.is_some();
+    let installed = if direct {
+        if repo.is_some() {
+            return Err(error::XFetchError::Fatal(
+                "--name/--manifest apply to direct wasm files or URLs; omit --repo".to_string(),
+            ));
+        }
+        addons::install::install_direct(
+            kind,
+            &path,
+            sha256.as_deref(),
+            name.as_deref(),
+            manifest.as_deref(),
+        )
+        .map_err(error::XFetchError::Fatal)?
+    } else {
+        match kind {
+            AddonKind::Plugin => install_plugin(&path, repo.as_deref(), sha256.as_deref()),
+            AddonKind::Effect => install_effect(&path, repo.as_deref(), sha256.as_deref()),
+            AddonKind::Extension => install_extension(&path, repo.as_deref(), sha256.as_deref()),
+        }
+        .map_err(error::XFetchError::Fatal)?;
+        infer_name(kind, &path, None).map_err(error::XFetchError::Fatal)?
+    };
+
+    let source = if direct {
+        if is_url(&path) { "url" } else { "local" }
+    } else if is_url(&path) {
+        "url"
+    } else if std::path::Path::new(&path).exists() {
+        "local"
+    } else if addons::catalog::find(kind, &installed)
+        .ok()
+        .flatten()
+        .is_some()
+    {
+        "catalog"
+    } else {
+        "repo"
+    };
+    let catalog_entry = if source == "catalog" {
+        addons::catalog::find(kind, &installed).ok().flatten()
+    } else {
+        None
+    };
+    addons::receipt::record(
+        kind,
+        &installed,
+        source,
+        repo.as_deref(),
+        Some(&path),
+        catalog_entry.as_ref(),
+    )
+    .map_err(error::XFetchError::Fatal)?;
+    addons::report::print_install_guidance(kind, &installed);
+    Ok(())
+}
+
+fn update_addon(
+    kind: AddonKind,
+    name: Option<String>,
+    all: bool,
+    check: bool,
+    force: bool,
+) -> Result<(), error::XFetchError> {
+    let options = addons::update::UpdateOptions { all, check, force };
+    let available =
+        addons::update::run(kind, name.as_deref(), &options).map_err(error::XFetchError::Fatal)?;
+    if check && available {
+        std::process::exit(1);
+    }
+    Ok(())
+}
+
+fn is_url(value: &str) -> bool {
+    value.starts_with("http://") || value.starts_with("https://")
 }

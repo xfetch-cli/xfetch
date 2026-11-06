@@ -65,6 +65,15 @@ pub fn print_info(entry: &AddonEntry) {
     if let Some(source) = &entry.manifest_source {
         println!("Manifest: {}", source);
     }
+    if let Some(receipt) = &entry.receipt {
+        println!("Install source: {} ({})", receipt.source, receipt.runtime);
+        if let Some(repo) = &receipt.repo {
+            println!("Repository: {}", repo);
+        }
+        if let Some(reference) = &receipt.reference {
+            println!("Reference: {}", reference);
+        }
+    }
     println!("Enabled: {}", if entry.enabled { "yes" } else { "no" });
 
     println!("Capabilities:");

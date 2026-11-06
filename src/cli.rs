@@ -6,7 +6,7 @@ use clap::{Parser, Subcommand};
     version,
     about,
     long_about = None,
-    after_help = "Examples:\n  xfetch\n  xfetch --config ~/.config/xfetch/config.jsonc\n  xfetch --gen-config\n  xfetch --gen-config --layout tree\n  xfetch --list-layouts\n  xfetch --clean-cache\n  xfetch --daemon\n  xfetch --daemon-stop\n  xfetch --no-daemon-live\n  xfetch --daemon-live-stop\n  xfetch --daemon-live-reload\n  xfetch update --check\n  xfetch update\n  xfetch plugin install animate-logo\n  xfetch plugin list --verbose\n  xfetch plugin info animate-logo\n  xfetch plugin search logo\n  xfetch plugin remove animate-logo\n  xfetch effects install decrypt\n  xfetch effects list --verbose\n  xfetch effects info decrypt\n  xfetch effects available\n  xfetch effects remove decrypt\n  xfetch extension install config-roulette\n  xfetch extension list --verbose\n  xfetch extension info config-roulette\n  xfetch extension search night\n  xfetch extension remove config-roulette\n  xfetch wasm inspect ./plugin.wasm\n  xfetch wasm run ./plugin.wasm --request '{\"version\":1,\"kind\":\"info_provider\"}'\n  xfetch wasm wit\n  xfetch theme list\n  xfetch theme set dracula\n  xfetch theme remove dracula\n  xfetch theme export my-theme"
+    after_help = "Examples:\n  xfetch\n  xfetch --config ~/.config/xfetch/config.jsonc\n  xfetch --gen-config\n  xfetch --gen-config --layout tree\n  xfetch --list-layouts\n  xfetch --clean-cache\n  xfetch --daemon\n  xfetch --daemon-stop\n  xfetch --no-daemon-live\n  xfetch --daemon-live-stop\n  xfetch --daemon-live-reload\n  xfetch update --check\n  xfetch update\n  xfetch plugin install animate-logo\n  xfetch plugin install --all\n  xfetch plugin update --all --check\n  xfetch plugin update --all\n  xfetch plugin rollback animate-logo\n  xfetch plugin list --verbose\n  xfetch plugin info animate-logo\n  xfetch plugin search logo\n  xfetch plugin remove animate-logo\n  xfetch effects install decrypt\n  xfetch effects update --all\n  xfetch effects list --verbose\n  xfetch effects info decrypt\n  xfetch effects available\n  xfetch effects remove decrypt\n  xfetch extension install config-roulette\n  xfetch extension update --all\n  xfetch extension list --verbose\n  xfetch extension info config-roulette\n  xfetch extension search night\n  xfetch extension remove config-roulette\n  xfetch wasm inspect ./plugin.wasm\n  xfetch wasm run ./plugin.wasm --request '{\"version\":1,\"kind\":\"info_provider\"}'\n  xfetch wasm wit\n  xfetch theme list\n  xfetch theme set dracula\n  xfetch theme remove dracula\n  xfetch theme export my-theme"
 )]
 pub struct Cli {
     #[command(subcommand)]
@@ -109,7 +109,7 @@ pub enum Commands {
 #[derive(Subcommand, Debug)]
 pub enum PluginCommands {
     Install {
-        path: String,
+        path: Option<String>,
         #[arg(long, short)]
         repo: Option<String>,
         /// Expected SHA-256 (hex) of a downloaded wasm artifact.
@@ -121,6 +121,29 @@ pub enum PluginCommands {
         /// Sidecar manifest to attach to a direct wasm file or URL.
         #[arg(long, value_name = "FILE")]
         manifest: Option<String>,
+        /// Install every addon available in the catalog.
+        #[arg(long)]
+        all: bool,
+        /// Reinstall addons that are already installed (with --all).
+        #[arg(long)]
+        force: bool,
+    },
+    /// Update an installed addon, or every installed addon with --all.
+    Update {
+        name: Option<String>,
+        /// Update every installed addon.
+        #[arg(long)]
+        all: bool,
+        /// Only check; exit with code 1 when an update is available.
+        #[arg(long)]
+        check: bool,
+        /// Reinstall even when the catalog version is not newer.
+        #[arg(long)]
+        force: bool,
+    },
+    /// Restore the previous artifact saved by the last update.
+    Rollback {
+        name: String,
     },
     List {
         /// Show kind, runtime, version, capabilities and enabled state.
@@ -146,7 +169,7 @@ pub enum PluginCommands {
 #[derive(Subcommand, Debug)]
 pub enum ExtensionCommands {
     Install {
-        path: String,
+        path: Option<String>,
         #[arg(long, short)]
         repo: Option<String>,
         /// Expected SHA-256 (hex) of a downloaded wasm artifact.
@@ -158,6 +181,29 @@ pub enum ExtensionCommands {
         /// Sidecar manifest to attach to a direct wasm file or URL.
         #[arg(long, value_name = "FILE")]
         manifest: Option<String>,
+        /// Install every addon available in the catalog.
+        #[arg(long)]
+        all: bool,
+        /// Reinstall addons that are already installed (with --all).
+        #[arg(long)]
+        force: bool,
+    },
+    /// Update an installed addon, or every installed addon with --all.
+    Update {
+        name: Option<String>,
+        /// Update every installed addon.
+        #[arg(long)]
+        all: bool,
+        /// Only check; exit with code 1 when an update is available.
+        #[arg(long)]
+        check: bool,
+        /// Reinstall even when the catalog version is not newer.
+        #[arg(long)]
+        force: bool,
+    },
+    /// Restore the previous artifact saved by the last update.
+    Rollback {
+        name: String,
     },
     List {
         /// Show kind, runtime, version, capabilities and enabled state.
@@ -191,7 +237,7 @@ pub enum ThemeCommands {
 #[derive(Subcommand, Debug)]
 pub enum EffectCommands {
     Install {
-        path: String,
+        path: Option<String>,
         #[arg(long, short)]
         repo: Option<String>,
         /// Expected SHA-256 (hex) of a downloaded wasm artifact.
@@ -203,6 +249,29 @@ pub enum EffectCommands {
         /// Sidecar manifest to attach to a direct wasm file or URL.
         #[arg(long, value_name = "FILE")]
         manifest: Option<String>,
+        /// Install every addon available in the catalog.
+        #[arg(long)]
+        all: bool,
+        /// Reinstall addons that are already installed (with --all).
+        #[arg(long)]
+        force: bool,
+    },
+    /// Update an installed addon, or every installed addon with --all.
+    Update {
+        name: Option<String>,
+        /// Update every installed addon.
+        #[arg(long)]
+        all: bool,
+        /// Only check; exit with code 1 when an update is available.
+        #[arg(long)]
+        check: bool,
+        /// Reinstall even when the catalog version is not newer.
+        #[arg(long)]
+        force: bool,
+    },
+    /// Restore the previous artifact saved by the last update.
+    Rollback {
+        name: String,
     },
     List {
         /// Show kind, runtime, version, capabilities and enabled state.

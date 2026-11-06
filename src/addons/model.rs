@@ -86,6 +86,25 @@ impl AddonKind {
         }
     }
 
+    /// Install receipt name for `name`.
+    pub fn receipt_name(self, name: &str) -> String {
+        format!("{}{}.install.json", self.prefix(), name)
+    }
+
+    /// Install receipt path for `name`.
+    pub fn receipt_path(self, name: &str) -> PathBuf {
+        self.directory().join(self.receipt_name(name))
+    }
+
+    /// Backup path used by update/rollback for an installed artifact.
+    pub fn backup_path(self, path: &Path) -> PathBuf {
+        let file_name = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("addon");
+        path.with_file_name(format!("{}.bak", file_name))
+    }
+
     /// Finds the installed native or wasm artifact in the default directory.
     pub fn installed_path(self, name: &str) -> Option<PathBuf> {
         let directory = self.directory();
@@ -123,6 +142,7 @@ pub struct AddonEntry {
     pub runtime: AddonRuntime,
     pub manifest: Option<Manifest>,
     pub manifest_source: Option<String>,
+    pub receipt: Option<crate::addons::receipt::InstallReceipt>,
     pub enabled: bool,
 }
 
@@ -147,6 +167,7 @@ impl AddonEntry {
             _ => Some(loaded.manifest.clone()),
         });
         let manifest_source = loaded.map(|loaded| loaded.source.as_str().to_string());
+        let receipt = crate::addons::receipt::InstallReceipt::load(kind, name);
         Self {
             kind,
             name: name.to_string(),
@@ -154,6 +175,7 @@ impl AddonEntry {
             runtime,
             manifest,
             manifest_source,
+            receipt,
             enabled: is_enabled(kind, name, config),
         }
     }
@@ -170,6 +192,11 @@ impl AddonEntry {
         self.manifest
             .as_ref()
             .and_then(|manifest| manifest.version.as_deref())
+            .or_else(|| {
+                self.receipt
+                    .as_ref()
+                    .and_then(|receipt| receipt.version.as_deref())
+            })
     }
 
     pub fn description(&self) -> Option<&str> {

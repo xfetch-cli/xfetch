@@ -197,6 +197,8 @@ xfetch --config path/to/config.jsonc
 xfetch --gen-config             # generate a starter config
 xfetch --clean-cache            # clear the module cache
 xfetch plugin install <name>    # install a plugin
+xfetch plugin install --all      # install every catalog plugin
+xfetch plugin update --all       # update every installed plugin
 xfetch plugin search <query>    # search the plugin catalog
 xfetch plugin available         # list the plugin catalog
 xfetch extension install <name> # install an extension
