@@ -18,6 +18,8 @@ const PLUGIN_CATALOG: &str = "https://raw.githubusercontent.com/xfetch-cli/plugi
 const EFFECT_CATALOG: &str = "https://raw.githubusercontent.com/xfetch-cli/effects/main/index.json";
 const EXTENSION_CATALOG: &str =
     "https://raw.githubusercontent.com/xfetch-cli/extensions/main/index.json";
+const COMMAND_CATALOG: &str =
+    "https://raw.githubusercontent.com/xfetch-cli/commands/main/index.json";
 
 /// One addon advertised by a repository catalog.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -39,10 +41,22 @@ pub struct CatalogEntry {
     pub guest_runtime: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub capabilities: Option<serde_json::Value>,
+    /// Repository URL override; the installer falls back to its family default.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub repo: Option<String>,
+    /// Optional tag, branch or commit to build from.
+    #[serde(rename = "ref", default, skip_serializing_if = "Option::is_none")]
+    pub reference: Option<String>,
+    /// SDK version used by the addon, for diagnostics and receipts.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sdk_version: Option<String>,
+    /// Minimum xfetch core version required by the addon.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min_xfetch_version: Option<String>,
 }
 
 impl CatalogEntry {
-    fn install_name(&self) -> &str {
+    pub fn install_name(&self) -> &str {
         self.install.as_deref().unwrap_or(&self.name)
     }
 
@@ -86,6 +100,19 @@ pub fn search(kind: AddonKind, query: &str) -> Result<Vec<CatalogEntry>, String>
         .into_iter()
         .filter(|entry| entry.matches(query))
         .collect())
+}
+
+/// Returns every entry in the catalog for `kind`.
+pub fn all(kind: AddonKind) -> Result<Vec<CatalogEntry>, String> {
+    Ok(load(kind)?.entries)
+}
+
+/// Finds one catalog entry by its package name or install name.
+pub fn find(kind: AddonKind, name: &str) -> Result<Option<CatalogEntry>, String> {
+    Ok(load(kind)?
+        .entries
+        .into_iter()
+        .find(|entry| entry.name == name || entry.install_name() == name))
 }
 
 /// Prints search results as a readable list or JSON.
@@ -134,6 +161,7 @@ fn install_command(kind: AddonKind, name: &str) -> String {
         AddonKind::Plugin => format!("xfetch plugin install {}", name),
         AddonKind::Effect => format!("xfetch effects install {}", name),
         AddonKind::Extension => format!("xfetch extension install {}", name),
+        AddonKind::Command => format!("xfetch command install {}", name),
     }
 }
 
@@ -160,11 +188,15 @@ fn catalog_source(kind: AddonKind) -> String {
         AddonKind::Plugin => ("XFETCH_PLUGIN_INDEX", PLUGIN_CATALOG),
         AddonKind::Effect => ("XFETCH_EFFECT_INDEX", EFFECT_CATALOG),
         AddonKind::Extension => ("XFETCH_EXTENSION_INDEX", EXTENSION_CATALOG),
+        AddonKind::Command => ("XFETCH_COMMAND_INDEX", COMMAND_CATALOG),
     };
     std::env::var(env_name).unwrap_or_else(|_| default.to_string())
 }
 
 fn fetch_remote(source: &str) -> Result<String, String> {
+    if crate::runtime::offline() {
+        return Err("network access is disabled by --offline".to_string());
+    }
     let mut response = ureq::get(source)
         .config()
         .timeout_global(Some(Duration::from_secs(15)))
@@ -214,7 +246,11 @@ mod tests {
           "version": "0.2.0",
           "kind": "info_provider",
           "runtime": "native",
-          "path": "plugins/weather"
+          "path": "plugins/weather",
+          "repo": "https://github.com/xfetch-cli/plugins.git",
+          "ref": "v0.2.0",
+          "sdk_version": "0.3.0",
+          "min_xfetch_version": "1.0.3"
         }
       ]
     }
@@ -228,6 +264,16 @@ mod tests {
         assert!(catalog.entries[0].matches("WASM"));
         assert!(!catalog.entries[0].matches("weather"));
         assert_eq!(catalog.entries[1].install_name(), "weather");
+        assert_eq!(
+            catalog.entries[1].repo.as_deref(),
+            Some("https://github.com/xfetch-cli/plugins.git")
+        );
+        assert_eq!(catalog.entries[1].reference.as_deref(), Some("v0.2.0"));
+        assert_eq!(catalog.entries[1].sdk_version.as_deref(), Some("0.3.0"));
+        assert_eq!(
+            catalog.entries[1].min_xfetch_version.as_deref(),
+            Some("1.0.3")
+        );
     }
 
     #[test]

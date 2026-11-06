@@ -1,3 +1,4 @@
+use crate::addons::model::AddonKind;
 use crate::effects::{
     default_effect_dir, effect_binary_name, effect_manifest_name, effect_wasm_name,
     extract_effect_name,
@@ -6,13 +7,24 @@ use std::fs;
 use std::path::PathBuf;
 
 /// Removes an effect regardless of its runtime: the native binary, the wasm
-/// artifact and the wasm sidecar manifest are all cleaned up.
+/// artifact, the wasm sidecar manifest, the install receipt and the update
+/// backups are all cleaned up.
 pub fn remove_effect(name: &str) -> Result<(), String> {
     let effect_dir = default_effect_dir();
+    let kind = AddonKind::Effect;
+    let native = effect_dir.join(effect_binary_name(name));
+    let wasm = effect_dir.join(effect_wasm_name(name));
+    let manifest = effect_dir.join(effect_manifest_name(name));
+    let receipt = kind.receipt_path(name);
     let candidates = [
-        effect_dir.join(effect_binary_name(name)),
-        effect_dir.join(effect_wasm_name(name)),
-        effect_dir.join(effect_manifest_name(name)),
+        native.clone(),
+        wasm.clone(),
+        manifest.clone(),
+        receipt.clone(),
+        kind.backup_path(&native),
+        kind.backup_path(&wasm),
+        kind.backup_path(&manifest),
+        kind.backup_path(&receipt),
     ];
 
     let mut removed = false;
@@ -25,7 +37,6 @@ pub fn remove_effect(name: &str) -> Result<(), String> {
     }
 
     if removed {
-        println!("Removed effect '{}'", name);
         Ok(())
     } else {
         Err(format!(

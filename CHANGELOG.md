@@ -1,5 +1,112 @@
 # Changelog
 
+## 2026-11-06 — v1.0.3
+
+### CLI
+
+- Added machine output: `--json`, `--get`, `--list-modules`, `modules` and a
+  stable JSON schema version.
+- Added runtime overrides: `--layout`, `--theme`, `--modules`/`--only`,
+  `--color`/`--no-color`, `--offline`, `--no-cache`, `--quiet`, `--verbose`,
+  `--template` and `--format`.
+- Added `doctor` with platform checks, `config validate|print|get|set`,
+  shell completions, a man page and a unified `addon` command.
+- Added JSON output to addon list/info, theme list and `update --check`.
+- Added stable exit codes for config, network, addon, update and not-found
+  failures.
+- Moved the CLI into the modular `src/cli/` tree, including platform-specific
+  doctor checks.
+- Added CLI integration tests covering output modes, overrides, diagnostics,
+  exit codes, completions and offline behavior.
+- Added `docs/CLI.md` with the complete command, output, JSON and exit-code
+  reference.
+- Added config backup and restore: `--backup`, `--restore` and
+  `config backup|restore`. Backups include the active theme and config-roulette
+  routes, and restores write a pre-restore safety backup.
+- Added `scripts/test-cli-sandbox.sh` for end-to-end CLI verification.
+- Added JSON results for addon install, rollback and remove.
+- Added `config unset`, `reset`, `edit`, `backups` and `prune`, array/index
+  edits and comment-preserving nested value replacement.
+- Extended backup/restore with gzip compression, passphrase encryption
+  (Argon2id + XChaCha20-Poly1305), `--with-addons`, logo/ASCII assets, root
+  remapping, restored-config validation, backup listing/pruning and
+  timestamp-based latest selection.
+- Extended templates with conditionals, loops and value filters.
+- Added remote `theme search|info|install|update` and `logo list|preview`.
+- Added `doctor --fix`, `schema`, `self-uninstall` and `update --rollback`.
+- Added help/output snapshots and Windows CI test/clippy coverage.
+- Added `paths`, `env` and `build-info` diagnostics commands.
+- Added `doctor --bench` and `doctor --image`.
+- Added `--log-level` and `--log-json` structured logging.
+- Added complete help descriptions for every command group and subcommand,
+  enforced by a test.
+
+### Command addons
+
+- Added the `command` addon family and `xfetch run` for plain-text CLI
+  commands, with `--render` using the core layout and a separate command
+  catalog repository.
+- Added command catalog search, install, update, rollback, list, info and
+  remove, plus JSON output for those actions.
+
+### SDK and dependencies
+
+- Adopted the xfetch SDK 0.3.1: `xfetch-api-common` 0.3.1 plus
+  `xfetch-plugin-api`, `xfetch-extension-api` and `xfetch-effect-api` 0.3.1.
+  The JSON wire protocol remains `1` and the WIT remains `0.1.0`.
+- The matching `xfetch-guest-api` and `xfetch-command-api` 0.3.1 crates are
+  published for addon authors; the core does not depend on them directly.
+
+### Packaging
+
+- Added crates.io metadata: `repository`, `homepage`, `documentation`,
+  `readme`, `keywords` and `categories`.
+- The crate description now starts with `Fast` instead of `A fast`.
+- Documented `winget install xfetch` as a Windows installation method, with
+  matching update and uninstall guidance.
+
+### Layouts
+
+- Added `layout: "right"`: the info column stays on the left and the ASCII
+  or image logo is rendered on the right. Image logos use the same width and
+  gap settings as the classic layout.
+- Fixed the `right` layout: ASCII and image logos sit flush right, the
+  configured gap always separates text from the logo, and the text column is
+  skipped when an oversized image leaves no room.
+
+### Addon management
+
+- Installs now write an `.install.json` receipt beside each native or wasm
+  addon. The receipt records the installed version, source, repository, path,
+  catalog reference, SDK version and artifact SHA-256.
+- Added `update` and `rollback` for plugins, effects and extensions:
+  `--check` reports available versions, `--all` updates every installed addon,
+  and `--force` rebuilds even when the catalog version is not newer. Native
+  addons are rebuilt from their recorded source; wasm addons keep their
+  artifact/build flow. The previous artifact and receipt are kept as `.bak`
+  for rollback.
+- Added `install --all` for plugins, effects and extensions to install every
+  catalog entry, skipping already installed addons unless `--force` is used.
+- Catalogs accept optional `repo`, `ref`, `sdk_version` and
+  `min_xfetch_version` fields for source resolution and compatibility checks.
+
+### Windows updater
+
+- `xfetch update` now works on Windows. Prebuilt installs download the
+  `.zip` release asset, verify `SHA256SUMS`, keep `xfetch.exe.bak` and replace
+  the running executable with `self-replace`. winget installs are delegated to
+  `winget upgrade --id Xfetch-cli.Xfetch`; source builds are rebuilt from their
+  checkout instead of being replaced with the crates.io release.
+- The PowerShell installers write `%LOCALAPPDATA%\xfetch\install.json`, so a
+  prebuilt install, a source build and a manually copied binary are no longer
+  confused even when they share a directory.
+
+### Release
+
+- Bumped the crate version to 1.0.3 and the installer examples to 1.0.3.
+  The published v1.0.2 tag and its assets remain unchanged.
+
+
 ## 2026-11-03 — v1.0.2
 
 ### Security

@@ -8,4 +8,6 @@
 pub mod catalog;
 pub mod install;
 pub mod model;
+pub mod receipt;
 pub mod report;
+pub mod update;

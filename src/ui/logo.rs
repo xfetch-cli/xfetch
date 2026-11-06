@@ -11,11 +11,11 @@ use viuer::{Config as ViuerConfig, print};
 
 const IMAGE_EXTENSIONS: [&str; 4] = [".png", ".jpg", ".jpeg", ".svg"];
 
-fn is_image_file(path: &str) -> bool {
+pub(crate) fn is_image_file(path: &str) -> bool {
     IMAGE_EXTENSIONS.iter().any(|ext| path.ends_with(ext))
 }
 
-fn auto_logo_width() -> u32 {
+pub(crate) fn auto_logo_width() -> u32 {
     let term_width = size().map(|(w, _)| w as u32).unwrap_or(80);
     let w = if term_width < 60 {
         (term_width as f32 * 0.20) as u32
@@ -29,7 +29,119 @@ fn is_kitty() -> bool {
     std::env::var("KITTY_WINDOW_ID").is_ok()
 }
 
+pub(crate) fn is_image_logo(config: &Config) -> bool {
+    config
+        .logo_path
+        .as_deref()
+        .is_some_and(|path| match config.logo_type.as_deref() {
+            Some("ascii") => false,
+            Some("image") => true,
+            _ => is_image_file(path),
+        })
+}
+
 pub fn get_logo_data(config: &Config) -> (Vec<String>, bool, usize, usize) {
+    load_logo(config, None)
+}
+
+/// Loads the logo for the right layout, placing an image flush against the
+/// terminal's right edge.
+pub(crate) fn get_logo_data_right(
+    config: &Config,
+    term_width: usize,
+) -> (Vec<String>, bool, usize, usize) {
+    load_logo(config, Some(term_width))
+}
+
+/// Width, in terminal cells, that `viuer` will actually print. Its resize logic
+/// only downscales, so a source narrower than the requested width keeps its
+/// original width; when a height is also configured the resize is exact.
+fn printed_image_width(source_width: u32, requested: u32, logo_height: Option<u32>) -> u32 {
+    if logo_height.is_some() {
+        requested
+    } else {
+        source_width.min(requested)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct LogoDiagnostics {
+    pub is_image: bool,
+    pub path: Option<String>,
+    pub path_exists: bool,
+    pub requested_width: Option<u32>,
+    pub printed_width: Option<usize>,
+    pub ascii_lines: Option<usize>,
+    pub gap: usize,
+    pub content_width: Option<usize>,
+    pub image_x: Option<u16>,
+}
+
+pub(crate) fn diagnostics(config: &Config, term_width: usize) -> LogoDiagnostics {
+    let is_image = is_image_logo(config);
+    let gap = 2 + config.logo_gap.unwrap_or(12) as usize;
+    let (path, path_exists) = if let Some(path) = &config.logo_path {
+        (Some(path.clone()), expand_path(path).exists())
+    } else if let Some(path) = &config.ascii {
+        (Some(path.clone()), expand_path(path).exists())
+    } else {
+        (None, true)
+    };
+    let requested_width = config.logo_width.unwrap_or_else(auto_logo_width);
+
+    let mut printed_width = None;
+    let mut ascii_lines = None;
+    if is_image {
+        if let Some(path) = &config.logo_path
+            && let Ok((width, _height)) = image::image_dimensions(expand_path(path))
+        {
+            printed_width =
+                Some(printed_image_width(width, requested_width, config.logo_height) as usize);
+        }
+    } else {
+        let content = if let Some(path) = &config.logo_path {
+            std::fs::read_to_string(expand_path(path)).ok()
+        } else if let Some(path) = &config.ascii {
+            std::fs::read_to_string(expand_path(path)).ok()
+        } else {
+            Some(get_default_ascii())
+        };
+        if let Some(content) = content {
+            let lines: Vec<&str> = content.lines().collect();
+            let width = lines
+                .iter()
+                .map(|line| console::measure_text_width(&strip_ansi_codes(line)))
+                .max()
+                .unwrap_or(0);
+            printed_width = Some(width);
+            ascii_lines = Some(lines.len());
+        }
+    }
+
+    let content_width = printed_width.map(|width| term_width.saturating_sub(width + gap));
+    let image_x = if is_image {
+        printed_width.map(|width| term_width.saturating_sub(width).min(u16::MAX as usize) as u16)
+    } else {
+        None
+    };
+
+    LogoDiagnostics {
+        is_image,
+        path,
+        path_exists,
+        requested_width: Some(requested_width),
+        printed_width,
+        ascii_lines,
+        gap,
+        content_width,
+        image_x,
+    }
+}
+
+fn load_logo(
+    config: &Config,
+    right_term_width: Option<usize>,
+) -> (Vec<String>, bool, usize, usize) {
     let mut ascii_lines: Vec<String> = Vec::new();
     let mut image_printed = false;
     let mut ascii_width = 0;
@@ -47,28 +159,38 @@ pub fn get_logo_data(config: &Config) -> (Vec<String>, bool, usize, usize) {
             let img_width = config.logo_width.unwrap_or_else(auto_logo_width);
             let use_native = is_kitty() && config.logo_kitty.unwrap_or(true);
 
-            let conf = ViuerConfig {
-                width: Some(img_width),
-                height: config.logo_height,
-                absolute_offset: false,
-                transparent: false,
-                use_kitty: use_native,
-                ..Default::default()
-            };
-
             let _ = execute!(
                 stdout,
                 crossterm::cursor::SavePosition,
                 crossterm::cursor::MoveToColumn(0)
             );
 
-            if let Ok(img) = image::open(&path)
-                && let Ok((width, height)) = print(&img, &conf)
-            {
-                image_printed = true;
-                ascii_width = width as usize;
-                image_height = height as usize;
-                let _ = stdout.flush();
+            if let Ok(img) = image::open(&path) {
+                let printed_width = printed_image_width(img.width(), img_width, config.logo_height);
+                let image_x = right_term_width
+                    .map(|term_width| {
+                        term_width
+                            .saturating_sub(printed_width as usize)
+                            .min(u16::MAX as usize) as u16
+                    })
+                    .unwrap_or(0);
+
+                let conf = ViuerConfig {
+                    width: Some(img_width),
+                    height: config.logo_height,
+                    absolute_offset: false,
+                    x: image_x,
+                    transparent: false,
+                    use_kitty: use_native,
+                    ..Default::default()
+                };
+
+                if let Ok((width, height)) = print(&img, &conf) {
+                    image_printed = true;
+                    ascii_width = width as usize;
+                    image_height = height as usize;
+                    let _ = stdout.flush();
+                }
             }
 
             let _ = execute!(
@@ -177,7 +299,7 @@ pub fn build_logo_frames(
             && !frames.is_empty()
         {
             apply_logo_style(&mut frames, config);
-            if !config.show_colors {
+            if !config.show_colors || config.no_color {
                 for frame in &mut frames {
                     frame.lines = frame
                         .lines
@@ -308,5 +430,22 @@ mod tests {
         let (frames, force_plain) = build_logo_frames(&config, &[], true);
         assert_eq!(frames.len(), 1);
         assert!(force_plain);
+    }
+
+    #[test]
+    fn printed_width_matches_viuer_downscale_only_behaviour() {
+        assert_eq!(printed_image_width(10, 20, None), 10);
+        assert_eq!(printed_image_width(120, 20, None), 20);
+        assert_eq!(printed_image_width(10, 20, Some(5)), 20);
+        assert_eq!(printed_image_width(120, 20, Some(5)), 20);
+    }
+
+    #[test]
+    fn right_layout_uses_the_printed_width_for_the_offset() {
+        let term_width = 80usize;
+        let printed = printed_image_width(10, 20, None) as usize;
+        let image_x = term_width.saturating_sub(printed);
+        assert_eq!(image_x + printed, term_width);
+        assert_eq!(image_x, 70);
     }
 }

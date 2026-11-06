@@ -22,6 +22,17 @@
 
 <pre><code class="language-bash">xfetch effects install ./effects/decrypt</code></pre>
 
+<p>
+  Installs and updates write an <code>.install.json</code> receipt next to the
+  effect and keep the previous artifact as <code>.bak</code> for rollback.
+</p>
+
+<p>
+  The same actions are available through the unified form
+  <code>xfetch addon effect &lt;action&gt;</code>. See
+  <a href="CLI.md">CLI.md</a> for the complete command and JSON reference.
+</p>
+
 <p>Manage installed effects:</p>
 
 <pre><code class="language-bash">xfetch effects list
@@ -29,6 +40,10 @@ xfetch effects list --verbose
 xfetch effects info decrypt
 xfetch effects search &lt;query&gt;
 xfetch effects available
+xfetch effects update decrypt
+xfetch effects update --all
+xfetch effects update --all --check
+xfetch effects rollback decrypt
 xfetch effects remove decrypt</code></pre>
 
 <p>

@@ -4,43 +4,48 @@
 //! only touches the file when doing so is safe.
 //!
 //! - `--check` reports whether a newer release exists without installing.
-//! - Installs done with `install-prebuilt.sh` (typically `~/.local/bin`) are
-//!   updated in place: the release asset is downloaded, verified against the
+//! - Installs done with the prebuilt installer are updated in place on Unix
+//!   and Windows. The release asset is downloaded, verified against the
 //!   published `SHA256SUMS`, extracted to a temporary file and moved over the
-//!   current executable with an atomic rename. A single `xfetch.bak` keeps the
-//!   previous binary for rollback (overwritten on every update).
+//!   current executable. A single backup (`xfetch.bak` / `xfetch.exe.bak`)
+//!   keeps the previous binary for rollback and is overwritten on every update.
 //! - `cargo install` binaries are updated through `cargo install --force`.
-//! - Package-manager installs and local builds are never replaced; the
-//!   command prints the right command instead.
-//!
-//! Windows prebuilt updates are intentionally not implemented yet: the `zip`
-//! asset published by the release workflow is not reliable, so the command
-//! only reports and suggests `cargo install` or a manual update there.
+//!   Binaries built from a checkout (`cargo install --path`, `install.ps1`)
+//!   are rebuilt from their source when the checkout still exists.
+//! - winget installs are delegated to `winget upgrade`; xfetch never replaces
+//!   a winget-managed file itself.
+//! - Package-manager installs and unrecognized local builds are never
+//!   replaced; the command prints the right command instead.
 
 mod github;
-#[cfg(unix)]
 mod install;
+mod platform;
 mod provenance;
+mod receipt;
 
 use crate::update::github::{Release, fetch_latest};
-use crate::update::provenance::InstallSource;
+use crate::update::provenance::{DetectedInstall, InstallSource};
 use semver::Version;
 use std::io::{IsTerminal, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::process::Command;
 
 /// GitHub API endpoint used to discover the latest release. Overridable for
 /// mirrors and tests with `XFETCH_UPDATE_API`.
 const DEFAULT_UPDATE_API: &str = "https://api.github.com/repos/xfetch-cli/xfetch/releases/latest";
+
+/// Package identifier used by the winget manifest.
+#[cfg(windows)]
+pub const WINGET_PACKAGE_ID: &str = "Xfetch-cli.Xfetch";
 
 /// Options collected from the CLI.
 #[derive(Debug, Default)]
 pub struct UpdateOptions {
     /// Only report; never install.
     pub check: bool,
-    /// Force the in-place prebuilt update (Unix only).
+    /// Force the in-place prebuilt update (Unix and Windows).
     pub prebuilt: bool,
     /// Directory that holds the xfetch binary (with `--prebuilt`).
-    #[cfg_attr(not(unix), allow(dead_code))]
     pub bin_dir: Option<PathBuf>,
     /// Answer yes to confirmation prompts.
     pub yes: bool,
@@ -70,6 +75,9 @@ pub enum UpdateOutcome {
 
 /// Checks for updates and, when allowed, installs the new release.
 pub fn run(options: UpdateOptions) -> Result<UpdateOutcome, String> {
+    if crate::runtime::offline() {
+        return Err("network access is disabled by --offline".to_string());
+    }
     let current = Version::parse(env!("CARGO_PKG_VERSION"))
         .map_err(|err| format!("Invalid built-in version: {}", err))?;
     let client = github::Client::new()?;
@@ -84,31 +92,57 @@ pub fn run(options: UpdateOptions) -> Result<UpdateOutcome, String> {
 
     let executable = std::env::current_exe()
         .map_err(|err| format!("Cannot locate the running xfetch binary: {}", err))?;
-    let source = provenance::detect(&executable);
+    let detected = provenance::detect(&executable);
 
     if options.check {
-        let command = recommended_command(source, &latest);
+        let command = recommended_command(&detected, &latest);
         return Ok(UpdateOutcome::UpdateAvailable {
             current,
             latest: latest.version.clone(),
-            method: source.label(),
+            method: detected.source.label(),
             command,
         });
     }
 
     if options.prebuilt {
+        if detected.source.is_package_managed() {
+            return Ok(UpdateOutcome::Manual {
+                message: format!(
+                    "xfetch {} is available, but this binary is managed by {}.\n\
+                     Refusing to replace it with --prebuilt. Use:\n  {}",
+                    latest.version,
+                    detected.source.label(),
+                    recommended_command(&detected, &latest)
+                ),
+            });
+        }
         return install_prebuilt(&client, &latest, current, &executable, &options);
     }
 
-    match source {
+    match detected.source {
         InstallSource::Prebuilt => {
             install_prebuilt(&client, &latest, current, &executable, &options)
         }
-        InstallSource::Cargo => run_cargo_update(&latest, current, &options),
+        InstallSource::Cargo => run_cargo_update(&latest, current, &options, None),
+        InstallSource::SourceBuild => match detected.source_path.as_deref() {
+            Some(path) => run_cargo_update(&latest, current, &options, Some(path)),
+            None => Ok(UpdateOutcome::Manual {
+                message: format!(
+                    "xfetch {} is available, but this is a source build and the checkout is unknown.\n\
+                     Re-run the installer or rebuild with:\n  cargo install --path <directory> --force --locked",
+                    latest.version
+                ),
+            }),
+        },
+        #[cfg(windows)]
+        InstallSource::Winget => {
+            platform::run_winget_update(&latest, current, &executable, &options)
+        }
+        #[cfg(unix)]
         InstallSource::PackageManager => Ok(UpdateOutcome::Manual {
             message: format!(
                 "xfetch {} is available, but this binary is managed by a package manager.\n\
-                 Update it with your package manager (pacman, apt, brew, winget, ...).",
+                 Update it with your package manager (pacman, apt, brew, ...).",
                 latest.version
             ),
         }),
@@ -122,21 +156,96 @@ pub fn run(options: UpdateOptions) -> Result<UpdateOutcome, String> {
     }
 }
 
+/// Restores the previous binary kept by an in-place update.
+pub fn rollback(bin_dir: Option<PathBuf>) -> Result<PathBuf, String> {
+    let dir = match bin_dir {
+        Some(dir) => dir,
+        None => std::env::current_exe()
+            .map_err(|err| format!("Cannot locate the running xfetch binary: {err}"))?
+            .parent()
+            .map(Path::to_path_buf)
+            .ok_or_else(|| "Cannot determine the xfetch binary directory".to_string())?,
+    };
+    let current = dir.join(platform::binary_name());
+    let backup = dir.join(format!("{}.bak", platform::binary_name()));
+    if !backup.is_file() {
+        return Err(format!(
+            "No previous binary found at '{}'; run an update first",
+            backup.display()
+        ));
+    }
+
+    #[cfg(unix)]
+    {
+        crate::atomic_fs::copy_atomic(&backup, &current)
+            .map_err(|err| format!("Cannot restore '{}': {}", current.display(), err))?;
+    }
+
+    #[cfg(windows)]
+    {
+        if is_current_executable(&current) {
+            self_replace::self_replace(&backup).map_err(|err| {
+                format!(
+                    "Cannot restore '{}': {}. Close other xfetch processes and try again",
+                    current.display(),
+                    err
+                )
+            })?;
+        } else {
+            crate::atomic_fs::copy_atomic(&backup, &current)
+                .map_err(|err| format!("Cannot restore '{}': {}", current.display(), err))?;
+        }
+    }
+
+    Ok(current)
+}
+
+#[cfg(windows)]
+fn is_current_executable(path: &Path) -> bool {
+    if !path.exists() {
+        return false;
+    }
+    let Ok(current) = std::env::current_exe() else {
+        return false;
+    };
+    let current = std::fs::canonicalize(&current).unwrap_or(current);
+    let path = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+    current == path
+}
+
 /// The API base, honoring the mirror override.
 fn api_base() -> String {
     std::env::var("XFETCH_UPDATE_API").unwrap_or_else(|_| DEFAULT_UPDATE_API.to_string())
 }
 
 /// Suggested command for `--check` output, tailored to the install source.
-fn recommended_command(source: InstallSource, release: &Release) -> String {
-    match source {
-        InstallSource::Cargo => "cargo install xfetch-cli --force".to_string(),
+fn recommended_command(detected: &DetectedInstall, release: &Release) -> String {
+    match detected.source {
+        InstallSource::Cargo => "cargo install xfetch-cli --force --locked".to_string(),
+        InstallSource::SourceBuild => detected.source_path.as_deref().map_or_else(
+            || {
+                "rebuild from the source checkout: cargo install --path <directory> --force --locked"
+                    .to_string()
+            },
+            |path| {
+                format!(
+                    "cargo install --path \"{}\" --force --locked",
+                    path.display()
+                )
+            },
+        ),
+        #[cfg(windows)]
+        InstallSource::Winget => {
+            format!("winget upgrade --id {} --exact", WINGET_PACKAGE_ID)
+        }
+        #[cfg(unix)]
         InstallSource::PackageManager => {
-            "update through your package manager (pacman, apt, brew, winget, ...)".to_string()
+            "update through your package manager (pacman, apt, brew, ...)".to_string()
         }
         InstallSource::Prebuilt => format!("xfetch update  (installs {})", release.version),
         InstallSource::Unknown => {
-            "run install-prebuilt.sh or: xfetch update --prebuilt --bin-dir <directory>".to_string()
+            "run the prebuilt installer or: xfetch update --prebuilt --bin-dir <directory>"
+                .to_string()
         }
     }
 }
@@ -167,25 +276,25 @@ fn confirm(version: &Version, options: &UpdateOptions) -> Result<bool, String> {
     Ok(answer.is_empty() || answer == "y" || answer == "yes")
 }
 
-/// Updates a prebuilt install in place (Unix) or explains why it cannot.
+/// Updates a prebuilt install in place.
 fn install_prebuilt(
     client: &github::Client,
     release: &Release,
     current: Version,
-    executable: &std::path::Path,
+    executable: &Path,
     options: &UpdateOptions,
 ) -> Result<UpdateOutcome, String> {
-    #[cfg(not(unix))]
+    #[cfg(not(any(unix, windows)))]
     {
         let _ = (client, release, current, executable, options);
-        Err(format!(
-            "Prebuilt updates are not supported on this platform yet. \
+        return Err(format!(
+            "Prebuilt updates are not supported on this platform. \
              Install xfetch {} with: cargo install xfetch-cli --force",
             release.version
-        ))
+        ));
     }
 
-    #[cfg(unix)]
+    #[cfg(any(unix, windows))]
     {
         if !confirm(&release.version, options)? {
             return Ok(UpdateOutcome::Manual {
@@ -197,7 +306,7 @@ fn install_prebuilt(
             Some(dir) => dir.clone(),
             None => executable
                 .parent()
-                .map(std::path::Path::to_path_buf)
+                .map(Path::to_path_buf)
                 .ok_or_else(|| "Cannot determine the binary directory".to_string())?,
         };
         let target = install::update_prebuilt(client, release, &target_dir)
@@ -211,18 +320,35 @@ fn install_prebuilt(
     }
 }
 
-/// Runs `cargo install xfetch-cli --force --locked` for cargo installs.
+/// Runs `cargo install` for registry installs, or rebuilds a source checkout.
 fn run_cargo_update(
     release: &Release,
     current: Version,
     options: &UpdateOptions,
+    source_path: Option<&Path>,
 ) -> Result<UpdateOutcome, String> {
+    let command = source_path.map_or_else(
+        || "cargo install xfetch-cli --force --locked".to_string(),
+        |path| {
+            format!(
+                "cargo install --path \"{}\" --force --locked",
+                path.display()
+            )
+        },
+    );
+
     if !options.yes {
         if !std::io::stdin().is_terminal() {
             return Ok(UpdateOutcome::Manual {
                 message: format!(
-                    "xfetch {} is available; this is a cargo install.\n  cargo install xfetch-cli --force",
-                    release.version
+                    "xfetch {} is available; this is a {} install.\n  {}",
+                    release.version,
+                    if source_path.is_some() {
+                        "source"
+                    } else {
+                        "cargo"
+                    },
+                    command
                 ),
             });
         }
@@ -233,39 +359,129 @@ fn run_cargo_update(
         }
     }
 
-    let status = std::process::Command::new("cargo")
-        .args(["install", "xfetch-cli", "--force", "--locked"])
-        .status()
-        .map_err(|err| format!("Failed to run cargo: {}", err))?;
-    if !status.success() {
-        return Err("cargo install failed".to_string());
-    }
+    let status = match source_path {
+        Some(path) => Command::new("cargo")
+            .arg("install")
+            .arg("--path")
+            .arg(path)
+            .args(["--force", "--locked"])
+            .status(),
+        None => Command::new("cargo")
+            .args(["install", "xfetch-cli", "--force", "--locked"])
+            .status(),
+    };
 
-    let path = std::env::current_exe().unwrap_or_else(|_| PathBuf::from("xfetch"));
-    Ok(UpdateOutcome::Updated {
-        from: current,
-        to: release.version.clone(),
-        path,
-    })
+    match status {
+        Ok(status) if status.success() => {
+            let path = std::env::current_exe().unwrap_or_else(|_| PathBuf::from("xfetch"));
+            if installed_version(&path).is_some_and(|version| version >= release.version) {
+                Ok(UpdateOutcome::Updated {
+                    from: current,
+                    to: release.version.clone(),
+                    path,
+                })
+            } else {
+                Ok(UpdateOutcome::Manual {
+                    message: format!(
+                        "cargo install reported success, but xfetch is still {}.\n\
+                         Close any other xfetch processes and run:\n  {}",
+                        current, command
+                    ),
+                })
+            }
+        }
+        Ok(_) => platform::cargo_failure(&command),
+        Err(err) => platform::cargo_spawn_failure(&command, &err.to_string()),
+    }
+}
+
+/// Reads the version printed by `xfetch --version`.
+fn installed_version(executable: &Path) -> Option<Version> {
+    let output = Command::new(executable).arg("--version").output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    parse_version_output(&String::from_utf8_lossy(&output.stdout))
+        .or_else(|| parse_version_output(&String::from_utf8_lossy(&output.stderr)))
+}
+
+fn parse_version_output(output: &str) -> Option<Version> {
+    let token = output.split_whitespace().nth(1)?;
+    Version::parse(token.trim_start_matches('v')).ok()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    fn release(version: &str) -> Release {
+        Release {
+            tag: format!("v{}", version),
+            version: Version::parse(version).expect("version"),
+            assets: Vec::new(),
+        }
+    }
+
+    fn detected(source: InstallSource, path: Option<&str>) -> DetectedInstall {
+        DetectedInstall {
+            source,
+            source_path: path.map(PathBuf::from),
+        }
+    }
+
     #[test]
     fn recommended_command_matches_the_install_source() {
-        let release = Release {
-            tag: "v9.9.9".to_string(),
-            version: Version::parse("9.9.9").expect("version"),
-            assets: Vec::new(),
-            html_url: String::new(),
-        };
-        assert!(recommended_command(InstallSource::Cargo, &release).contains("cargo install"));
+        let release = release("9.9.9");
         assert!(
-            recommended_command(InstallSource::PackageManager, &release)
+            recommended_command(&detected(InstallSource::Cargo, None), &release)
+                .contains("cargo install")
+        );
+        assert!(
+            recommended_command(
+                &detected(InstallSource::SourceBuild, Some("/src/xfetch")),
+                &release
+            )
+            .contains("--path")
+        );
+        #[cfg(windows)]
+        assert!(
+            recommended_command(&detected(InstallSource::Winget, None), &release)
+                .contains("winget upgrade")
+        );
+        #[cfg(unix)]
+        assert!(
+            recommended_command(&detected(InstallSource::PackageManager, None), &release)
                 .contains("package manager")
         );
-        assert!(recommended_command(InstallSource::Prebuilt, &release).contains("xfetch update"));
+        assert!(
+            recommended_command(&detected(InstallSource::Prebuilt, None), &release)
+                .contains("xfetch update")
+        );
+    }
+
+    #[test]
+    fn parses_version_output() {
+        assert_eq!(
+            parse_version_output("xfetch 1.2.3\n"),
+            Some(Version::parse("1.2.3").expect("version"))
+        );
+        assert_eq!(
+            parse_version_output("xfetch v1.2.3\n"),
+            Some(Version::parse("1.2.3").expect("version"))
+        );
+        assert_eq!(parse_version_output("not a version"), None);
+    }
+
+    #[test]
+    fn package_managed_sources_refuse_forced_prebuilt() {
+        for source in [InstallSource::Cargo, InstallSource::SourceBuild] {
+            assert!(source.is_package_managed(), "{source:?}");
+        }
+        #[cfg(windows)]
+        assert!(InstallSource::Winget.is_package_managed());
+        #[cfg(unix)]
+        assert!(!InstallSource::PackageManager.is_package_managed());
+        assert!(!InstallSource::Prebuilt.is_package_managed());
+        assert!(!InstallSource::Unknown.is_package_managed());
     }
 }

@@ -12,7 +12,7 @@ mod layout;
 #[cfg(unix)]
 mod live;
 mod logo;
-mod nodes;
+pub(crate) mod nodes;
 mod print;
 mod renders;
 #[cfg(windows)]
@@ -21,6 +21,98 @@ mod x;
 #[cfg(unix)]
 pub use daemon::{draw_daemon, stop_daemon};
 pub use layout::{LAYOUT_NAMES, is_known_layout};
+pub(crate) use logo::LogoDiagnostics;
+
+pub(crate) fn logo_diagnostics(config: &Config, term_width: usize) -> LogoDiagnostics {
+    logo::diagnostics(config, term_width)
+}
+
+/// Renders arbitrary command output lines through the configured layout and
+/// logo. Used by `xfetch run --render`.
+pub(crate) fn print_custom_content(
+    config: &Config,
+    content_lines: Vec<String>,
+) -> Result<(), String> {
+    let content_lines = if config.no_color {
+        content_lines
+            .iter()
+            .map(|line| strip_ansi_codes(line).to_string())
+            .collect()
+    } else {
+        content_lines
+    };
+
+    if layout::is_minimal(config.layout.as_ref()) {
+        for line in &content_lines {
+            println!("{line}");
+        }
+        return Ok(());
+    }
+
+    let right = layout::is_right(config.layout.as_ref());
+    let term_width = crossterm::terminal::size()
+        .map(|(width, _)| width as usize)
+        .unwrap_or(80);
+    let term_width = if term_width == 0 { 80 } else { term_width };
+    let (ascii_lines, image_printed, ascii_width, image_height) =
+        if right && logo::is_image_logo(config) {
+            logo::get_logo_data_right(config, term_width)
+        } else {
+            logo::get_logo_data(config)
+        };
+
+    if layout::is_vertical(config.layout.as_ref()) {
+        print::print_stacked_output(
+            ascii_lines,
+            image_printed,
+            image_height,
+            content_lines,
+            config,
+            !layout::is_bottom(config.layout.as_ref()),
+        );
+    } else if right {
+        print::print_output_right(
+            ascii_lines,
+            image_printed,
+            ascii_width,
+            image_height,
+            content_lines,
+            config,
+            false,
+        );
+    } else {
+        print::print_output(
+            ascii_lines,
+            image_printed,
+            ascii_width,
+            image_height,
+            content_lines,
+            config,
+            false,
+        );
+    }
+    Ok(())
+}
+
+/// Prints only the configured logo. Used by `xfetch doctor --image`.
+pub(crate) fn preview_logo(config: &Config) -> Result<(), String> {
+    let term_width = crossterm::terminal::size()
+        .map(|(width, _)| width as usize)
+        .unwrap_or(80);
+    let term_width = if term_width == 0 { 80 } else { term_width };
+    let (ascii_lines, image_printed, _width, _height) =
+        if config.layout.as_deref() == Some("right") && logo::is_image_logo(config) {
+            logo::get_logo_data_right(config, term_width)
+        } else {
+            logo::get_logo_data(config)
+        };
+    if !image_printed {
+        for line in ascii_lines {
+            println!("{line}");
+        }
+    }
+    Ok(())
+}
 #[cfg(unix)]
 pub use live::{draw_live_daemon, stop_live_daemon};
 #[cfg(windows)]
@@ -60,25 +152,42 @@ pub fn draw(info: &Info, config: &Config) {
 
     let nodes = prepare_render_tree(info, &config.modules, config);
 
-    let (ascii_lines, image_printed, ascii_width, image_height) = logo::get_logo_data(config);
-
+    let right = layout::is_right(config.layout.as_ref());
     let term_width = crossterm::terminal::size()
         .map(|(w, _)| w as usize)
         .unwrap_or(80);
+    let term_width = if term_width == 0 { 80 } else { term_width };
+    let (mut ascii_lines, image_printed, ascii_width, image_height) =
+        if right && logo::is_image_logo(config) {
+            logo::get_logo_data_right(config, term_width)
+        } else {
+            logo::get_logo_data(config)
+        };
     let gap_base = config.logo_gap.unwrap_or(12) as usize;
     let gap = console::measure_text_width(print::LOGO_INFO_GAP) + gap_base;
     let mut available_width = term_width.saturating_sub(ascii_width + gap);
-    if available_width < 10 && term_width > 40 {
+    if !right && available_width < 10 && term_width > 40 {
         available_width = term_width.saturating_sub(ascii_width.max(12));
     }
 
-    let content_lines = layout::get_content_lines(&nodes, config, Some(available_width));
+    let mut content_lines = layout::get_content_lines(&nodes, config, Some(available_width));
+
+    if config.no_color {
+        ascii_lines = ascii_lines
+            .iter()
+            .map(|line| strip_ansi_codes(line).to_string())
+            .collect();
+        content_lines = content_lines
+            .iter()
+            .map(|line| strip_ansi_codes(line).to_string())
+            .collect();
+    }
 
     // Intro effects over the content lines (opt-in; skipped when an effect
     // binary is missing or fails, so the plain fetch is unaffected). Multiple
     // effects play in sequence.
     let effects = config.effects_list();
-    if !image_printed && stdout().is_terminal() && !effects.is_empty() {
+    if !right && !image_printed && stdout().is_terminal() && !effects.is_empty() {
         let mut played: Vec<Vec<EffectFrame>> = Vec::new();
         for effect_cfg in &effects {
             match crate::effects::run_effect(effect_cfg, &content_lines) {
@@ -95,6 +204,17 @@ pub fn draw(info: &Info, config: &Config) {
             }
         }
         if !played.is_empty() {
+            if config.no_color {
+                for frames in &mut played {
+                    for frame in frames {
+                        frame.lines = frame
+                            .lines
+                            .iter()
+                            .map(|line| strip_ansi_codes(line).to_string())
+                            .collect();
+                    }
+                }
+            }
             let (logo_frames, _) = logo::build_logo_frames(config, &ascii_lines, image_printed);
             let force_plain = logo_frames.len() > 1;
             print::print_effect_output(
@@ -109,7 +229,8 @@ pub fn draw(info: &Info, config: &Config) {
         }
     }
 
-    if !image_printed
+    if !right
+        && !image_printed
         && !ascii_lines.is_empty()
         && let Some(animation_config) = &config.logo_animation
         && let Some(plugin_name) = animation_config.plugin.as_deref()
@@ -120,7 +241,7 @@ pub fn draw(info: &Info, config: &Config) {
             run_logo_animation_plugin(plugin_name, animation_config, &ascii_lines, frame_sets)
         {
             logo::apply_logo_style(&mut frames, config);
-            if !config.show_colors {
+            if !config.show_colors || config.no_color {
                 for frame in &mut frames {
                     frame.lines = frame
                         .lines
@@ -158,6 +279,19 @@ pub fn draw(info: &Info, config: &Config) {
             content_lines,
             config,
             !layout::is_bottom(config.layout.as_ref()),
+        );
+        return;
+    }
+
+    if right {
+        print::print_output_right(
+            ascii_lines,
+            image_printed,
+            ascii_width,
+            image_height,
+            content_lines,
+            config,
+            false,
         );
         return;
     }

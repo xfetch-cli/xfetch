@@ -145,7 +145,14 @@ fn build_content_lines(info: &Info, config: &Config, ascii_width: usize) -> Vec<
     if available_width < 10 && term_width > 40 {
         available_width = term_width.saturating_sub(ascii_width.max(12));
     }
-    layout::get_content_lines(&nodes, config, Some(available_width))
+    let mut lines = layout::get_content_lines(&nodes, config, Some(available_width));
+    if config.no_color {
+        lines = lines
+            .iter()
+            .map(|line| console::strip_ansi_codes(line).to_string())
+            .collect();
+    }
+    lines
 }
 
 fn theme_file_path(name: &str) -> PathBuf {

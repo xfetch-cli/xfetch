@@ -26,11 +26,14 @@
   End users should install official plugins by name from the remote repository:
 </p>
 
-<pre><code class="language-bash">xfetch plugin install animate-logo</code></pre>
+<pre><code class="language-bash">xfetch plugin install animate-logo
+xfetch plugin install --all</code></pre>
 
 <p>
   The core downloads the plugin source from the official remote, builds it, and installs
-  the resulting binary into the xfetch plugin directory.
+  the resulting binary into the xfetch plugin directory. <code>install --all</code>
+  installs every plugin advertised by the catalog and skips plugins that are already
+  installed; add <code>--force</code> to reinstall them.
 </p>
 
 <p>
@@ -48,11 +51,29 @@ XFETCH_PLUGIN_REPO=https://github.com/user/plugins.git xfetch plugin install my-
   an extra development directory to that search path.
 </p>
 
+<p>
+  Every successful install writes an <code>.install.json</code> receipt next to
+  the plugin. It records the version, source, repository and artifact hash used
+  by <code>update</code>. Updates rebuild native plugins from the recorded
+  source and keep the previous binary as <code>.bak</code> for
+  <code>rollback</code>.
+</p>
+
+<p>
+  The same actions are available through the unified form
+  <code>xfetch addon plugin &lt;action&gt;</code>. See
+  <a href="CLI.md">CLI.md</a> for the complete command and JSON reference.
+</p>
+
 <h2>Manage installed plugins</h2>
 
 <pre><code class="language-bash">xfetch plugin list
 xfetch plugin list --verbose
 xfetch plugin info &lt;name&gt;
+xfetch plugin update &lt;name&gt;
+xfetch plugin update --all
+xfetch plugin update --all --check
+xfetch plugin rollback &lt;name&gt;
 xfetch plugin search &lt;query&gt;
 xfetch plugin available
 xfetch plugin remove &lt;name&gt;</code></pre>

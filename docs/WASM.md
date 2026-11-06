@@ -1,8 +1,8 @@
 <h1>WebAssembly Guests</h1>
 
 <p>
-  Plugins, effects and extensions can be WebAssembly artifacts instead of native
-  executables. The core detects them by their binary header, runs them inside a
+  Plugins, effects, extensions and command addons can be WebAssembly artifacts
+  instead of native executables. The core detects them by their binary header, runs them inside a
   sandboxed wasmtime runtime and keeps the same JSON protocol version 1, so the
   rest of the system (config, timeouts, list/remove commands) is unchanged.
 </p>
@@ -23,13 +23,13 @@
     <tr>
       <td>Core module</td>
       <td><code>wasm32-wasip1</code></td>
-      <td>JSON request on stdin, JSON response on stdout, host calls through the <code>xfetch.host_call</code> import</td>
+      <td>JSON request on stdin, JSON or plain-text response on stdout, host calls through the <code>xfetch.host_call</code> import</td>
       <td>Rust, C, Zig, Go, AssemblyScript, ...</td>
     </tr>
     <tr>
       <td>Component</td>
       <td>Component model (<code>wasm32</code>)</td>
-      <td>Export <code>run</code> from the WIT world, typed host imports</td>
+      <td>Export <code>run</code> from the plugin/effect/extension/command WIT world, typed host imports</td>
       <td>Python (<code>componentize-py</code>), JavaScript (<code>componentize-js</code>), Rust (<code>wit-bindgen</code>), ...</td>
     </tr>
   </tbody>
@@ -61,6 +61,11 @@ xfetch plugin install https://example.com/releases/plugin.wasm
 xfetch plugin install https://example.com/releases/plugin.wasm --sha256 &lt;64-hex-digest&gt;
 xfetch effects install ./effects/wasm-matrix
 xfetch extension install ./extensions/wasm-night-mode</code></pre>
+
+<p>
+  The complete <code>wasm</code> command reference, including JSON output and
+  exit codes, is in <a href="CLI.md">CLI.md</a>.
+</p>
 
 <p>
   <code>wasm inspect</code> prints a human-readable report or the same data as

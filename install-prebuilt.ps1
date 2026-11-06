@@ -5,7 +5,7 @@
 #
 # Usage:
 #   irm https://raw.githubusercontent.com/xfetch-cli/xfetch/main/install-prebuilt.ps1 | iex
-#   .\install-prebuilt.ps1 -Version 1.0.2 -BinDir C:\tools\bin
+#   .\install-prebuilt.ps1 -Version 1.0.3 -BinDir C:\tools\bin
 #   .\install-prebuilt.ps1 -NoChecksum -NoPath
 
 param(
@@ -27,6 +27,33 @@ function Write-Warn($Message) { Write-Host "[xfetch] $Message" -ForegroundColor 
 function Fail($Message) {
     Write-Host "[xfetch] $Message" -ForegroundColor Red
     exit 1
+}
+
+# Records how this copy was installed. The updater reads it before falling
+# back to path heuristics, so a prebuilt install and a manually copied build
+# in the same directory are not confused.
+function Write-InstallReceipt($Method, $Path, $Version, $Source, $SourcePath, $Repo, $Commit) {
+    if (-not $env:LOCALAPPDATA) { return }
+    try {
+        $receiptDir = Join-Path $env:LOCALAPPDATA "xfetch"
+        New-Item -ItemType Directory -Path $receiptDir -Force | Out-Null
+        $receipt = [ordered]@{
+            schema_version = 1
+            method         = $Method
+            path           = $Path
+            installed_at   = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+        }
+        if ($Version)    { $receipt.version = $Version }
+        if ($Source)     { $receipt.source = $Source }
+        if ($SourcePath) { $receipt.source_path = $SourcePath }
+        if ($Repo)       { $receipt.repo = $Repo }
+        if ($Commit)     { $receipt.commit = $Commit }
+        $json = $receipt | ConvertTo-Json -Compress
+        $utf8 = New-Object System.Text.UTF8Encoding -ArgumentList $false
+        [System.IO.File]::WriteAllText((Join-Path $receiptDir "install.json"), $json, $utf8)
+    } catch {
+        Write-Warn "Could not write install receipt: $($_.Exception.Message)"
+    }
 }
 
 # Windows PowerShell 5.1 defaults to older TLS versions; GitHub needs 1.2.
@@ -128,6 +155,7 @@ try {
         Fail "Could not install the binary: $($_.Exception.Message)"
     }
     Write-Ok "Installed binary: $installPath"
+    Write-InstallReceipt -Method "prebuilt" -Path $installPath -Version $Version -Source "install-prebuilt.ps1"
 
     if (-not $NoPath -and $env:OS -eq "Windows_NT") {
         $userPath = [Environment]::GetEnvironmentVariable("Path", "User")

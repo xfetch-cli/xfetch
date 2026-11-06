@@ -1,0 +1,16 @@
+default
+side-block
+tree
+section
+section-box
+custom-x
+right
+compact
+minimal
+pacman
+box
+line
+dots
+bottom_line
+horizontal
+bottom

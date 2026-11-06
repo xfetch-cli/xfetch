@@ -1,0 +1,132 @@
+[
+  {
+    "key": "os",
+    "description": "Operating system name and architecture",
+    "platforms": "all"
+  },
+  {
+    "key": "kernel",
+    "description": "Kernel version",
+    "platforms": "all"
+  },
+  {
+    "key": "hostname",
+    "description": "Machine hostname",
+    "platforms": "all"
+  },
+  {
+    "key": "host",
+    "description": "Alias for hostname",
+    "platforms": "all"
+  },
+  {
+    "key": "user",
+    "description": "Current user",
+    "platforms": "all"
+  },
+  {
+    "key": "shell",
+    "description": "Login shell",
+    "platforms": "all"
+  },
+  {
+    "key": "terminal",
+    "description": "Terminal emulator",
+    "platforms": "all"
+  },
+  {
+    "key": "wm",
+    "description": "Desktop environment or window manager",
+    "platforms": "linux,macos,windows"
+  },
+  {
+    "key": "cpu",
+    "description": "CPU model, cores and frequency",
+    "platforms": "all"
+  },
+  {
+    "key": "gpu",
+    "description": "GPU model and vendor",
+    "platforms": "all"
+  },
+  {
+    "key": "memory",
+    "description": "RAM usage",
+    "platforms": "all"
+  },
+  {
+    "key": "swap",
+    "description": "Swap usage",
+    "platforms": "all"
+  },
+  {
+    "key": "disk",
+    "description": "Disk usage",
+    "platforms": "all"
+  },
+  {
+    "key": "battery",
+    "description": "Battery status",
+    "platforms": "linux,macos,windows"
+  },
+  {
+    "key": "uptime",
+    "description": "System uptime",
+    "platforms": "all"
+  },
+  {
+    "key": "packages",
+    "description": "Installed package count",
+    "platforms": "all"
+  },
+  {
+    "key": "packages:<manager>",
+    "description": "Count for one package manager (pacman, dpkg, rpm, apk, nix, brew, flatpak, ...)",
+    "platforms": "all"
+  },
+  {
+    "key": "datetime",
+    "description": "Local date and time",
+    "platforms": "all"
+  },
+  {
+    "key": "local_ip",
+    "description": "Local IPv4 address",
+    "platforms": "all"
+  },
+  {
+    "key": "local_ip:v6",
+    "description": "Local IPv6 address",
+    "platforms": "all"
+  },
+  {
+    "key": "public_ip",
+    "description": "Public IP address (network)",
+    "platforms": "all"
+  },
+  {
+    "key": "interfaces",
+    "description": "Network interface summary",
+    "platforms": "all"
+  },
+  {
+    "key": "palette",
+    "description": "Terminal color palette",
+    "platforms": "all"
+  },
+  {
+    "key": "header",
+    "description": "user@hostname header",
+    "platforms": "all"
+  },
+  {
+    "key": "sep",
+    "description": "Separator line",
+    "platforms": "all"
+  },
+  {
+    "key": "plugin:<name>",
+    "description": "Lines returned by an info plugin",
+    "platforms": "all"
+  }
+]

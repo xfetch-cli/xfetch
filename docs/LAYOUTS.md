@@ -297,6 +297,21 @@ memory:    16 GiB / 32 GiB (50%)</code></pre>
     "layout": "bottom"
 }</code></pre>
 
+<h2>16. Right Layout</h2>
+
+<p>
+  Mirrors the classic layout: the info column is on the left and the logo,
+  ASCII or image, is on the right.
+</p>
+
+<p><strong>Configuration:</strong></p>
+
+<pre><code class="language-jsonc">{
+    "layout": "right",
+    "logo_path": "~/.config/xfetch/logo.png",
+    "logo_width": 24
+}</code></pre>
+
 <h2>Module Grouping</h2>
 
 <p>

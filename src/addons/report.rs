@@ -2,6 +2,7 @@
 
 use crate::addons::model::{AddonEntry, AddonKind};
 use crate::config::Config;
+use crate::runtime;
 
 /// Prints the installed addon list. The default layout is unchanged for
 /// scripts; `verbose` adds kind, runtime, version, capabilities and state.
@@ -65,6 +66,15 @@ pub fn print_info(entry: &AddonEntry) {
     if let Some(source) = &entry.manifest_source {
         println!("Manifest: {}", source);
     }
+    if let Some(receipt) = &entry.receipt {
+        println!("Install source: {} ({})", receipt.source, receipt.runtime);
+        if let Some(repo) = &receipt.repo {
+            println!("Repository: {}", repo);
+        }
+        if let Some(reference) = &receipt.reference {
+            println!("Reference: {}", reference);
+        }
+    }
     println!("Enabled: {}", if entry.enabled { "yes" } else { "no" });
 
     println!("Capabilities:");
@@ -84,6 +94,9 @@ pub fn print_info(entry: &AddonEntry) {
 /// Prints the config snippet and declared capabilities after a successful
 /// install. The installer has already printed the artifact path.
 pub fn print_install_guidance(kind: AddonKind, name: &str) {
+    if runtime::quiet() {
+        return;
+    }
     let path = kind
         .installed_path(name)
         .unwrap_or_else(|| kind.directory().join(kind.wasm_name(name)));
@@ -112,5 +125,6 @@ fn title(kind: AddonKind) -> &'static str {
         AddonKind::Plugin => "Plugin",
         AddonKind::Effect => "Effect",
         AddonKind::Extension => "Extension",
+        AddonKind::Command => "Command",
     }
 }
