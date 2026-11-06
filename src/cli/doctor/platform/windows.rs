@@ -15,10 +15,3 @@ pub fn collect() -> Vec<Detail> {
     }
     details
 }
-
-fn detail(name: &str, value: impl Into<String>) -> Detail {
-    Detail {
-        name: name.to_string(),
-        value: value.into(),
-    }
-}
