@@ -12,6 +12,7 @@ const TREE_LAYOUT: &str = "tree";
 const SECTION_LAYOUT: &str = "section";
 const SECTION_BOX_LAYOUT: &str = "section-box";
 const CUSTOM_X_LAYOUT: &str = "custom-x";
+const RIGHT_LAYOUT: &str = "right";
 const COMPACT_LAYOUT: &str = "compact";
 const MINIMAL_LAYOUT: &str = "minimal";
 const CLASSIC_VARIANTS: &[&str] = &["pacman", "box", "line", "dots", "bottom_line"];
@@ -25,6 +26,7 @@ pub const LAYOUT_NAMES: &[&str] = &[
     "section",
     "section-box",
     "custom-x",
+    "right",
     "compact",
     "minimal",
     "pacman",
@@ -75,6 +77,10 @@ pub fn is_bottom(layout: Option<&String>) -> bool {
     layout.map(|l| l == "bottom").unwrap_or(false)
 }
 
+pub fn is_right(layout: Option<&String>) -> bool {
+    layout.map(|l| l == RIGHT_LAYOUT).unwrap_or(false)
+}
+
 //tests
 #[cfg(test)]
 mod tests {
@@ -84,6 +90,13 @@ mod tests {
     #[test]
     fn test_layout_names_include_generated_default() {
         assert!(LAYOUT_NAMES.contains(&"section"));
+    }
+
+    #[test]
+    fn recognizes_the_right_layout() {
+        assert!(is_right(Some(&"right".to_string())));
+        assert!(!is_right(Some(&"default".to_string())));
+        assert!(!is_right(None));
     }
 
     #[test]

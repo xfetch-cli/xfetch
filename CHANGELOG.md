@@ -14,6 +14,12 @@
   `readme`, `keywords` and `categories`.
 - The crate description now starts with `Fast` instead of `A fast`.
 
+### Layouts
+
+- Added `layout: "right"`: the info column stays on the left and the ASCII
+  or image logo is rendered on the right. Image logos use the same width and
+  gap settings as the classic layout.
+
 ### Addon management
 
 - Installs now write an `.install.json` receipt beside each native or wasm

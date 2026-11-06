@@ -11,11 +11,11 @@ use viuer::{Config as ViuerConfig, print};
 
 const IMAGE_EXTENSIONS: [&str; 4] = [".png", ".jpg", ".jpeg", ".svg"];
 
-fn is_image_file(path: &str) -> bool {
+pub(crate) fn is_image_file(path: &str) -> bool {
     IMAGE_EXTENSIONS.iter().any(|ext| path.ends_with(ext))
 }
 
-fn auto_logo_width() -> u32 {
+pub(crate) fn auto_logo_width() -> u32 {
     let term_width = size().map(|(w, _)| w as u32).unwrap_or(80);
     let w = if term_width < 60 {
         (term_width as f32 * 0.20) as u32
@@ -29,7 +29,26 @@ fn is_kitty() -> bool {
     std::env::var("KITTY_WINDOW_ID").is_ok()
 }
 
+pub(crate) fn is_image_logo(config: &Config) -> bool {
+    config
+        .logo_path
+        .as_deref()
+        .is_some_and(|path| match config.logo_type.as_deref() {
+            Some("ascii") => false,
+            Some("image") => true,
+            _ => is_image_file(path),
+        })
+}
+
 pub fn get_logo_data(config: &Config) -> (Vec<String>, bool, usize, usize) {
+    get_logo_data_with_x(config, None)
+}
+
+/// Loads the logo, optionally printing an image at an absolute terminal column.
+pub fn get_logo_data_with_x(
+    config: &Config,
+    image_x: Option<u16>,
+) -> (Vec<String>, bool, usize, usize) {
     let mut ascii_lines: Vec<String> = Vec::new();
     let mut image_printed = false;
     let mut ascii_width = 0;
@@ -51,6 +70,7 @@ pub fn get_logo_data(config: &Config) -> (Vec<String>, bool, usize, usize) {
                 width: Some(img_width),
                 height: config.logo_height,
                 absolute_offset: false,
+                x: image_x.unwrap_or(0),
                 transparent: false,
                 use_kitty: use_native,
                 ..Default::default()

@@ -60,11 +60,19 @@ pub fn draw(info: &Info, config: &Config) {
 
     let nodes = prepare_render_tree(info, &config.modules, config);
 
-    let (ascii_lines, image_printed, ascii_width, image_height) = logo::get_logo_data(config);
-
+    let right = layout::is_right(config.layout.as_ref());
     let term_width = crossterm::terminal::size()
         .map(|(w, _)| w as usize)
         .unwrap_or(80);
+    let term_width = if term_width == 0 { 80 } else { term_width };
+    let image_x = if right && logo::is_image_logo(config) {
+        let width = config.logo_width.unwrap_or_else(logo::auto_logo_width) as usize;
+        Some(term_width.saturating_sub(width) as u16)
+    } else {
+        None
+    };
+    let (ascii_lines, image_printed, ascii_width, image_height) =
+        logo::get_logo_data_with_x(config, image_x);
     let gap_base = config.logo_gap.unwrap_or(12) as usize;
     let gap = console::measure_text_width(print::LOGO_INFO_GAP) + gap_base;
     let mut available_width = term_width.saturating_sub(ascii_width + gap);
@@ -78,7 +86,7 @@ pub fn draw(info: &Info, config: &Config) {
     // binary is missing or fails, so the plain fetch is unaffected). Multiple
     // effects play in sequence.
     let effects = config.effects_list();
-    if !image_printed && stdout().is_terminal() && !effects.is_empty() {
+    if !right && !image_printed && stdout().is_terminal() && !effects.is_empty() {
         let mut played: Vec<Vec<EffectFrame>> = Vec::new();
         for effect_cfg in &effects {
             match crate::effects::run_effect(effect_cfg, &content_lines) {
@@ -109,7 +117,8 @@ pub fn draw(info: &Info, config: &Config) {
         }
     }
 
-    if !image_printed
+    if !right
+        && !image_printed
         && !ascii_lines.is_empty()
         && let Some(animation_config) = &config.logo_animation
         && let Some(plugin_name) = animation_config.plugin.as_deref()
@@ -158,6 +167,19 @@ pub fn draw(info: &Info, config: &Config) {
             content_lines,
             config,
             !layout::is_bottom(config.layout.as_ref()),
+        );
+        return;
+    }
+
+    if right {
+        print::print_output_right(
+            ascii_lines,
+            image_printed,
+            ascii_width,
+            image_height,
+            content_lines,
+            config,
+            false,
         );
         return;
     }

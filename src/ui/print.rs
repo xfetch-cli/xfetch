@@ -177,6 +177,56 @@ pub fn print_output(
     }
 }
 
+/// Renders the text column on the left and the logo/image on the right.
+pub fn print_output_right(
+    ascii_lines: Vec<String>,
+    image_printed: bool,
+    ascii_width: usize,
+    image_height: usize,
+    content_lines: Vec<String>,
+    config: &Config,
+    force_plain_logo: bool,
+) {
+    let mut out = stdout();
+    let term_width = size().map(|(w, _)| w as usize).unwrap_or(80);
+    let term_width = if term_width == 0 { 80 } else { term_width };
+    let gap_base = config.logo_gap.unwrap_or(12) as usize;
+    let gap = console::measure_text_width(LOGO_INFO_GAP) + gap_base;
+    let content_width = term_width.saturating_sub(ascii_width + gap);
+
+    let text_height = content_lines.len();
+    let logo_height = if image_printed {
+        image_height
+    } else {
+        ascii_lines.len()
+    };
+    let max_lines = std::cmp::max(logo_height, text_height);
+
+    for i in 0..max_lines {
+        if i < content_lines.len() {
+            let line = truncate_line(&content_lines[i], content_width);
+            let visible = visible_width(&line);
+            let _ = execute!(
+                out,
+                Print(format!(
+                    "{}{}",
+                    line,
+                    " ".repeat(content_width.saturating_sub(visible))
+                ))
+            );
+        } else {
+            let _ = execute!(out, Print(" ".repeat(content_width)));
+        }
+
+        if !image_printed {
+            let _ = execute!(out, Print(LOGO_INFO_GAP));
+            let ascii_line = ascii_lines.get(i).map(String::as_str).unwrap_or("");
+            print_logo_line(&mut out, ascii_line, ascii_width, config, force_plain_logo);
+        }
+        let _ = execute!(out, Print("\n"));
+    }
+}
+
 pub struct FrameGeometry {
     pub max_logo_width: usize,
     pub max_lines: usize,
