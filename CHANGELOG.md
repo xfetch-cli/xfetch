@@ -51,9 +51,11 @@
 
 ### SDK and dependencies
 
-- Adopted the xfetch SDK 0.3.0: `xfetch-api-common` 0.3.0 plus
-  `xfetch-plugin-api`, `xfetch-extension-api` and `xfetch-effect-api` 0.3.0.
+- Adopted the xfetch SDK 0.3.1: `xfetch-api-common` 0.3.1 plus
+  `xfetch-plugin-api`, `xfetch-extension-api` and `xfetch-effect-api` 0.3.1.
   The JSON wire protocol remains `1` and the WIT remains `0.1.0`.
+- The matching `xfetch-guest-api` and `xfetch-command-api` 0.3.1 crates are
+  published for addon authors; the core does not depend on them directly.
 
 ### Packaging
 
