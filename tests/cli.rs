@@ -728,13 +728,21 @@ fn config_edit_runs_an_editor_and_validates() {
 
     let output = Command::new(env!("CARGO_BIN_EXE_xfetch"))
         .args([&config_arg, "config", "edit"])
+        .env("VISUAL", &editor)
         .env("EDITOR", &editor)
         .env("XDG_CONFIG_HOME", dir.join("config"))
         .env("XDG_CACHE_HOME", dir.join("cache"))
+        .env("XDG_STATE_HOME", dir.join("state"))
         .env("HOME", dir.join("home"))
         .output()
         .unwrap();
-    assert!(output.status.success());
+    assert!(
+        output.status.success(),
+        "config edit failed: status={:?}\nstdout={}\nstderr={}",
+        output.status,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert!(
         fs::read_to_string(&path)
             .unwrap()
