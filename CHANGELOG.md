@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2026-11-06 — v1.0.3
 
 ### CLI
 
@@ -27,9 +27,10 @@
 - Added JSON results for addon install, rollback and remove.
 - Added `config unset`, `reset`, `edit`, `backups` and `prune`, array/index
   edits and comment-preserving nested value replacement.
-- Extended backup/restore with gzip compression, passphrase encryption (Argon2id + XChaCha20-Poly1305),
-  `--with-addons`, logo/ASCII assets, root remapping, restored-config
-  validation, backup listing/pruning and timestamp-based latest selection.
+- Extended backup/restore with gzip compression, passphrase encryption
+  (Argon2id + XChaCha20-Poly1305), `--with-addons`, logo/ASCII assets, root
+  remapping, restored-config validation, backup listing/pruning and
+  timestamp-based latest selection.
 - Extended templates with conditionals, loops and value filters.
 - Added remote `theme search|info|install|update` and `logo list|preview`.
 - Added `doctor --fix`, `schema`, `self-uninstall` and `update --rollback`.
@@ -39,13 +40,16 @@
 - Added `--log-level` and `--log-json` structured logging.
 - Added complete help descriptions for every command group and subcommand,
   enforced by a test.
+
+### Command addons
+
 - Added the `command` addon family and `xfetch run` for plain-text CLI
   commands, with `--render` using the core layout and a separate command
   catalog repository.
+- Added command catalog search, install, update, rollback, list, info and
+  remove, plus JSON output for those actions.
 
-## 2026-11-03 — v1.0.3
-
-### Dependencies
+### SDK and dependencies
 
 - Adopted the xfetch SDK 0.3.0: `xfetch-api-common` 0.3.0 plus
   `xfetch-plugin-api`, `xfetch-extension-api` and `xfetch-effect-api` 0.3.0.
@@ -56,6 +60,8 @@
 - Added crates.io metadata: `repository`, `homepage`, `documentation`,
   `readme`, `keywords` and `categories`.
 - The crate description now starts with `Fast` instead of `A fast`.
+- Documented `winget install xfetch` as a Windows installation method, with
+  matching update and uninstall guidance.
 
 ### Layouts
 

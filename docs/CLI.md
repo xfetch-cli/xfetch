@@ -876,7 +876,7 @@ xfetch man --output ~/.local/share/man/man1/xfetch.1</code></pre>
   <tbody>
     <tr><td>Linux</td><td>Config under <code>~/.config/xfetch</code>. Package counts read local databases. Daemon mode uses a terminal scroll region.</td></tr>
     <tr><td>macOS</td><td>Config under <code>~/Library/Application Support/xfetch</code> with a symlink from the XDG path. Homebrew installs are updated through Homebrew.</td></tr>
-    <tr><td>Windows</td><td>Config under <code>%APPDATA%\xfetch</code>. The updater uses <code>self-replace</code>; winget installs are delegated to <code>winget upgrade</code>. Daemon mode uses a worker process instead of <code>fork</code>.</td></tr>
+    <tr><td>Windows</td><td>Config under <code>%APPDATA%\xfetch</code>. Install with <code>winget install xfetch</code> or the PowerShell installers. The updater uses <code>self-replace</code>; winget-managed updates are delegated to <code>winget upgrade</code>. Daemon mode uses a worker process instead of <code>fork</code>.</td></tr>
   </tbody>
 </table>
 
