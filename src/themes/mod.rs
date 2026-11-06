@@ -35,8 +35,11 @@ pub fn list_themes() -> Result<Vec<(String, PathBuf)>, String> {
 pub fn remove_theme(name: &str) -> Result<(), String> {
     if let Some(theme_path) = resolve_theme_path(name) {
         if theme_path.starts_with(default_themes_dir()) {
-            fs::remove_file(&theme_path)
-                .map_err(|e| format!("Failed to remove theme '{}': {}", name, e))
+            let result = fs::remove_file(&theme_path)
+                .map_err(|e| format!("Failed to remove theme '{}': {}", name, e));
+            let meta = default_themes_dir().join(format!(".{name}.xfetch-meta.json"));
+            let _ = fs::remove_file(meta);
+            result
         } else {
             Err(format!(
                 "Theme '{}' is in a protected location and cannot be removed",

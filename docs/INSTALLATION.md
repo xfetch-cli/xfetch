@@ -455,7 +455,12 @@ xfetch update --yes     # skip the confirmation prompt</code></pre>
   See the <a href="UNINSTALLATION.md">Uninstallation Guide</a> for detailed instructions.
 </p>
 
-<p><strong>Quick uninstall:</strong></p>
+<p><strong>Quick uninstall from the CLI:</strong></p>
+
+<pre><code class="language-bash">xfetch self-uninstall
+xfetch self-uninstall --purge --yes</code></pre>
+
+<p><strong>Quick uninstall script:</strong></p>
 
 <pre><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/xfetch-cli/xfetch/main/uninstall.sh | bash</code></pre>
 
@@ -469,6 +474,29 @@ xfetch update --yes     # skip the confirmation prompt</code></pre>
 rm -rf ~/.config/xfetch</code></pre>
 
 <hr>
+
+<h2>Shell Integration</h2>
+
+<p>
+  Generate completions for your shell and install the man page:
+</p>
+
+<pre><code class="language-bash"># Bash
+xfetch completions bash > ~/.local/share/bash-completion/completions/xfetch
+
+# Zsh
+xfetch completions zsh > ~/.zfunc/_xfetch
+
+# Fish
+xfetch completions fish > ~/.config/fish/completions/xfetch.fish
+
+# Man page
+xfetch man --output ~/.local/share/man/man1/xfetch.1</code></pre>
+
+<p>
+  See <a href="CLI.md">CLI.md</a> for the complete command reference, JSON
+  output and exit codes.
+</p>
 
 <h2>Next Steps</h2>
 

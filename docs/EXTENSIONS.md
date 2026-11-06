@@ -26,6 +26,12 @@ xfetch extension install my-extension --repo https://github.com/user/extensions.
   extension and keep the previous artifact as <code>.bak</code> for rollback.
 </p>
 
+<p>
+  The same actions are available through the unified form
+  <code>xfetch addon extension &lt;action&gt;</code>. See
+  <a href="CLI.md">CLI.md</a> for the complete command and JSON reference.
+</p>
+
 <p>List, inspect and remove installed extensions:</p>
 
 <pre><code class="language-bash">xfetch extension list

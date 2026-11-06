@@ -26,6 +26,9 @@ pub struct Config {
     pub logo_path: Option<String>,
     pub modules: Vec<ModuleConfig>,
     pub show_colors: bool,
+    /// Runtime-only color switch used by `--color never`/`--no-color`.
+    #[serde(skip)]
+    pub no_color: bool,
     pub icons: HashMap<String, String>,
     pub colors: HashMap<String, String>,
     /// Optional per-module display labels for the row key shown in a line.
@@ -87,6 +90,48 @@ pub struct Config {
     /// `--daemon-live-reload`.
     pub daemon_live_reload: bool,
     pub custom_x: Option<CustomX>,
+}
+
+/// Runtime overrides applied on top of the file, the theme and any config
+/// providers. CLI flags always win.
+#[derive(Debug, Clone, Default)]
+pub struct ConfigOverrides {
+    pub theme: Option<String>,
+    pub layout: Option<String>,
+    pub modules: Option<Vec<ModuleConfig>>,
+    pub no_color: bool,
+    pub offline: bool,
+    pub no_cache: bool,
+}
+
+impl ConfigOverrides {
+    /// Applies the fields that must be visible before the theme is resolved.
+    pub fn apply_before_theme(&self, value: &mut Value) {
+        if let Some(theme) = &self.theme
+            && let Some(object) = value.as_object_mut()
+        {
+            object.insert("theme".to_string(), Value::String(theme.clone()));
+        }
+    }
+
+    /// Applies the remaining fields after the theme and config providers.
+    pub fn apply(&self, config: &mut Config) {
+        if let Some(layout) = &self.layout {
+            config.layout = Some(layout.clone());
+        }
+        if let Some(modules) = &self.modules {
+            config.modules = modules.clone();
+        }
+        if self.no_color {
+            config.no_color = true;
+        }
+        if self.offline {
+            config.disable_ip_fetching = Some(true);
+        }
+        if self.no_cache {
+            config.disable_cache = Some(true);
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -216,6 +261,7 @@ impl Default for Config {
                 ModuleConfig::Simple("battery".to_string()),
             ],
             show_colors: true,
+            no_color: false,
             icons,
             colors,
             labels: HashMap::new(),
@@ -266,6 +312,30 @@ fn parse_jsonc_str(content: &str) -> Option<Value> {
     let mut clean = String::new();
     stripped.read_to_string(&mut clean).ok()?;
     serde_json::from_str(&clean).ok()
+}
+
+/// Strict JSONC parsing used by `xfetch config validate`.
+pub fn parse_jsonc_file_strict(path: &Path) -> Result<Value, String> {
+    let content = fs::read_to_string(path)
+        .map_err(|err| format!("cannot read {}: {}", path.display(), err))?;
+    parse_jsonc_str_strict(&content)
+}
+
+pub fn parse_jsonc_str_strict(content: &str) -> Result<Value, String> {
+    let content = content.strip_prefix('\u{feff}').unwrap_or(content);
+    let mut stripped = StripComments::new(content.as_bytes());
+    let mut clean = String::new();
+    stripped
+        .read_to_string(&mut clean)
+        .map_err(|err| format!("failed to strip comments: {}", err))?;
+    serde_json::from_str(&clean).map_err(|err| {
+        format!(
+            "invalid JSON at line {}, column {}: {}",
+            err.line(),
+            err.column(),
+            err
+        )
+    })
 }
 
 fn deep_merge(base: &mut Value, overlay: &Value) {
@@ -330,20 +400,24 @@ pub fn resolve_theme_path(theme: &str) -> Option<PathBuf> {
 }
 
 pub fn load_config(path: Option<String>) -> Config {
+    load_config_with_overrides(path, &ConfigOverrides::default())
+}
+
+pub fn load_config_with_overrides(path: Option<String>, overrides: &ConfigOverrides) -> Config {
     let config_path = if let Some(p) = path {
         PathBuf::from(p)
     } else {
         default_config_path()
     };
 
-    if !config_path.exists() {
-        return Config::default();
-    }
-
-    let config_value = match parse_jsonc_file(&config_path) {
-        Some(v) => v,
-        None => return Config::default(),
+    let mut config_value = if config_path.exists() {
+        parse_jsonc_file(&config_path)
+            .unwrap_or_else(|| serde_json::to_value(Config::default()).unwrap_or_default())
+    } else {
+        serde_json::to_value(Config::default()).unwrap_or_default()
     };
+
+    overrides.apply_before_theme(&mut config_value);
 
     let mut config: Config = serde_json::from_value(config_value.clone()).unwrap_or_default();
 
@@ -375,7 +449,26 @@ pub fn load_config(path: Option<String>) -> Config {
         config = serde_json::from_value(current).unwrap_or(config);
     }
 
+    overrides.apply(&mut config);
     config
+}
+
+/// Writes the built-in defaults as a JSONC config file.
+pub fn write_default_config(path: &Path) -> Result<(), String> {
+    let value = serde_json::to_value(Config::default())
+        .map_err(|err| format!("cannot serialize defaults: {err}"))?;
+    let mut text = String::from("// xfetch configuration\n");
+    text.push_str(
+        &serde_json::to_string_pretty(&value)
+            .map_err(|err| format!("cannot serialize defaults: {err}"))?,
+    );
+    text.push('\n');
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|err| format!("cannot create '{}': {}", parent.display(), err))?;
+    }
+    crate::atomic_fs::write_atomic(path, text.as_bytes())
+        .map_err(|err| format!("cannot write '{}': {}", path.display(), err))
 }
 
 pub fn default_config_path() -> PathBuf {
@@ -569,6 +662,42 @@ mod tests {
         assert_eq!(config.info_plugins[0].timeout_secs, None);
     }
 
+    #[test]
+    fn test_config_overrides_apply_after_theme() {
+        let mut config = Config::default();
+        let overrides = ConfigOverrides {
+            theme: None,
+            layout: Some("right".to_string()),
+            modules: Some(vec![ModuleConfig::Simple("os".to_string())]),
+            no_color: true,
+            offline: true,
+            no_cache: true,
+        };
+        overrides.apply(&mut config);
+        assert_eq!(config.layout.as_deref(), Some("right"));
+        assert_eq!(config.modules.len(), 1);
+        assert!(config.no_color);
+        assert_eq!(config.disable_ip_fetching, Some(true));
+        assert_eq!(config.disable_cache, Some(true));
+    }
+
+    #[test]
+    fn test_config_overrides_apply_theme_before_merge() {
+        let mut value = serde_json::json!({"theme": "old"});
+        let overrides = ConfigOverrides {
+            theme: Some("new".to_string()),
+            ..ConfigOverrides::default()
+        };
+        overrides.apply_before_theme(&mut value);
+        assert_eq!(value["theme"], "new");
+    }
+
+    #[test]
+    fn test_strict_jsonc_reports_line_and_column() {
+        let error = parse_jsonc_str_strict("{ \"layout\": ").expect_err("must fail");
+        assert!(error.contains("line"), "{error}");
+        assert!(error.contains("column"), "{error}");
+    }
     #[test]
     fn test_parse_jsonc_strips_utf8_bom() {
         // PowerShell 5.1 `Set-Content -Encoding UTF8` writes the BOM.

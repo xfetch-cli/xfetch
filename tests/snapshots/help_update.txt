@@ -1,0 +1,40 @@
+Check for a newer xfetch release and install it
+
+Usage: xfetch update [OPTIONS]
+
+Options:
+      --check                  Only check; exit with code 1 when a newer release exists
+      --prebuilt               Install the prebuilt release in place, even for local builds (Unix and Windows)
+      --bin-dir <DIR>          Directory holding the xfetch binary to replace (with --prebuilt)
+  -y, --yes                    Assume yes for confirmation prompts
+      --rollback               Restore the previous binary from the update backup
+  -c, --config <CONFIG>        
+      --gen-config             
+      --logo <LOGO>            Logo to embed in the generated config, overriding the detected OS/distro (e.g. `--logo arch`, `--logo windows-11`). Only used with `--gen-config`; requires network access to the logos catalog
+      --layout <LAYOUT>        Layout name. Overrides the configured layout at runtime; with `--gen-config` it selects the generated layout instead
+      --theme <THEME>          Theme name. Overrides the configured theme at runtime
+      --list-layouts           Print the layout names accepted by `--layout` and exit
+      --list-modules           Print the module keys accepted in the config and exit
+      --clean-cache            
+      --backup                 Back up the config currently in use, including its theme and config-roulette routes
+      --restore                Restore the most recent config backup
+      --benchmark              
+      --daemon                 
+      --daemon-stop            
+      --no-daemon-live         Disable the live stats daemon (`daemon_live` in config) from the terminal
+      --daemon-live-stop       Stop the running live stats daemon
+      --daemon-live-reload     Force hot reload in the live stats daemon (equivalent to `"daemon_live_reload": true` in the config)
+      --json                   Emit machine-readable JSON
+      --get <GET>              Print only specific module keys. Repeat the flag or use commas: `--get os,cpu --get memory`
+      --modules <MODULES>      Override the rendered module list with a comma-separated key list
+      --color <COLOR>          Control color output [default: auto] [possible values: auto, always, never]
+      --no-color               Disable colors; same as `--color never`
+      --offline                Disable network access (public IP, catalogs, update checks, logo fetch)
+      --no-cache               Bypass the package/public-IP cache for this run
+      --quiet                  Suppress informational output
+      --verbose                Print extra diagnostics
+      --log-level <LOG_LEVEL>  Log level: off, error, warn, info, debug or trace. Overrides --quiet/--verbose [possible values: off, error, warn, info, debug, trace]
+      --log-json               Emit logs as JSON lines on stderr
+      --template <TEMPLATE>    Render the fetched modules with a template file (`{{key}}`)
+      --format <FORMAT>        Render the fetched modules with an inline template (`{{key}}`)
+  -h, --help                   Print help

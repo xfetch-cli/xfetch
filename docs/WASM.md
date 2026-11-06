@@ -63,6 +63,11 @@ xfetch effects install ./effects/wasm-matrix
 xfetch extension install ./extensions/wasm-night-mode</code></pre>
 
 <p>
+  The complete <code>wasm</code> command reference, including JSON output and
+  exit codes, is in <a href="CLI.md">CLI.md</a>.
+</p>
+
+<p>
   <code>wasm inspect</code> prints a human-readable report or the same data as
   JSON with <code>--json</code>. <code>wasm run</code> accepts the request
   inline (<code>--request</code>) or from a file

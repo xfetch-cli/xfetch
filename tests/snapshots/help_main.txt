@@ -1,0 +1,100 @@
+Fast, customizable system information fetch tool for the terminal
+
+Usage: xfetch [OPTIONS] [COMMAND]
+
+Commands:
+  plugin          Manage plugins
+  extension       Manage config-provider extensions
+  theme           Manage local and remote themes
+  logo            Browse and preview the ASCII logo catalog
+  effects         Manage intro effects
+  addon           Manage any addon kind with one command family
+  wasm            WebAssembly guest tooling: inspect artifacts, run them with a raw JSON request and print the component protocol
+  update          Check for a newer xfetch release and install it
+  doctor          Diagnose the installation, configuration, terminal and addons
+  modules         List the module keys accepted in the config
+  config          Inspect or edit the configuration
+  completions     Generate shell completions
+  man             Render the man page
+  schema          Print the JSON Schema for the CLI machine-readable outputs
+  paths           Print the resolved config, addon, cache and data paths
+  env             Print the platform, terminal, environment and runtime settings
+  build-info      Print build information and enabled features
+  self-uninstall  Remove the xfetch binary and optionally its config, cache and data
+  help            Print this message or the help of the given subcommand(s)
+
+Options:
+  -c, --config <CONFIG>        
+      --gen-config             
+      --logo <LOGO>            Logo to embed in the generated config, overriding the detected OS/distro (e.g. `--logo arch`, `--logo windows-11`). Only used with `--gen-config`; requires network access to the logos catalog
+      --layout <LAYOUT>        Layout name. Overrides the configured layout at runtime; with `--gen-config` it selects the generated layout instead
+      --theme <THEME>          Theme name. Overrides the configured theme at runtime
+      --list-layouts           Print the layout names accepted by `--layout` and exit
+      --list-modules           Print the module keys accepted in the config and exit
+      --clean-cache            
+      --backup                 Back up the config currently in use, including its theme and config-roulette routes
+      --restore                Restore the most recent config backup
+      --benchmark              
+      --daemon                 
+      --daemon-stop            
+      --no-daemon-live         Disable the live stats daemon (`daemon_live` in config) from the terminal
+      --daemon-live-stop       Stop the running live stats daemon
+      --daemon-live-reload     Force hot reload in the live stats daemon (equivalent to `"daemon_live_reload": true` in the config)
+      --json                   Emit machine-readable JSON
+      --get <GET>              Print only specific module keys. Repeat the flag or use commas: `--get os,cpu --get memory`
+      --modules <MODULES>      Override the rendered module list with a comma-separated key list
+      --color <COLOR>          Control color output [default: auto] [possible values: auto, always, never]
+      --no-color               Disable colors; same as `--color never`
+      --offline                Disable network access (public IP, catalogs, update checks, logo fetch)
+      --no-cache               Bypass the package/public-IP cache for this run
+      --quiet                  Suppress informational output
+      --verbose                Print extra diagnostics
+      --log-level <LOG_LEVEL>  Log level: off, error, warn, info, debug or trace. Overrides --quiet/--verbose [possible values: off, error, warn, info, debug, trace]
+      --log-json               Emit logs as JSON lines on stderr
+      --template <TEMPLATE>    Render the fetched modules with a template file (`{{key}}`)
+      --format <FORMAT>        Render the fetched modules with an inline template (`{{key}}`)
+  -h, --help                   Print help
+  -V, --version                Print version
+
+Examples:
+  xfetch
+  xfetch --json
+  xfetch --get os,cpu,memory
+  xfetch --modules os,kernel,cpu --layout compact
+  xfetch --config ~/.config/xfetch/config.jsonc
+  xfetch --gen-config
+  xfetch --gen-config --layout tree
+  xfetch --list-layouts
+  xfetch --list-modules
+  xfetch --clean-cache
+  xfetch --daemon
+  xfetch --daemon-stop
+  xfetch doctor
+  xfetch doctor --json --network
+  xfetch modules --json
+  xfetch config validate
+  xfetch config print
+  xfetch config get layout
+  xfetch config set layout right
+  xfetch completions zsh
+  xfetch man
+  xfetch addon plugin install animate-logo
+  xfetch plugin install animate-logo
+  xfetch plugin install --all
+  xfetch plugin update --all --check
+  xfetch plugin rollback animate-logo
+  xfetch plugin list --verbose
+  xfetch plugin info animate-logo
+  xfetch plugin search logo
+  xfetch plugin remove animate-logo
+  xfetch effects install decrypt
+  xfetch extension install config-roulette
+  xfetch wasm inspect ./plugin.wasm
+  xfetch wasm run ./plugin.wasm --request '{"version":1,"kind":"info_provider"}'
+  xfetch wasm wit
+  xfetch theme list
+  xfetch theme set dracula
+  xfetch theme remove dracula
+  xfetch theme export my-theme
+  xfetch update --check
+  xfetch update

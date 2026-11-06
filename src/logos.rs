@@ -63,6 +63,32 @@ pub fn resolve_entry<'a>(
         })
 }
 
+pub fn find_entry<'a>(index: &'a LogoIndex, name: &str) -> Option<&'a LogoEntry> {
+    index.logos.iter().find(|entry| entry_matches(entry, name))
+}
+
+pub fn fetch_index() -> Result<LogoIndex, String> {
+    if crate::runtime::offline() {
+        return Err("network access is disabled by --offline".to_string());
+    }
+    let text = fetch_text(&format!("{}/logos.json", logos_base_url()))
+        .ok_or_else(|| "failed to fetch the logo index".to_string())?;
+    serde_json::from_str(&text).map_err(|err| format!("invalid logo index: {err}"))
+}
+
+pub fn fetch_art(entry: &LogoEntry) -> Result<String, String> {
+    if crate::runtime::offline() {
+        return Err("network access is disabled by --offline".to_string());
+    }
+    let art = fetch_text(&format!("{}/{}", logos_base_url(), entry.file))
+        .ok_or_else(|| format!("failed to fetch '{}'", entry.file))?;
+    if validate_art(&art) {
+        Ok(art)
+    } else {
+        Err(format!("'{}' is not a valid logo", entry.file))
+    }
+}
+
 fn fetch_text(url: &str) -> Option<String> {
     let output = run_cmd_with_timeout("curl", &["-fsS", "--max-time", "10", url], FETCH_TIMEOUT)?;
     if !output.status.success() {
@@ -89,6 +115,9 @@ fn validate_art(art: &str) -> bool {
 /// the detected OS/distro otherwise. Returns `(resolved entry id, art)`;
 /// `None` on any failure (callers fall back to the default logo).
 pub fn fetch_distro_logo(logo_override: Option<&str>) -> Option<(String, String)> {
+    if crate::runtime::offline() {
+        return None;
+    }
     let (detected_id, id_like) = crate::info::platform::detect_os_ids();
     let (query_id, query_like) = match logo_override {
         Some(override_id) => (override_id, Vec::new()),

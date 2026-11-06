@@ -19,14 +19,14 @@ path = "src/main.rs"
 # WASM plugin/effect/extension support and the self-updater are enabled by
 # default; build with `--no-default-features` for a minimal binary.
 default = ["wasm", "update"]
-wasm = ["dep:wasmtime", "dep:wasmtime-wasi", "dep:anyhow", "dep:base64", "dep:url"]
-update = ["dep:flate2", "dep:semver", "dep:tar", "dep:zip", "dep:self-replace"]
+wasm = ["dep:wasmtime", "dep:wasmtime-wasi", "dep:anyhow", "dep:url"]
+update = ["dep:tar", "dep:zip", "dep:self-replace"]
 
 [dependencies]
 anyhow = { version = "1", optional = true }
-base64 = { version = "0.23", optional = true }
-flate2 = { version = "1", optional = true }
-semver = { version = "1", optional = true }
+base64 = "0.23"
+flate2 = "1"
+semver = "1"
 sha2 = "0.11"
 tar = { version = "0.4", optional = true }
 clap = { version = "4.6.7", features = ["derive"] }
@@ -58,6 +58,11 @@ wasmtime-wasi = { version = "50.0.1", optional = true, default-features = false,
 xfetch-plugin-api = { version = "0.3.0", package = "xfetch-plugin-api" }
 xfetch-extension-api = { version = "0.3.0", package = "xfetch-extension-api" }
 xfetch-effect-api = { version = "0.3.0", package = "xfetch-effect-api" }
+clap_complete = "4"
+clap_mangen = "0.2"
+chacha20poly1305 = "0.11.0"
+argon2 = "0.6.0"
+getrandom = "0.2"
 
 # Windows-only native probes: CPU/date/battery/GPU are read through the Win32
 # API instead of PDH counters or PowerShell subprocesses (see

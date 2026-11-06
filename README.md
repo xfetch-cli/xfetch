@@ -188,6 +188,29 @@ Simply run `xfetch` in your terminal.
 
 ```bash
 xfetch                          # render the fetch
+xfetch --json                   # machine-readable fetch
+xfetch --get os,cpu,memory      # print specific values
+xfetch --modules os,kernel,cpu  # override the rendered modules
+xfetch --layout right           # runtime layout override
+xfetch --theme dracula          # runtime theme override
+xfetch --format 'os={{os}}'     # inline output template
+xfetch modules                  # list module keys
+xfetch doctor                   # diagnose config, terminal and addons
+xfetch doctor --fix             # apply safe fixes
+xfetch doctor --bench --image   # probe timings and logo preview
+xfetch paths                    # resolved config/addon/cache paths
+xfetch env                      # platform, environment and settings
+xfetch build-info               # build profile and enabled features
+xfetch config validate          # validate the config file
+xfetch config edit              # edit and validate the config
+xfetch --backup                 # back up the current config
+xfetch --restore                # restore the latest backup
+xfetch theme search dark        # search the remote theme registry
+xfetch logo preview arch        # preview a catalog logo
+xfetch schema fetch             # JSON Schema for machine output
+xfetch --log-json --log-level debug  # structured logs on stderr
+xfetch completions zsh          # shell completions
+xfetch man                      # man page
 xfetch --daemon                 # pin an animated fetch at the top (daemon mode)
 xfetch --daemon-stop            # stop the daemon
 xfetch --no-daemon-live         # disable the live stats daemon (config: "daemon_live": true)
@@ -218,6 +241,7 @@ xfetch update                   # update to the latest release
   <ul>
     <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/INSTALLATION.md">Installation</a></li>
     <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/CONFIGURATION.md">Config</a></li>
+    <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/CLI.md">CLI</a></li>
     <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/submodules_configuration.md">Submodule Config (labels &amp; formats)</a></li>
     <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/DAEMON.md">Daemon Mode</a></li>
     <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/LAYOUTS.md">Layouts</a></li>

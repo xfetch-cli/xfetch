@@ -37,7 +37,6 @@ pub fn remove_extension(name: &str) -> Result<(), String> {
     }
 
     if removed {
-        println!("Removed extension '{}'", name);
         Ok(())
     } else {
         Err(format!(

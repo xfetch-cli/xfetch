@@ -2,6 +2,7 @@
 
 use crate::addons::model::{AddonEntry, AddonKind};
 use crate::config::Config;
+use crate::runtime;
 
 /// Prints the installed addon list. The default layout is unchanged for
 /// scripts; `verbose` adds kind, runtime, version, capabilities and state.
@@ -93,6 +94,9 @@ pub fn print_info(entry: &AddonEntry) {
 /// Prints the config snippet and declared capabilities after a successful
 /// install. The installer has already printed the artifact path.
 pub fn print_install_guidance(kind: AddonKind, name: &str) {
+    if runtime::quiet() {
+        return;
+    }
     let path = kind
         .installed_path(name)
         .unwrap_or_else(|| kind.directory().join(kind.wasm_name(name)));

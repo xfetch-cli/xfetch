@@ -37,7 +37,6 @@ pub fn remove_effect(name: &str) -> Result<(), String> {
     }
 
     if removed {
-        println!("Removed effect '{}'", name);
         Ok(())
     } else {
         Err(format!(

@@ -190,6 +190,9 @@ fn catalog_source(kind: AddonKind) -> String {
 }
 
 fn fetch_remote(source: &str) -> Result<String, String> {
+    if crate::runtime::offline() {
+        return Err("network access is disabled by --offline".to_string());
+    }
     let mut response = ureq::get(source)
         .config()
         .timeout_global(Some(Duration::from_secs(15)))

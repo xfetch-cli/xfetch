@@ -8,7 +8,9 @@
 use crate::addons::catalog::{self, CatalogEntry};
 use crate::addons::model::AddonKind;
 use crate::addons::receipt::{self, InstallReceipt};
+use crate::runtime;
 use semver::Version;
+use serde::Serialize;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -23,21 +25,86 @@ pub struct UpdateOptions {
     pub force: bool,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct UpdateCheck {
+    pub name: String,
+    pub installed: Option<String>,
+    pub available: Option<String>,
+    pub update_available: bool,
+    pub compatible: bool,
+    pub min_xfetch_version: Option<String>,
+}
+
+/// Machine-readable update check used by `--json`.
+pub fn check(kind: AddonKind, name: Option<&str>, all: bool) -> Result<Vec<UpdateCheck>, String> {
+    if all && name.is_some() {
+        return Err("Use either an addon name or --all, not both.".to_string());
+    }
+    if !all && name.is_none() {
+        return Err(format!("Specify a {} name or use --all.", kind.label()));
+    }
+
+    let targets = if all {
+        installed_names(kind)?
+    } else {
+        vec![name.expect("validated above").to_string()]
+    };
+    let entries = catalog::all(kind)?;
+    let mut checks = Vec::new();
+
+    for target in targets {
+        let entry = entries
+            .iter()
+            .find(|entry| entry.name == target || entry.install_name() == target)
+            .cloned();
+        let receipt = InstallReceipt::load(kind, &target);
+        let installed = receipt
+            .as_ref()
+            .and_then(|receipt| receipt.version.clone())
+            .or_else(|| installed_manifest_version(kind, &target));
+        let available = entry.as_ref().and_then(|entry| entry.version.clone());
+        let compatible = entry.as_ref().map(meets_min_core).unwrap_or(true);
+        let update_available = compatible && is_newer(installed.as_deref(), available.as_deref());
+        checks.push(UpdateCheck {
+            name: target,
+            installed,
+            available,
+            update_available,
+            compatible,
+            min_xfetch_version: entry.and_then(|entry| entry.min_xfetch_version),
+        });
+    }
+
+    Ok(checks)
+}
+
 /// Installs every addon advertised by the catalog, skipping installed ones
-/// unless `force` is set.
-pub fn install_all(kind: AddonKind, force: bool) -> Result<(), String> {
+/// unless `force` is set. Returns the names that were installed.
+pub fn install_all(kind: AddonKind, force: bool, json: bool) -> Result<Vec<String>, String> {
     let entries = catalog::all(kind)?;
     if entries.is_empty() {
-        println!("No {} available in the catalog.", kind.plural_label());
-        return Ok(());
+        if !json {
+            runtime::info(format!(
+                "No {} available in the catalog.",
+                kind.plural_label()
+            ));
+        }
+        return Ok(Vec::new());
     }
 
     let mut installed = 0usize;
     let mut skipped = 0usize;
+    let mut installed_names = Vec::new();
     for entry in entries {
         let name = entry.install_name().to_string();
         if !force && kind.installed_path(&name).is_some() {
-            println!("Skipping {} '{}' (already installed).", kind.label(), name);
+            if !json {
+                runtime::info(format!(
+                    "Skipping {} '{}' (already installed).",
+                    kind.label(),
+                    name
+                ));
+            }
             skipped += 1;
             continue;
         }
@@ -51,17 +118,22 @@ pub fn install_all(kind: AddonKind, force: bool) -> Result<(), String> {
             entry.path.as_deref(),
             Some(&entry),
         )?;
-        println!("Installed {} '{}'.", kind.label(), name);
+        if !json {
+            runtime::info(format!("Installed {} '{}'.", kind.label(), name));
+        }
         installed += 1;
+        installed_names.push(name);
     }
 
-    println!(
-        "Installed {} {}; skipped {} already installed.",
-        installed,
-        kind.plural_label(),
-        skipped
-    );
-    Ok(())
+    if !json {
+        runtime::info(format!(
+            "Installed {} {}; skipped {} already installed.",
+            installed,
+            kind.plural_label(),
+            skipped
+        ));
+    }
+    Ok(installed_names)
 }
 
 /// Updates one addon, or every installed addon when `--all` is set.
@@ -81,7 +153,7 @@ pub fn run(kind: AddonKind, name: Option<&str>, options: &UpdateOptions) -> Resu
         vec![name.expect("validated above").to_string()]
     };
     if targets.is_empty() {
-        println!("No {} installed.", kind.plural_label());
+        runtime::info(format!("No {} installed.", kind.plural_label()));
         return Ok(false);
     }
 
@@ -101,24 +173,24 @@ pub fn run(kind: AddonKind, name: Option<&str>, options: &UpdateOptions) -> Resu
 
         let available_version = entry.as_ref().and_then(|entry| entry.version.as_deref());
         if !options.force && !is_newer(installed_version.as_deref(), available_version) {
-            println!(
+            runtime::info(format!(
                 "{} '{}' is up to date ({}).",
                 title(kind),
                 target,
                 installed_version.as_deref().unwrap_or("unknown")
-            );
+            ));
             continue;
         }
 
         if let Some(entry) = &entry
             && !meets_min_core(entry)
         {
-            println!(
+            runtime::info(format!(
                 "{} '{}' requires xfetch {}, skipping.",
                 title(kind),
                 target,
                 entry.min_xfetch_version.as_deref().unwrap_or("?")
-            );
+            ));
             continue;
         }
 
@@ -126,7 +198,7 @@ pub fn run(kind: AddonKind, name: Option<&str>, options: &UpdateOptions) -> Resu
         let from = installed_version.as_deref().unwrap_or("unknown");
         let to = available_version.unwrap_or("unknown");
         if options.check {
-            println!("{} '{}': {} -> {}", title(kind), target, from, to);
+            runtime::info(format!("{} '{}': {} -> {}", title(kind), target, from, to));
             continue;
         }
 
@@ -166,13 +238,13 @@ pub fn run(kind: AddonKind, name: Option<&str>, options: &UpdateOptions) -> Resu
             source.path(),
             entry.as_ref(),
         )?;
-        println!(
+        runtime::info(format!(
             "Updated {} '{}' ({} -> {}).",
             kind.label(),
             target,
             from,
             to
-        );
+        ));
     }
 
     Ok(any)
@@ -200,12 +272,6 @@ pub fn rollback(kind: AddonKind, name: &str) -> Result<(), String> {
     }
     restore_if_present(kind, &kind.receipt_path(name))?;
 
-    println!(
-        "Restored {} '{}' from '{}'.",
-        kind.label(),
-        name,
-        backup.display()
-    );
     Ok(())
 }
 

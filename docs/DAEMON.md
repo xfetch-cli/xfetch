@@ -48,6 +48,9 @@
 
 <p>
   The <code>--daemon</code> CLI flag overrides the <code>daemon</code> config value.
+  The complete flag reference, including <code>--no-daemon-live</code>,
+  <code>--daemon-live-stop</code> and <code>--daemon-live-reload</code>, is in
+  <a href="CLI.md">CLI.md</a>.
 </p>
 
 <h2>Stopping the daemon</h2>

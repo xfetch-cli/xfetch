@@ -23,8 +23,8 @@ jobs:
       - name: Run tests
         run: cargo test --locked
 
-  windows-updater:
-    name: cargo test (windows updater)
+  windows-tests:
+    name: cargo test (windows)
     runs-on: windows-latest
     steps:
       - name: Checkout repository
@@ -35,3 +35,9 @@ jobs:
 
       - name: Run updater tests on Windows
         run: 'cargo test --locked --no-default-features --features update --bin xfetch update::'
+
+      - name: Run all tests on Windows
+        run: cargo test --locked
+
+      - name: Run clippy on Windows
+        run: cargo clippy --all-targets -- -D warnings
