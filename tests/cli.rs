@@ -870,3 +870,42 @@ fn command_addon_list_run_and_remove() {
     assert!(remove.status.success());
     assert!(!script.exists());
 }
+
+#[cfg(unix)]
+#[test]
+fn run_does_not_touch_or_require_the_loaded_config() {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = temp_dir("command-config-independence");
+    let commands = dir.join("config").join("xfetch").join("commands");
+    fs::create_dir_all(&commands).unwrap();
+    let script = commands.join("xfetch-command-echo");
+    fs::write(&script, "#!/bin/sh\nprintf 'repo: %s\\n' \"$1\"\n").unwrap();
+    fs::set_permissions(&script, fs::Permissions::from_mode(0o755)).unwrap();
+
+    // Deliberately invalid config: `run` without --render must not parse it.
+    let config = dir.join("config.jsonc");
+    let sentinel = b"{\n  \"layout\": \"this is not valid json\"\n";
+    fs::write(&config, sentinel).unwrap();
+
+    let output = Command::new(env!("CARGO_BIN_EXE_xfetch"))
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "run",
+            "echo",
+            "--",
+            "owner/repo",
+        ])
+        .env("XDG_CONFIG_HOME", dir.join("config"))
+        .env("XDG_CACHE_HOME", dir.join("cache"))
+        .env("HOME", dir.join("home"))
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    assert!(String::from_utf8_lossy(&output.stdout).contains("repo: owner/repo"));
+    assert_eq!(
+        fs::read(&config).unwrap(),
+        sentinel,
+        "config must stay untouched"
+    );
+}
