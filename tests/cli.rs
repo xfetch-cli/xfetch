@@ -321,24 +321,22 @@ fn backup_and_restore_config_roulette() {
     )
     .unwrap();
     let routes = config_dir.join("routes.json");
-    fs::write(
-        &routes,
-        format!(
-            "[{{\"_name\":\"a\",\"path\":\"{}\"}},{{\"_name\":\"b\",\"path\":\"{}\"}}]",
-            route_a.display(),
-            route_b.display()
-        ),
-    )
-    .unwrap();
+    let routes_json = serde_json::json!([
+        {"_name": "a", "path": route_a.display().to_string()},
+        {"_name": "b", "path": route_b.display().to_string()},
+    ]);
+    fs::write(&routes, serde_json::to_string(&routes_json).unwrap()).unwrap();
     let path = config_dir.join("config.jsonc");
-    fs::write(
-        &path,
-        format!(
-            "{{\"config_providers\":[{{\"extension\":\"config-roulette\",\"args\":{{\"routes\":\"{}\",\"strategy\":\"daily\"}}}}]}}",
-            routes.display()
-        ),
-    )
-    .unwrap();
+    let config_json = serde_json::json!({
+        "config_providers": [{
+            "extension": "config-roulette",
+            "args": {
+                "routes": routes.display().to_string(),
+                "strategy": "daily"
+            }
+        }]
+    });
+    fs::write(&path, serde_json::to_string(&config_json).unwrap()).unwrap();
     let config_arg = format!("--config={}", path.display());
     let backup_file = dir.join("roulette.json");
     let backup = command(
@@ -445,8 +443,9 @@ fn json_addon_rollback_and_remove() {
     let dir = temp_dir("addon-json");
     let plugins = dir.join("config").join("xfetch").join("plugins");
     fs::create_dir_all(&plugins).unwrap();
-    let artifact = plugins.join("xfetch-plugin-test");
-    let backup = plugins.join("xfetch-plugin-test.bak");
+    let ext = if cfg!(windows) { ".exe" } else { "" };
+    let artifact = plugins.join(format!("xfetch-plugin-test{ext}"));
+    let backup = plugins.join(format!("xfetch-plugin-test{ext}.bak"));
     fs::write(&artifact, b"new").unwrap();
     fs::write(&backup, b"old").unwrap();
 
@@ -533,11 +532,10 @@ fn backup_compress_and_root_remap() {
     fs::create_dir_all(original.join("themes")).unwrap();
     let config = original.join("config.jsonc");
     let theme = original.join("themes").join("nord.jsonc");
-    fs::write(
-        &config,
-        format!("{{\n  \"theme\": \"{}\"\n}}\n", theme.display()),
-    )
-    .unwrap();
+    let config_json = serde_json::json!({
+        "theme": theme.display().to_string()
+    });
+    fs::write(&config, serde_json::to_string(&config_json).unwrap()).unwrap();
     fs::write(&theme, "{ \"layout\": \"compact\" }\n").unwrap();
     let config_arg = format!("--config={}", config.display());
     let backup_dir = dir.join("backups");
@@ -624,8 +622,13 @@ fn schema_and_update_rollback() {
 
     let bin_dir = dir.join("bin");
     fs::create_dir_all(&bin_dir).unwrap();
-    fs::write(bin_dir.join("xfetch"), b"new").unwrap();
-    fs::write(bin_dir.join("xfetch.bak"), b"old").unwrap();
+    let binary = if cfg!(windows) {
+        "xfetch.exe"
+    } else {
+        "xfetch"
+    };
+    fs::write(bin_dir.join(binary), b"new").unwrap();
+    fs::write(bin_dir.join(format!("{binary}.bak")), b"old").unwrap();
     let rollback = command(
         &dir,
         &[
@@ -639,7 +642,7 @@ fn schema_and_update_rollback() {
     assert!(rollback.status.success());
     let value = stdout_json(&rollback);
     assert_eq!(value["status"], "rolled-back");
-    assert_eq!(fs::read(bin_dir.join("xfetch")).unwrap(), b"old");
+    assert_eq!(fs::read(bin_dir.join(binary)).unwrap(), b"old");
 }
 
 #[cfg(unix)]
@@ -721,7 +724,7 @@ fn config_edit_runs_an_editor_and_validates() {
     let editor = dir.join("editor.sh");
     fs::write(
         &editor,
-        "#!/bin/sh\nprintf '{ \\\"layout\\\": \\\"minimal\\\" }\\n' > \"$1\"\n",
+        "#!/bin/sh\ncat > \"$1\" <<'EOF'\n{ \"layout\": \"minimal\" }\nEOF\n",
     )
     .unwrap();
     fs::set_permissions(&editor, fs::Permissions::from_mode(0o755)).unwrap();
