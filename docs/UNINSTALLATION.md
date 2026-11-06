@@ -60,3 +60,9 @@ export PATH="$HOME/.local/bin:$PATH"</code></pre>
 </p>
 
 <pre><code class="language-powershell">irm https://raw.githubusercontent.com/xfetch-cli/xfetch/main/uninstall.ps1 | iex -Args "-Purge"</code></pre>
+
+<p>
+  If you installed with winget, uninstall through winget instead:
+</p>
+
+<pre><code class="language-powershell">winget uninstall xfetch</code></pre>

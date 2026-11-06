@@ -91,6 +91,19 @@
 
 <pre><code class="language-powershell">irm https://raw.githubusercontent.com/xfetch-cli/xfetch/main/install.ps1 | iex</code></pre>
 
+<h3>Windows (winget)</h3>
+
+<p>
+  xfetch is available from the Windows Package Manager:
+</p>
+
+<pre><code class="language-powershell">winget install xfetch</code></pre>
+
+<p>
+  See <a href="#windows-winget">Windows (winget)</a> below for update and
+  uninstall commands.
+</p>
+
 <h3>What the Script Does</h3>
 
 <ol>
@@ -261,6 +274,36 @@ makepkg -si</code></pre>
   Packages are maintained in the AUR, not in the xfetch repository, so update
   them with <code>pacman -Syu</code> (or your AUR helper); <code>xfetch update</code>
   never replaces a package-manager install.
+</p>
+
+<hr>
+
+<h2 id="windows-winget">Windows (winget)</h2>
+
+<p>
+  xfetch is available from the <a href="https://learn.microsoft.com/windows/package-manager/winget/">Windows Package Manager</a>.
+  No Rust toolchain or compilation is needed:
+</p>
+
+<pre><code class="language-powershell">winget install xfetch</code></pre>
+
+<p>
+  To update to a newer release:
+</p>
+
+<pre><code class="language-powershell">winget upgrade xfetch</code></pre>
+
+<p>
+  To uninstall:
+</p>
+
+<pre><code class="language-powershell">winget uninstall xfetch</code></pre>
+
+<p>
+  <strong>Note:</strong> xfetch detects winget-managed installs and delegates
+  <code>xfetch update</code> to
+  <code>winget upgrade --id Xfetch-cli.Xfetch --exact</code>. winget may lag
+  behind the GitHub release while its manifest is reviewed.
 </p>
 
 <hr>
@@ -455,7 +498,12 @@ xfetch update --yes     # skip the confirmation prompt</code></pre>
   See the <a href="UNINSTALLATION.md">Uninstallation Guide</a> for detailed instructions.
 </p>
 
-<p><strong>Quick uninstall:</strong></p>
+<p><strong>Quick uninstall from the CLI:</strong></p>
+
+<pre><code class="language-bash">xfetch self-uninstall
+xfetch self-uninstall --purge --yes</code></pre>
+
+<p><strong>Quick uninstall script:</strong></p>
 
 <pre><code class="language-bash">curl -fsSL https://raw.githubusercontent.com/xfetch-cli/xfetch/main/uninstall.sh | bash</code></pre>
 
@@ -469,6 +517,29 @@ xfetch update --yes     # skip the confirmation prompt</code></pre>
 rm -rf ~/.config/xfetch</code></pre>
 
 <hr>
+
+<h2>Shell Integration</h2>
+
+<p>
+  Generate completions for your shell and install the man page:
+</p>
+
+<pre><code class="language-bash"># Bash
+xfetch completions bash > ~/.local/share/bash-completion/completions/xfetch
+
+# Zsh
+xfetch completions zsh > ~/.zfunc/_xfetch
+
+# Fish
+xfetch completions fish > ~/.config/fish/completions/xfetch.fish
+
+# Man page
+xfetch man --output ~/.local/share/man/man1/xfetch.1</code></pre>
+
+<p>
+  See <a href="CLI.md">CLI.md</a> for the complete command reference, JSON
+  output and exit codes.
+</p>
 
 <h2>Next Steps</h2>
 

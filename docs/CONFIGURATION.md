@@ -29,6 +29,12 @@
 
 <h2>Command Line Options</h2>
 
+<p>
+  This table is a summary. The complete reference, including output modes, JSON
+  schemas, runtime overrides and exit codes, is in
+  <a href="CLI.md">CLI.md</a>.
+</p>
+
 <table>
   <thead>
     <tr><th>Flag / Command</th><th>Description</th></tr>
@@ -43,14 +49,45 @@
     <tr><td><code>xfetch --daemon-live-reload</code></td><td>Force hot reload in the live stats daemon (same as <code>"daemon_live_reload": true</code>).</td></tr>
     <tr><td><code>xfetch --gen-config</code></td><td>Generate a starter config at the default location. See <a href="GEN_CONFIG.md">GEN_CONFIG.md</a>.</td></tr>
     <tr><td><code>xfetch --list-layouts</code></td><td>Print the layout names accepted by <code>--layout</code>.</td></tr>
+    <tr><td><code>xfetch --layout &lt;name&gt;</code></td><td>Override the layout for this run. With <code>--gen-config</code>, select the generated layout.</td></tr>
+    <tr><td><code>xfetch --theme &lt;name&gt;</code></td><td>Override the active theme for this run.</td></tr>
+    <tr><td><code>xfetch --modules &lt;list&gt;</code>, <code>--only &lt;list&gt;</code></td><td>Override the rendered module list with a comma-separated key list.</td></tr>
+    <tr><td><code>xfetch --json</code></td><td>Emit machine-readable JSON with <code>schema_version: 1</code>.</td></tr>
+    <tr><td><code>xfetch --get &lt;key&gt;</code></td><td>Print only the requested module keys. Repeat the flag or use commas.</td></tr>
+    <tr><td><code>xfetch --template &lt;file&gt;</code>, <code>--format &lt;string&gt;</code></td><td>Render the fetch with a template using <code>{{key}}</code> placeholders.</td></tr>
+    <tr><td><code>xfetch --color auto|always|never</code>, <code>--no-color</code></td><td>Control ANSI output. Images are not affected.</td></tr>
+    <tr><td><code>xfetch --offline</code></td><td>Disable public IP, catalogs, update checks and logo fetch.</td></tr>
+    <tr><td><code>xfetch --no-cache</code></td><td>Bypass the package and public-IP cache for this run.</td></tr>
+    <tr><td><code>xfetch --quiet</code>, <code>--verbose</code></td><td>Suppress informational output or print extra diagnostics.</td></tr>
+    <tr><td><code>xfetch --log-level &lt;level&gt;</code></td><td>Log level: off, error, warn, info, debug or trace.</td></tr>
+    <tr><td><code>xfetch --log-json</code></td><td>Emit logs as JSON lines on stderr.</td></tr>
+    <tr><td><code>xfetch --list-modules</code></td><td>Print the module keys accepted in <code>modules</code>.</td></tr>
+    <tr><td><code>xfetch doctor [--network] [--fix] [--bench] [--image]</code></td><td>Diagnose the binary, config, terminal, image protocol, addons and cache. <code>--fix</code> applies safe fixes; <code>--bench</code> adds probe timings; <code>--image</code> previews the logo in a TTY.</td></tr>
+    <tr><td><code>xfetch modules</code></td><td>List the module registry (same as <code>--list-modules</code>).</td></tr>
+    <tr><td><code>xfetch config validate|print|get|set|unset|reset|edit|backups|prune|backup|restore</code></td><td>Validate, print, read, edit, back up or restore the configuration. See <a href="CLI.md">CLI.md</a>.</td></tr>
+    <tr><td><code>xfetch completions &lt;shell&gt;</code></td><td>Generate shell completions (bash, zsh, fish, elvish, powershell).</td></tr>
+    <tr><td><code>xfetch man [--output &lt;path&gt;]</code></td><td>Render the man page.</td></tr>
+    <tr><td><code>xfetch addon &lt;kind&gt; &lt;action&gt;</code></td><td>Unified addon command for plugins, effects, extensions and commands.</td></tr>
+    <tr><td><code>xfetch command install|list|info|search|update|rollback|remove</code></td><td>Manage CLI command addons. See <a href="CLI.md">CLI.md</a>.</td></tr>
+    <tr><td><code>xfetch run &lt;name&gt; [--] &lt;args&gt;</code></td><td>Run an installed command addon; <code>--render</code> uses the core layout.</td></tr>
+    <tr><td><code>xfetch theme search|info|install|update|list|set|remove|export</code></td><td>Manage local and remote themes. See <a href="THEMES.md">THEMES.md</a> and <a href="CLI.md">CLI.md</a>.</td></tr>
+    <tr><td><code>xfetch logo list|preview</code></td><td>Browse and preview the ASCII logo catalog.</td></tr>
+    <tr><td><code>xfetch schema [kind]</code></td><td>Print JSON Schema documents for machine-readable outputs.</td></tr>
+    <tr><td><code>xfetch paths</code></td><td>Print resolved config, addon, cache, backup and data paths.</td></tr>
+    <tr><td><code>xfetch env</code></td><td>Print build, platform, environment, settings and path context.</td></tr>
+    <tr><td><code>xfetch build-info</code></td><td>Print version, target, profile and enabled features.</td></tr>
+    <tr><td><code>xfetch self-uninstall [--purge]</code></td><td>Remove the binary and optionally config, cache and data.</td></tr>
+
     <tr><td><code>xfetch --clean-cache</code></td><td>Clear the module cache.</td></tr>
+    <tr><td><code>xfetch --backup</code></td><td>Back up the config currently in use, including its theme and config-roulette routes.</td></tr>
+    <tr><td><code>xfetch --restore</code></td><td>Restore the most recent config backup.</td></tr>
     <tr><td><code>xfetch --benchmark</code></td><td>Print benchmarking info for the info gathering step.</td></tr>
     <tr><td><code>xfetch plugin install|list|update|rollback|remove &lt;name&gt;</code></td><td>Manage plugins, including <code>install --all</code> and <code>update --all</code>. See <a href="PLUGINS.md">PLUGINS.md</a>.</td></tr>
     <tr><td><code>xfetch extension install|list|update|rollback|remove &lt;name&gt;</code></td><td>Manage extensions, including <code>install --all</code> and <code>update --all</code>. See <a href="EXTENSIONS.md">EXTENSIONS.md</a>.</td></tr>
     <tr><td><code>xfetch theme list|set|remove|export &lt;name&gt;</code></td><td>Manage themes. See <a href="THEMES.md">THEMES.md</a>.</td></tr>
     <tr><td><code>xfetch effects install|list|update|rollback|remove &lt;name&gt;</code></td><td>Manage intro effects, including <code>install --all</code> and <code>update --all</code>. See <a href="EFFECTS.md">EFFECTS.md</a>.</td></tr>
     <tr><td><code>xfetch wasm inspect|run|wit</code></td><td>WebAssembly guest tooling. See <a href="WASM.md">WASM.md</a>.</td></tr>
-    <tr><td><code>xfetch update [--check] [--prebuilt] [--bin-dir &lt;dir&gt;] [--yes]</code></td><td>Check for a newer release and install it when the install method is recognized. See <a href="INSTALLATION.md">INSTALLATION.md</a>.</td></tr>
+    <tr><td><code>xfetch update [--check] [--prebuilt] [--bin-dir &lt;dir&gt;] [--yes] [--rollback]</code></td><td>Check for a newer release and install it when the install method is recognized, or roll back to the previous binary. See <a href="INSTALLATION.md">INSTALLATION.md</a>.</td></tr>
   </tbody>
 </table>
 

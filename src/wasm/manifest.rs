@@ -58,8 +58,8 @@ pub struct Manifest {
     pub name: Option<String>,
     pub version: Option<String>,
     pub description: Option<String>,
-    /// Informational contract: `info_provider`, `logo_animation`, `effect` or
-    /// `config_provider`.
+    /// Informational contract: `info_provider`, `logo_animation`, `effect`,
+    /// `config_provider` or `command`.
     pub kind: Option<String>,
     /// Optional runtime hint (`core` or `component`); detection always reads
     /// the binary header, this only documents intent.

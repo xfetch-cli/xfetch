@@ -109,7 +109,13 @@ fn prepare_frames(
         available_width = term_width.saturating_sub(ascii_width.max(12));
     }
 
-    let content_lines = layout::get_content_lines(&nodes, config, Some(available_width));
+    let mut content_lines = layout::get_content_lines(&nodes, config, Some(available_width));
+    if config.no_color {
+        content_lines = content_lines
+            .iter()
+            .map(|line| strip_ansi_codes(line).to_string())
+            .collect();
+    }
 
     let animation_config = config.logo_animation.as_ref()?;
     let plugin_name = animation_config.plugin.as_deref()?;
@@ -127,7 +133,7 @@ fn prepare_frames(
 
     logo::apply_logo_style(&mut frames, config);
 
-    if !config.show_colors {
+    if !config.show_colors || config.no_color {
         for frame in &mut frames {
             frame.lines = frame
                 .lines

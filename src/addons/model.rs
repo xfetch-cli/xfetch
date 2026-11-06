@@ -14,12 +14,13 @@ use crate::wasm::detect::is_wasm_file;
 use crate::wasm::manifest::{self, Manifest, ManifestSource};
 use std::path::{Path, PathBuf};
 
-/// The three installable addon families supported by the core.
+/// The four installable addon families supported by the core.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AddonKind {
     Plugin,
     Effect,
     Extension,
+    Command,
 }
 
 impl AddonKind {
@@ -29,6 +30,7 @@ impl AddonKind {
             Self::Plugin => "plugin",
             Self::Effect => "effect",
             Self::Extension => "extension",
+            Self::Command => "command",
         }
     }
 
@@ -38,6 +40,7 @@ impl AddonKind {
             Self::Plugin => "plugins",
             Self::Effect => "effects",
             Self::Extension => "extensions",
+            Self::Command => "commands",
         }
     }
 
@@ -47,6 +50,7 @@ impl AddonKind {
             Self::Plugin => "xfetch-plugin-",
             Self::Effect => "xfetch-effect-",
             Self::Extension => "xfetch-extension-",
+            Self::Command => "xfetch-command-",
         }
     }
 
@@ -56,6 +60,7 @@ impl AddonKind {
             Self::Plugin => default_plugin_dir(),
             Self::Effect => default_effect_dir(),
             Self::Extension => default_extension_dir(),
+            Self::Command => crate::commands::default_command_dir(),
         }
     }
 
@@ -65,6 +70,7 @@ impl AddonKind {
             Self::Plugin => plugin_binary_name(name),
             Self::Effect => effect_binary_name(name),
             Self::Extension => extension_binary_name(name),
+            Self::Command => crate::commands::command_binary_name(name),
         }
     }
 
@@ -74,6 +80,7 @@ impl AddonKind {
             Self::Plugin => plugin_wasm_name(name),
             Self::Effect => effect_wasm_name(name),
             Self::Extension => extension_wasm_name(name),
+            Self::Command => crate::commands::command_wasm_name(name),
         }
     }
 
@@ -83,6 +90,7 @@ impl AddonKind {
             Self::Plugin => plugin_manifest_name(name),
             Self::Effect => effect_manifest_name(name),
             Self::Extension => extension_manifest_name(name),
+            Self::Command => crate::commands::command_manifest_name(name),
         }
     }
 
@@ -277,6 +285,9 @@ pub fn config_snippet(kind: AddonKind, name: &str, manifest_kind: Option<&str>) 
             format!("    {{ \"extension\": \"{name}\" }}"),
             "]".to_string(),
         ],
+        AddonKind::Command => vec![format!(
+            "No config needed; run it with: xfetch run {name} -- <args>"
+        )],
     }
 }
 
@@ -315,6 +326,7 @@ fn fallback_kind(kind: AddonKind) -> &'static str {
         AddonKind::Plugin => "plugin",
         AddonKind::Effect => "effect",
         AddonKind::Extension => "config_provider",
+        AddonKind::Command => "command",
     }
 }
 
@@ -371,6 +383,7 @@ fn is_enabled(kind: AddonKind, name: &str, config: &Config) -> bool {
             .config_providers
             .iter()
             .any(|provider| provider.extension == name),
+        AddonKind::Command => true,
     }
 }
 

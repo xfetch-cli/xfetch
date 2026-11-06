@@ -27,6 +27,12 @@
   effect and keep the previous artifact as <code>.bak</code> for rollback.
 </p>
 
+<p>
+  The same actions are available through the unified form
+  <code>xfetch addon effect &lt;action&gt;</code>. See
+  <a href="CLI.md">CLI.md</a> for the complete command and JSON reference.
+</p>
+
 <p>Manage installed effects:</p>
 
 <pre><code class="language-bash">xfetch effects list

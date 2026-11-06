@@ -6,9 +6,10 @@
 /// only applies to the component model.
 ///
 /// The exported `run` function receives the same JSON request documented in
-/// `api/docs/protocol.md` and must return the JSON response. The request's
-/// `kind` field selects the contract (`logo_animation`, `info_provider`,
-/// `effect` or `config_provider`).
+/// `api/docs/protocol.md` and must return the response. The request's `kind`
+/// field selects the contract (`logo_animation`, `info_provider`, `effect`,
+/// `config_provider` or `command`). Command guests return plain text lines
+/// instead of JSON.
 ///
 /// Host capabilities are deny-by-default: a component can only call
 /// `http-request` and `exec` when its manifest allowlist accepts the request.
@@ -113,6 +114,16 @@ world effect {
 
 /// An extension guest: config providers that transform the loaded config.
 world extension {
+    import host;
+    export run: func(request: string) -> result<string, string>;
+}
+
+/// A command guest: CLI commands that return plain text lines.
+///
+/// The request string is JSON with `version`, `kind: "command"`, `command`,
+/// and `args`. The response is plain text; the core prints it as-is unless a
+/// layout is requested.
+world command {
     import host;
     export run: func(request: string) -> result<string, string>;
 }

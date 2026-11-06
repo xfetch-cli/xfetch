@@ -117,7 +117,7 @@ pub fn prepare_render_tree(
     nodes
 }
 
-fn get_module_value(info: &Info, key: &str) -> Option<String> {
+pub(crate) fn get_module_value(info: &Info, key: &str) -> Option<String> {
     match key {
         "os" => Some(info.os.clone()),
         "kernel" => Some(info.kernel.clone()),
@@ -165,7 +165,7 @@ fn get_module_value(info: &Info, key: &str) -> Option<String> {
     }
 }
 
-fn format_palette(config: &Config) -> String {
+pub(crate) fn format_palette(config: &Config) -> String {
     let style = config.palette_style.as_deref().unwrap_or(SQUARES_STYLE);
     let mut s = String::new();
 

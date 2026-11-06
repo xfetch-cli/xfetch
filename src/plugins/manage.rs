@@ -37,7 +37,6 @@ pub fn remove_plugin(name: &str) -> Result<(), String> {
     }
 
     if removed {
-        println!("Removed plugin '{}'", name);
         Ok(())
     } else {
         Err(format!(

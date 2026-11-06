@@ -1,0 +1,145 @@
+{
+  "$id": "https://xfetch-cli.github.io/web/schemas/fetch.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "battery": {
+      "type": "string"
+    },
+    "benchmark": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "cpu": {
+      "type": "string"
+    },
+    "datetime": {
+      "type": "string"
+    },
+    "desktop": {
+      "type": "string"
+    },
+    "disks": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "gpu": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "hostname": {
+      "type": "string"
+    },
+    "kernel": {
+      "type": "string"
+    },
+    "local_ip": {
+      "type": "string"
+    },
+    "local_ip_v6": {
+      "type": "string"
+    },
+    "memory": {
+      "type": "string"
+    },
+    "name": {
+      "const": "xfetch",
+      "type": "string"
+    },
+    "network_interfaces": {
+      "type": "string"
+    },
+    "os": {
+      "type": "string"
+    },
+    "packages": {
+      "type": "string"
+    },
+    "packages_breakdown": {
+      "items": {
+        "properties": {
+          "count": {
+            "type": "string"
+          },
+          "manager": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "manager",
+          "count"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "plugins": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "type": "object"
+    },
+    "public_ip": {
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "type": "integer"
+    },
+    "shell": {
+      "type": "string"
+    },
+    "swap": {
+      "type": "string"
+    },
+    "terminal": {
+      "type": "string"
+    },
+    "uptime": {
+      "type": "string"
+    },
+    "user": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "name",
+    "version",
+    "os",
+    "kernel",
+    "hostname",
+    "user",
+    "shell",
+    "terminal",
+    "desktop",
+    "cpu",
+    "gpu",
+    "memory",
+    "swap",
+    "disks",
+    "battery",
+    "uptime",
+    "packages",
+    "packages_breakdown",
+    "datetime",
+    "local_ip",
+    "local_ip_v6",
+    "public_ip",
+    "network_interfaces",
+    "plugins"
+  ],
+  "title": "xfetch fetch output",
+  "type": "object"
+}

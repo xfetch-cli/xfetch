@@ -136,7 +136,31 @@ xfetch theme remove nord
 
 # Export current visual config as a reusable theme file
 xfetch theme export my-theme
+
+# Apply a theme to one run without editing the config
+xfetch --theme nord
+
+# Machine-readable theme list
+xfetch --json theme list
+
+# Remote registry: search, inspect, install and update
+xfetch theme search dark
+xfetch theme info nord
+xfetch theme install nord
+xfetch theme update --all --check
+xfetch theme update nord
 </code></pre>
+
+<p>
+  All theme commands accept the global <code>--json</code> flag. Remote commands
+  use the registry at
+  <code>https://raw.githubusercontent.com/xfetch-cli/themes/main/index.json</code>
+  (override with <code>XFETCH_THEME_INDEX</code>) and are blocked by
+  <code>--offline</code>. Installed themes keep a
+  <code>.&lt;name&gt;.xfetch-meta.json</code> sidecar with version and source.
+  <code>theme update --check</code> exits 1 when an update is available. See
+  <a href="CLI.md">CLI.md</a> for the JSON shapes and exit codes.
+</p>
 
 <h3>Export Behavior</h3>
 

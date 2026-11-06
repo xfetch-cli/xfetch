@@ -356,7 +356,8 @@ fn append_logo_line(
     config: &Config,
     force_plain_logo: bool,
 ) {
-    let is_custom_ascii = force_plain_logo || config.ascii.is_some() || config.logo_path.is_some();
+    let is_custom_ascii =
+        config.no_color || force_plain_logo || config.ascii.is_some() || config.logo_path.is_some();
     let padding = ascii_width.saturating_sub(visible_width(ascii_line));
     if is_custom_ascii {
         buf.push_str(ascii_line);
@@ -456,7 +457,13 @@ fn prepare_frames(
         available_width = term_width.saturating_sub(ascii_width.max(12));
     }
 
-    let content_lines = layout::get_content_lines(&nodes, config, Some(available_width));
+    let mut content_lines = layout::get_content_lines(&nodes, config, Some(available_width));
+    if config.no_color {
+        content_lines = content_lines
+            .iter()
+            .map(|line| strip_ansi_codes(line).to_string())
+            .collect();
+    }
 
     let animation_config = config.logo_animation.as_ref()?;
     let plugin_name = animation_config.plugin.as_deref()?;
@@ -474,7 +481,7 @@ fn prepare_frames(
 
     logo::apply_logo_style(&mut frames, config);
 
-    if !config.show_colors {
+    if !config.show_colors || config.no_color {
         for frame in &mut frames {
             frame.lines = frame
                 .lines
@@ -667,7 +674,14 @@ fn build_content_lines(info: &Info, config: &Config, ascii_width: usize) -> Vec<
     if available_width < 10 && term_width > 40 {
         available_width = term_width.saturating_sub(ascii_width.max(12));
     }
-    layout::get_content_lines(&nodes, config, Some(available_width))
+    let mut lines = layout::get_content_lines(&nodes, config, Some(available_width));
+    if config.no_color {
+        lines = lines
+            .iter()
+            .map(|line| strip_ansi_codes(line).to_string())
+            .collect();
+    }
+    lines
 }
 
 fn theme_file_path(name: &str) -> PathBuf {

@@ -114,6 +114,11 @@ irm https://raw.githubusercontent.com/xfetch-cli/xfetch/main/install-prebuilt.ps
 irm https://raw.githubusercontent.com/xfetch-cli/xfetch/main/install.ps1 | iex
 ```
 
+**Windows (winget):**
+```powershell
+winget install xfetch
+```
+
 **Cargo (crates.io):**
 ```bash
 cargo install xfetch-cli
@@ -141,8 +146,22 @@ yay -S xfetch-git        # build from source
 - **Effects**: Installable intro animations that reveal the info with style (e.g. a "decrypt" effect) — opt-in via `"effects"` in the config.
 - **Daemon mode**: Pin an animated fetch at the top of the terminal and keep using the shell below.
 - **Live stats daemon**: Turn the pinned fetch into a live panel — re-probes cpu/memory/battery/... every few seconds (`daemon_live`), with hot reload of the config on the fly (`daemon_live_reload`).
-- **Themes, plugins & extensions**: Switch visual themes, extend info with plugins, and transform the config with extensions.
+- **Themes, plugins, extensions & commands**: Switch visual themes, extend info with plugins, transform the config with extensions, and add CLI commands.
 - **WebAssembly guests**: Plugins, effects and extensions can be sandboxed `.wasm` artifacts written in Rust, Python, Go, C and more, with manifest-based capabilities. See [docs/WASM.md](docs/WASM.md).
+
+<h3>What's new in 1.0.3</h3>
+
+- **Scriptable CLI**: JSON output, `--get`, runtime overrides, templates, a
+  stable schema, explicit exit codes, shell completions and a man page.
+- **Command addons**: install and run plain-text CLI addons with
+  `xfetch command` and `xfetch run`.
+- **Diagnostics and recovery**: `doctor`, `paths`, `env`, `build-info`,
+  config validation, encrypted backups/restores and `self-uninstall`.
+- **Addon lifecycle**: `.install.json` receipts, update, rollback and `--all`
+  installs for plugins, effects, extensions and commands.
+- **Right-side logo layout**: `layout: "right"` keeps the info on the left and
+  renders the logo on the right.
+- **Windows**: native self-update, winget detection and `winget install xfetch`.
 
 <h2 id="configuration" align="center"> Configuration </h2>
 
@@ -188,6 +207,31 @@ Simply run `xfetch` in your terminal.
 
 ```bash
 xfetch                          # render the fetch
+xfetch --json                   # machine-readable fetch
+xfetch --get os,cpu,memory      # print specific values
+xfetch --modules os,kernel,cpu  # override the rendered modules
+xfetch --layout right           # runtime layout override
+xfetch --theme dracula          # runtime theme override
+xfetch --format 'os={{os}}'     # inline output template
+xfetch modules                  # list module keys
+xfetch doctor                   # diagnose config, terminal and addons
+xfetch doctor --fix             # apply safe fixes
+xfetch doctor --bench --image   # probe timings and logo preview
+xfetch paths                    # resolved config/addon/cache paths
+xfetch env                      # platform, environment and settings
+xfetch build-info               # build profile and enabled features
+xfetch config validate          # validate the config file
+xfetch config edit              # edit and validate the config
+xfetch --backup                 # back up the current config
+xfetch --restore                # restore the latest backup
+xfetch command install github   # install a command addon
+xfetch run github -- owner/repo # run it
+xfetch theme search dark        # search the remote theme registry
+xfetch logo preview arch        # preview a catalog logo
+xfetch schema fetch             # JSON Schema for machine output
+xfetch --log-json --log-level debug  # structured logs on stderr
+xfetch completions zsh          # shell completions
+xfetch man                      # man page
 xfetch --daemon                 # pin an animated fetch at the top (daemon mode)
 xfetch --daemon-stop            # stop the daemon
 xfetch --no-daemon-live         # disable the live stats daemon (config: "daemon_live": true)
@@ -218,6 +262,7 @@ xfetch update                   # update to the latest release
   <ul>
     <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/INSTALLATION.md">Installation</a></li>
     <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/CONFIGURATION.md">Config</a></li>
+    <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/CLI.md">CLI</a></li>
     <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/submodules_configuration.md">Submodule Config (labels &amp; formats)</a></li>
     <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/DAEMON.md">Daemon Mode</a></li>
     <li><a href="https://github.com/xfetch-cli/xfetch/blob/main/docs/LAYOUTS.md">Layouts</a></li>
@@ -239,6 +284,9 @@ xfetch update                   # update to the latest release
   <li><a href="https://github.com/xfetch-cli/api">XFetch API</a></li>
   <li><a href="https://github.com/xfetch-cli/configs">XFetch Configs </a></li>
   <li><a href="https://github.com/xfetch-cli/plugins">XFetch Plugins </a></li>
+  <li><a href="https://github.com/xfetch-cli/effects">XFetch Effects </a></li>
+  <li><a href="https://github.com/xfetch-cli/extensions">XFetch Extensions </a></li>
+  <li><a href="https://github.com/xfetch-cli/commands">XFetch Commands </a></li>
 </ul>
 
 

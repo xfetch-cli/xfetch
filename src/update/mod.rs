@@ -75,6 +75,9 @@ pub enum UpdateOutcome {
 
 /// Checks for updates and, when allowed, installs the new release.
 pub fn run(options: UpdateOptions) -> Result<UpdateOutcome, String> {
+    if crate::runtime::offline() {
+        return Err("network access is disabled by --offline".to_string());
+    }
     let current = Version::parse(env!("CARGO_PKG_VERSION"))
         .map_err(|err| format!("Invalid built-in version: {}", err))?;
     let client = github::Client::new()?;
@@ -151,6 +154,63 @@ pub fn run(options: UpdateOptions) -> Result<UpdateOutcome, String> {
             ),
         }),
     }
+}
+
+/// Restores the previous binary kept by an in-place update.
+pub fn rollback(bin_dir: Option<PathBuf>) -> Result<PathBuf, String> {
+    let dir = match bin_dir {
+        Some(dir) => dir,
+        None => std::env::current_exe()
+            .map_err(|err| format!("Cannot locate the running xfetch binary: {err}"))?
+            .parent()
+            .map(Path::to_path_buf)
+            .ok_or_else(|| "Cannot determine the xfetch binary directory".to_string())?,
+    };
+    let current = dir.join(platform::binary_name());
+    let backup = dir.join(format!("{}.bak", platform::binary_name()));
+    if !backup.is_file() {
+        return Err(format!(
+            "No previous binary found at '{}'; run an update first",
+            backup.display()
+        ));
+    }
+
+    #[cfg(unix)]
+    {
+        crate::atomic_fs::copy_atomic(&backup, &current)
+            .map_err(|err| format!("Cannot restore '{}': {}", current.display(), err))?;
+    }
+
+    #[cfg(windows)]
+    {
+        if is_current_executable(&current) {
+            self_replace::self_replace(&backup).map_err(|err| {
+                format!(
+                    "Cannot restore '{}': {}. Close other xfetch processes and try again",
+                    current.display(),
+                    err
+                )
+            })?;
+        } else {
+            crate::atomic_fs::copy_atomic(&backup, &current)
+                .map_err(|err| format!("Cannot restore '{}': {}", current.display(), err))?;
+        }
+    }
+
+    Ok(current)
+}
+
+#[cfg(windows)]
+fn is_current_executable(path: &Path) -> bool {
+    if !path.exists() {
+        return false;
+    }
+    let Ok(current) = std::env::current_exe() else {
+        return false;
+    };
+    let current = std::fs::canonicalize(&current).unwrap_or(current);
+    let path = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+    current == path
 }
 
 /// The API base, honoring the mirror override.

@@ -59,6 +59,12 @@ XFETCH_PLUGIN_REPO=https://github.com/user/plugins.git xfetch plugin install my-
   <code>rollback</code>.
 </p>
 
+<p>
+  The same actions are available through the unified form
+  <code>xfetch addon plugin &lt;action&gt;</code>. See
+  <a href="CLI.md">CLI.md</a> for the complete command and JSON reference.
+</p>
+
 <h2>Manage installed plugins</h2>
 
 <pre><code class="language-bash">xfetch plugin list
