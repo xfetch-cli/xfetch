@@ -13,7 +13,9 @@ fn run(args: &[&str]) -> String {
         args,
         String::from_utf8_lossy(&output.stderr)
     );
-    String::from_utf8(output.stdout).expect("utf-8 output")
+    String::from_utf8(output.stdout)
+        .expect("utf-8 output")
+        .replace("xfetch.exe", "xfetch")
 }
 
 fn snapshot(name: &str, actual: &str) {
