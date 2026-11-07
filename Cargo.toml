@@ -1,6 +1,6 @@
 [package]
 name = "xfetch-cli"
-version = "1.0.3"
+version = "1.0.4"
 edition = "2024"
 license = "MIT"
 description = "Fast, customizable system information fetch tool for the terminal"

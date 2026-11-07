@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-11-07 — v1.0.4
+
+### Layouts
+
+- Fixed box and side-block widths for CJK and other wide characters: the
+  classic box, section box and side block layouts now measure visible terminal
+  width with `console::measure_text_width` instead of counting Unicode scalar
+  values. This keeps right borders aligned for `banner-text` and other
+  CJK/emoji values without invisible padding.
+
 ## 2026-11-06 — v1.0.3
 
 ### CLI

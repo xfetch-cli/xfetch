@@ -3232,7 +3232,7 @@ dependencies = [
 
 [[package]]
 name = "xfetch-cli"
-version = "1.0.3"
+version = "1.0.4"
 dependencies = [
  "anyhow",
  "argon2",

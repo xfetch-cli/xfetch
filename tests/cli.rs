@@ -40,7 +40,7 @@ fn version_and_lists() {
     let dir = temp_dir("lists");
     let version = command(&dir, &["--version"]);
     assert!(version.status.success());
-    assert!(String::from_utf8_lossy(&version.stdout).contains("1.0.3"));
+    assert!(String::from_utf8_lossy(&version.stdout).contains(env!("CARGO_PKG_VERSION")));
 
     let modules = command(&dir, &["--list-modules"]);
     assert!(modules.status.success());
