@@ -59,7 +59,7 @@ xfetch-plugin-api = { version = "0.3.1", package = "xfetch-plugin-api" }
 xfetch-extension-api = { version = "0.3.1", package = "xfetch-extension-api" }
 xfetch-effect-api = { version = "0.3.1", package = "xfetch-effect-api" }
 clap_complete = "4"
-clap_mangen = "0.2"
+clap_mangen = "0.3"
 chacha20poly1305 = "0.11.0"
 argon2 = "0.6.0"
 getrandom = "0.2"
