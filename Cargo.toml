@@ -62,7 +62,7 @@ clap_complete = "4"
 clap_mangen = "0.2"
 chacha20poly1305 = "0.11.0"
 argon2 = "0.6.0"
-getrandom = "0.2"
+getrandom = "0.4"
 
 # Windows-only native probes: CPU/date/battery/GPU are read through the Win32
 # API instead of PDH counters or PowerShell subprocesses (see
