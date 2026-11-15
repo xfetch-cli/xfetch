@@ -405,8 +405,30 @@
       <td><code>logo_kitty</code></td><td>boolean</td><td><code>true</code></td>
       <td>Use the native Kitty graphics protocol when running inside Kitty; set to <code>false</code> to fall back to half-block rendering.</td>
     </tr>
+    <tr>
+      <td><code>logo_kitty_transfer</code></td><td>string</td><td><code>&quot;inline&quot;</code></td>
+      <td>How Kitty receives the pixels: <code>&quot;inline&quot;</code> embeds them in the graphics escape; <code>&quot;file&quot;</code> writes them to a temporary file that Kitty reads and deletes. <code>&quot;file&quot;</code> falls back to inline on failure and is ignored outside Kitty.</td>
+    </tr>
   </tbody>
 </table>
+
+<p>
+  <code>logo_kitty_transfer</code> only applies to the native Kitty path. With
+  <code>&quot;inline&quot;</code> (the default) the pixels travel base64-encoded
+  inside the escape sequence, with no filesystem access. With
+  <code>&quot;file&quot;</code> the same raw RGBA pixels are written to a unique
+  temporary file and only its path is sent; Kitty reads the file and deletes it
+  after rendering. This reduces the data written to the terminal for large
+  logos. Files are created in the system temporary directory with owner-only
+  permissions; Kitty deletes them after reading, and stale leftovers are pruned
+  on later runs. If the file cannot be created or written, xfetch falls back to
+  <code>&quot;inline&quot;</code> automatically, so the image is still rendered.
+</p>
+
+<pre><code class="language-jsonc">{
+    &quot;logo_path&quot;: &quot;~/.config/xfetch/logos/logo.png&quot;,
+    &quot;logo_kitty_transfer&quot;: &quot;file&quot;
+}</code></pre>
 
 <h2>Logo Animation (Plugin)</h2>
 

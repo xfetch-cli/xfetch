@@ -200,6 +200,9 @@ fn load_logo(
                         img_width,
                         config.logo_height,
                         image_x,
+                        super::image::KittyTransfer::from_config(
+                            config.logo_kitty_transfer.as_deref(),
+                        ),
                     )
                     .map_err(|_| ())
                 } else {

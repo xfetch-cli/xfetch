@@ -62,6 +62,10 @@ pub struct Config {
     pub logo_height: Option<u32>,
     pub logo_gap: Option<u32>,
     pub logo_kitty: Option<bool>,
+    /// Kitty image transport: `"inline"` (default) sends the pixels inside the
+    /// graphics escape; `"file"` writes them to a temporary file that Kitty
+    /// reads and deletes. Ignored outside Kitty; failures fall back to inline.
+    pub logo_kitty_transfer: Option<String>,
     pub logo_color: Option<String>,
     /// Per-row logo colors: row `i` uses `logo_colors[i % len]`; takes
     /// precedence over `logo_color`.
@@ -281,6 +285,7 @@ impl Default for Config {
             logo_height: None,
             logo_gap: None,
             logo_kitty: None,
+            logo_kitty_transfer: None,
             logo_color: None,
             logo_colors: None,
             logo_padding: None,
@@ -660,6 +665,19 @@ mod tests {
         let parsed = parse_jsonc_str(jsonc).expect("parse jsonc");
         let config: Config = serde_json::from_value(parsed).expect("deserialize config");
         assert_eq!(config.info_plugins[0].timeout_secs, None);
+    }
+
+    #[test]
+    fn test_logo_kitty_transfer_parses_from_jsonc() {
+        let jsonc = r#"{ "logo_kitty_transfer": "file" }"#;
+        let parsed = parse_jsonc_str(jsonc).expect("parse jsonc");
+        let config: Config = serde_json::from_value(parsed).expect("deserialize config");
+        assert_eq!(config.logo_kitty_transfer.as_deref(), Some("file"));
+    }
+
+    #[test]
+    fn test_logo_kitty_transfer_defaults_to_none() {
+        assert!(Config::default().logo_kitty_transfer.is_none());
     }
 
     #[test]
