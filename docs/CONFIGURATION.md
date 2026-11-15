@@ -374,7 +374,7 @@
 <h3>Images</h3>
 
 <p>
-  xfetch supports displaying images (png, jpg, svg) if your terminal supports it (using protocols like iTerm2, Kitty, or Sixel, handled by <code>viuer</code>).
+  xfetch displays PNG and JPEG logos through the native Kitty graphics protocol, and falls back to half-block rendering in terminals without graphics support (including tmux, zellij and screen). SVG and Sixel are not supported.
 </p>
 
 <pre><code class="language-jsonc">{

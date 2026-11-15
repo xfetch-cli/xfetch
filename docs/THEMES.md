@@ -104,7 +104,7 @@
     <tr><td><code>logo_colors</code></td><td><code>array</code> or <code>null</code></td><td>Per-row logo colors: row <code>i</code> uses <code>logo_colors[i % len]</code>, cycling for taller logos. Takes precedence over <code>logo_color</code>. Example: <code>["Red", "Yellow", "Green", "Cyan", "Blue", "Magenta"]</code>.</td></tr>
     <tr><td><code>palette_style</code></td><td><code>string</code> or <code>null</code></td><td>Palette display: <code>squares</code>, <code>circles</code>, <code>triangles</code>, <code>lines</code>, <code>dots</code></td></tr>
     <tr><td><code>show_colors</code></td><td><code>boolean</code></td><td>Show inline ANSI color swatches next to each module</td></tr>
-    <tr><td><code>logo_path</code></td><td><code>string</code> or <code>null</code></td><td>Path to a logo file (ASCII, PNG, SVG)</td></tr>
+    <tr><td><code>logo_path</code></td><td><code>string</code> or <code>null</code></td><td>Path to a logo file (ASCII, PNG, JPEG)</td></tr>
     <tr><td><code>header_icons</code></td><td><code>array</code> or <code>null</code></td><td>Pac-Man layout top-border icons</td></tr>
     <tr><td><code>footer_text</code></td><td><code>string</code> or <code>null</code></td><td>Pac-Man layout bottom-border text</td></tr>
   </tbody>

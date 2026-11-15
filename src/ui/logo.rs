@@ -9,7 +9,13 @@ use crossterm::terminal::size;
 use std::io::{Write, stdout};
 use viuer::{Config as ViuerConfig, print as viuer_print};
 
-const IMAGE_EXTENSIONS: [&str; 4] = [".png", ".jpg", ".jpeg", ".svg"];
+const IMAGE_EXTENSIONS: [&str; 3] = [".png", ".jpg", ".jpeg"];
+
+/// SVG is not decodable by the `image` crate. It is still recognized so the
+/// raw XML is never printed as ASCII art; it renders no logo, as before.
+fn is_svg_file(path: &str) -> bool {
+    path.to_ascii_lowercase().ends_with(".svg")
+}
 
 pub(crate) fn is_image_file(path: &str) -> bool {
     IMAGE_EXTENSIONS.iter().any(|ext| path.ends_with(ext))
@@ -36,7 +42,7 @@ pub(crate) fn is_image_logo(config: &Config) -> bool {
         .is_some_and(|path| match config.logo_type.as_deref() {
             Some("ascii") => false,
             Some("image") => true,
-            _ => is_image_file(path),
+            _ => is_image_file(path) || is_svg_file(path),
         })
 }
 
@@ -154,7 +160,7 @@ fn load_logo(
         let treat_as_image = match config.logo_type.as_deref() {
             Some("ascii") => false,
             Some("image") => true,
-            _ => is_image_file(path_str),
+            _ => is_image_file(path_str) || is_svg_file(path_str),
         };
         if treat_as_image {
             let img_width = config.logo_width.unwrap_or_else(auto_logo_width);
@@ -337,6 +343,19 @@ pub fn build_logo_frames(
 mod tests {
     use super::*;
     use crate::config::Config;
+
+    #[test]
+    fn svg_is_unsupported_but_not_read_as_ascii() {
+        assert!(is_image_file("logo.png"));
+        assert!(!is_image_file("logo.svg"));
+        assert!(is_svg_file("logo.SVG"));
+
+        let config = Config {
+            logo_path: Some("/tmp/logo.svg".to_string()),
+            ..Config::default()
+        };
+        assert!(is_image_logo(&config));
+    }
 
     #[test]
     fn test_get_logo_data_default() {
