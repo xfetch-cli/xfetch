@@ -1160,8 +1160,8 @@ fn encrypt_bytes(bytes: &[u8], passphrase: &str) -> Result<Vec<u8>, String> {
 
     let mut salt = [0u8; 16];
     let mut nonce = [0u8; 24];
-    getrandom::getrandom(&mut salt).map_err(|err| err.to_string())?;
-    getrandom::getrandom(&mut nonce).map_err(|err| err.to_string())?;
+    getrandom::fill(&mut salt).map_err(|err| err.to_string())?;
+    getrandom::fill(&mut nonce).map_err(|err| err.to_string())?;
 
     let params = Params::new(19 * 1024, 2, 1, Some(32)).map_err(|err| err.to_string())?;
     let argon = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
