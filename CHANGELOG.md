@@ -1,6 +1,6 @@
 # Changelog
 
-## 2026-11-07 — v1.0.4
+## 2026-11-16 — v1.0.4
 
 ### Layouts
 
@@ -9,6 +9,31 @@
   width with `console::measure_text_width` instead of counting Unicode scalar
   values. This keeps right borders aligned for `banner-text` and other
   CJK/emoji values without invisible padding.
+
+### Images
+
+- Render PNG/JPEG logos through the native Kitty graphics protocol without
+  terminal queries, with half-block fallback outside Kitty.
+- Added `logo_kitty_transfer`: `inline` by default, or `file` to write pixels
+  to an owner-only temporary file. `file` falls back to inline on failure.
+- SVG and Sixel are not supported; image logos use PNG and JPEG.
+
+### Dependencies
+
+- Updated `clap_mangen` to 0.3 and `getrandom` to 0.4.
+
+### Licensing
+
+- Relicensed the core under GPL-3.0-only.
+- Added a section 7 addon exception to `LICENSE` so third-party addons can keep
+  their own licenses.
+- Added generated dependency attributions in `docs/ATTRIBUTIONS.md`.
+
+### Documentation
+
+- Documented the Kitty transfer option.
+- Aligned configuration, themes and roadmap with PNG/JPEG support.
+- Corrected the theme layout and palette-style lists.
 
 ## 2026-11-06 — v1.0.3
 
