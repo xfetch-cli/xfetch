@@ -13,7 +13,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-The additional permission for third-party addons is in ADDON-EXCEPTION.
+An additional permission under GNU GPL version 3 section 7 is included at
+the end of this file. It allows addon code that combines with the xfetch core
+to remain under the license declared by its author.
 
                     GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
@@ -689,3 +691,28 @@ may consider it more useful to permit linking proprietary applications with
 the library.  If this is what you want to do, use the GNU Lesser General
 Public License instead of this License.  But first, please read
 <https://www.gnu.org/licenses/why-not-lgpl.html>.
+
+Additional permission under GNU GPL version 3 section 7
+
+As a special exception, the copyright holder of the xfetch core grants you
+additional permission to combine, link, load and convey the xfetch core with
+addon code (plugins, extensions, effects or commands) that uses the public
+xfetch API, SDK or documented addon protocols, and to convey the resulting
+work. The addon code is not required to be licensed under the GNU GPL; it
+remains under the license declared by its author.
+
+This additional permission applies only to the addon code and does not
+change the license of the xfetch core. The core, and any modifications or
+derivative works of the core, remain licensed under GPL-3.0-only. When you
+convey a combined work, you must still comply with the GNU GPL for the
+xfetch core portions, including making the Corresponding Source of the core
+available under the GNU GPL and preserving copyright and license notices.
+
+First-party addons authored by xscriptor are licensed under GPL-3.0-only.
+Third-party addons authored outside the xfetch project, including addons
+with external contributions, may be distributed under their authors'
+chosen licenses. A license compatible with GPL-3.0-only is recommended so
+combined distributions remain redistributable.
+
+This exception does not grant permission to use the X or xfetch names or
+logos as trademarks.

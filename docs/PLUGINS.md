@@ -261,7 +261,7 @@ xfetch wasm run ./plugin.wasm --request '{"version":1,"kind":"info_provider"}'</
 
 <p>
   First-party plugins are licensed under GPL-3.0-only. Plugins that are not
-  authored by xscriptor may use their own licenses under the
-  <a href="https://github.com/xfetch-cli/xfetch/blob/main/ADDON-EXCEPTION">addon exception</a>.
+  authored by xscriptor may use their own licenses under the addon exception
+  in the <a href="https://github.com/xfetch-cli/xfetch/blob/main/LICENSE">core LICENSE</a>.
   A GPL-3.0-only compatible license is recommended.
 </p>
