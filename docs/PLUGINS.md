@@ -256,3 +256,12 @@ xfetch wasm run ./plugin.wasm --request '{"version":1,"kind":"info_provider"}'</
   <li>Plugin development guide: <a href="https://github.com/xfetch-cli/plugins/blob/main/docs/README.md">docs/README.md</a></li>
   <li>Shared plugin API crate: <a href="https://github.com/xfetch-cli/api">github.com/xfetch-cli/api</a></li>
 </ul>
+
+<h2>Plugin Licensing</h2>
+
+<p>
+  First-party plugins are licensed under GPL-3.0-only. Plugins that are not
+  authored by xscriptor may use their own licenses under the
+  <a href="https://github.com/xfetch-cli/xfetch/blob/main/ADDON-EXCEPTION">addon exception</a>.
+  A GPL-3.0-only compatible license is recommended.
+</p>

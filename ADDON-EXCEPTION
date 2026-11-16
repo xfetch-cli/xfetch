@@ -1,0 +1,22 @@
+xfetch addon exception
+======================
+
+Additional permission under GNU GPL version 3, section 7.
+
+The xfetch core is licensed under GPL-3.0-only (see LICENSE). As an
+additional permission, the copyright holder grants you permission to
+combine, link, load and distribute the xfetch core with addons
+(plugins, extensions, effects and commands) that use the public xfetch
+API, SDK or documented addon protocols, and to distribute those addons
+under terms of your choice.
+
+This permission does not apply to the xfetch core itself: if you modify
+or distribute the core, GPL-3.0-only applies to your modified core. It
+also does not grant any right to use the xfetch name or logos as
+trademarks; see TRADEMARKS.md in xfetch-cli/.github.
+
+First-party addons authored by xscriptor are licensed under
+GPL-3.0-only. Third-party addons that are not authored by xscriptor may be
+distributed under any license their authors choose. A license compatible
+with GPL-3.0-only is recommended so combined distributions remain
+redistributable.
