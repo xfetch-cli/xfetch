@@ -284,7 +284,8 @@ xfetch update                   # update to the latest release
   The xfetch core and first-party addons are licensed under GPL-3.0-only.
   Third-party addons may use their own licenses under the addon exception
   included in the <a href="./LICENSE">LICENSE</a>; a GPL-3.0-only compatible
-  license is recommended.
+  license is recommended. Dependency licenses are listed in
+  <a href="./docs/ATTRIBUTIONS.md">docs/ATTRIBUTIONS.md</a>.
 </p>
 
 <h2 align="center" id="related-repos">Related Repos</h2>
