@@ -7,9 +7,15 @@ use console::strip_ansi_codes;
 use crossterm::execute;
 use crossterm::terminal::size;
 use std::io::{Write, stdout};
-use viuer::{Config as ViuerConfig, print};
+use viuer::{Config as ViuerConfig, print as viuer_print};
 
-const IMAGE_EXTENSIONS: [&str; 4] = [".png", ".jpg", ".jpeg", ".svg"];
+const IMAGE_EXTENSIONS: [&str; 3] = [".png", ".jpg", ".jpeg"];
+
+/// SVG is not decodable by the `image` crate. It is still recognized so the
+/// raw XML is never printed as ASCII art; it renders no logo, as before.
+fn is_svg_file(path: &str) -> bool {
+    path.to_ascii_lowercase().ends_with(".svg")
+}
 
 pub(crate) fn is_image_file(path: &str) -> bool {
     IMAGE_EXTENSIONS.iter().any(|ext| path.ends_with(ext))
@@ -36,7 +42,7 @@ pub(crate) fn is_image_logo(config: &Config) -> bool {
         .is_some_and(|path| match config.logo_type.as_deref() {
             Some("ascii") => false,
             Some("image") => true,
-            _ => is_image_file(path),
+            _ => is_image_file(path) || is_svg_file(path),
         })
 }
 
@@ -53,9 +59,10 @@ pub(crate) fn get_logo_data_right(
     load_logo(config, Some(term_width))
 }
 
-/// Width, in terminal cells, that `viuer` will actually print. Its resize logic
-/// only downscales, so a source narrower than the requested width keeps its
-/// original width; when a height is also configured the resize is exact.
+/// Width, in terminal cells, that the image backend will actually print. Both
+/// `viuer` and the native Kitty path only downscale, so a source narrower than
+/// the requested width keeps its original width; when a height is also
+/// configured the resize is exact.
 fn printed_image_width(source_width: u32, requested: u32, logo_height: Option<u32>) -> u32 {
     if logo_height.is_some() {
         requested
@@ -153,7 +160,7 @@ fn load_logo(
         let treat_as_image = match config.logo_type.as_deref() {
             Some("ascii") => false,
             Some("image") => true,
-            _ => is_image_file(path_str),
+            _ => is_image_file(path_str) || is_svg_file(path_str),
         };
         if treat_as_image {
             let img_width = config.logo_width.unwrap_or_else(auto_logo_width);
@@ -181,11 +188,28 @@ fn load_logo(
                     absolute_offset: false,
                     x: image_x,
                     transparent: false,
-                    use_kitty: use_native,
+                    use_kitty: false,
                     ..Default::default()
                 };
 
-                if let Ok((width, height)) = print(&img, &conf) {
+                let use_kitty = use_native && super::image::direct_kitty_available();
+                let rendered = if use_kitty {
+                    super::image::print_kitty(
+                        &mut stdout,
+                        &img,
+                        img_width,
+                        config.logo_height,
+                        image_x,
+                        super::image::KittyTransfer::from_config(
+                            config.logo_kitty_transfer.as_deref(),
+                        ),
+                    )
+                    .map_err(|_| ())
+                } else {
+                    viuer_print(&img, &conf).map_err(|_| ())
+                };
+
+                if let Ok((width, height)) = rendered {
                     image_printed = true;
                     ascii_width = width as usize;
                     image_height = height as usize;
@@ -322,6 +346,19 @@ pub fn build_logo_frames(
 mod tests {
     use super::*;
     use crate::config::Config;
+
+    #[test]
+    fn svg_is_unsupported_but_not_read_as_ascii() {
+        assert!(is_image_file("logo.png"));
+        assert!(!is_image_file("logo.svg"));
+        assert!(is_svg_file("logo.SVG"));
+
+        let config = Config {
+            logo_path: Some("/tmp/logo.svg".to_string()),
+            ..Config::default()
+        };
+        assert!(is_image_logo(&config));
+    }
 
     #[test]
     fn test_get_logo_data_default() {

@@ -27,7 +27,7 @@
 ## Phase 2 · Visual Customization & Layouts <!-- phase:phase-2:visual-features -->
 
 - [x] Custom ASCII art support from text files (#54)
-- [x] Image/SVG logo support via viuer (#55)
+- [x] Image logo support (PNG/JPEG) (#55)
 - [x] ANSI color codes in ASCII logos (#56)
 - [x] Icon customization per module (Nerd Fonts) (#57)
 - [x] Color customization per module (#58)
@@ -45,7 +45,7 @@
 - [x] Quick install script for Linux/macOS (#67)
 - [x] PowerShell install script for Windows (#68)
 - [x] Create 20+ example configurations (#69)
-- [x] Create sample logos (text and SVG) (#70)
+- [x] Create sample logos (text) (#70)
 - [x] Setup uninstallation scripts (#71)
 - [x] Layout documentation (LAYOUTS.md) (#72)
 

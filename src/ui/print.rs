@@ -25,6 +25,7 @@ fn truncate_line(line: &str, max_visible: usize) -> String {
     }
     let mut result = String::new();
     let mut visible = 0;
+    let budget = max_visible.saturating_sub(3);
     let mut chars = line.chars().peekable();
     while let Some(ch) = chars.next() {
         if ch == '\u{1b}' {
@@ -42,12 +43,14 @@ fn truncate_line(line: &str, max_visible: usize) -> String {
                     }
                 }
             }
-        } else if visible < max_visible {
-            result.push(ch);
-            visible += 1;
         } else {
-            result.push_str("...");
-            break;
+            let ch_width = console::measure_text_width(&ch.to_string());
+            if visible + ch_width > budget {
+                result.push_str("...");
+                break;
+            }
+            result.push(ch);
+            visible += ch_width;
         }
     }
     result
@@ -744,6 +747,16 @@ mod tests {
 
     /// Serializes tests that create ptys so their fd lifecycle cannot overlap.
     static PTY_TEST_LOCK: Mutex<()> = Mutex::new(());
+
+    #[test]
+    fn truncate_line_counts_display_width() {
+        let line = "秘密の距離秘密の距離";
+        let out = truncate_line(line, 10);
+        assert!(
+            console::measure_text_width(&strip_ansi_codes(&out)) <= 10,
+            "{out:?}"
+        );
+    }
 
     /// Closes the wrapped descriptor even when an assertion panics.
     struct OwnedFd(libc::c_int);

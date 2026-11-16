@@ -8,6 +8,7 @@ pub mod custom_x;
 #[cfg(unix)]
 mod daemon;
 mod frames;
+mod image;
 mod layout;
 #[cfg(unix)]
 mod live;

@@ -63,7 +63,7 @@ pub fn render_classic_variants(
                 .iter()
                 .map(|(k, v, i)| {
                     let content = format_line_content(k, v, i, config);
-                    strip_ansi_codes(&content).chars().count()
+                    console::measure_text_width(&strip_ansi_codes(&content))
                 })
                 .max()
                 .unwrap_or(0);
@@ -73,7 +73,7 @@ pub fn render_classic_variants(
 
             for (key, val, icon) in flat_items {
                 let content = format_line_content(&key, &val, &icon, config);
-                let visual_len = strip_ansi_codes(&content).chars().count();
+                let visual_len = console::measure_text_width(&strip_ansi_codes(&content));
                 let padding = max_len - visual_len;
                 lines.push(format!("│ {} {}│", content, " ".repeat(padding)));
             }
@@ -132,12 +132,12 @@ pub fn render_side_block(nodes: &[RenderNode], config: &Config) -> Vec<String> {
 
     let max_key_len = flat_items
         .iter()
-        .map(|(_, _, icon)| strip_ansi_codes(icon).chars().count())
+        .map(|(_, _, icon)| console::measure_text_width(&strip_ansi_codes(icon)))
         .max()
         .unwrap_or(0);
     let max_val_len = flat_items
         .iter()
-        .map(|(_, v, _)| strip_ansi_codes(v).chars().count())
+        .map(|(_, v, _)| console::measure_text_width(&strip_ansi_codes(v)))
         .max()
         .unwrap_or(0);
 
@@ -162,7 +162,7 @@ pub fn render_side_block(nodes: &[RenderNode], config: &Config) -> Vec<String> {
             width = max_key_len
         );
 
-        let val_stripped_len = strip_ansi_codes(&val).chars().count();
+        let val_stripped_len = console::measure_text_width(&strip_ansi_codes(&val));
         let padding = max_val_len - val_stripped_len;
 
         let line = format!(
@@ -401,18 +401,19 @@ fn render_group_box(title: &str, children: &[RenderNode], config: &Config) -> Ve
 
     let mut inner_width = rows
         .iter()
-        .map(|r| strip_ansi_codes(r).chars().count())
+        .map(|r| console::measure_text_width(&strip_ansi_codes(r)))
         .max()
         .unwrap_or(0);
-    inner_width = inner_width.max(title.chars().count() + 1).max(1);
-    let fill = inner_width - title.chars().count() - 1;
+    let title_width = console::measure_text_width(title);
+    inner_width = inner_width.max(title_width + 1).max(1);
+    let fill = inner_width - title_width - 1;
 
     let border = |s: String| format!("\x1b[{}m{}\x1b[0m", SECTION_COLOR, s);
 
     let mut lines = Vec::new();
     lines.push(border(format!("╭─ {} {}╮", title, "─".repeat(fill))));
     for row in rows {
-        let pad = inner_width.saturating_sub(strip_ansi_codes(&row).chars().count());
+        let pad = inner_width.saturating_sub(console::measure_text_width(&strip_ansi_codes(&row)));
         lines.push(border(format!("│ {} {}│", row, " ".repeat(pad))));
     }
     lines.push(border(format!("╰{}╯", "─".repeat(inner_width + 2))));
@@ -787,8 +788,90 @@ mod tests {
         assert!(joined.contains("│"));
         assert!(joined.contains("╰"));
         assert_eq!(
-            strip_ansi_codes(&lines[1]).chars().count(),
-            strip_ansi_codes(&lines[0]).chars().count()
+            console::measure_text_width(&strip_ansi_codes(&lines[1])),
+            console::measure_text_width(&strip_ansi_codes(&lines[0]))
+        );
+    }
+
+    fn right_border_widths(lines: &[String]) -> Vec<usize> {
+        lines
+            .iter()
+            .map(|line| console::measure_text_width(&strip_ansi_codes(line)))
+            .collect()
+    }
+
+    #[test]
+    fn test_render_classic_box_cjk_width() {
+        let config = Config::default();
+        let nodes = vec![
+            RenderNode::Line {
+                key: "os".to_string(),
+                value: "Linux".to_string(),
+                icon: "\u{f17c}".to_string(),
+            },
+            RenderNode::Line {
+                key: "plugin:banner-text".to_string(),
+                value: "秘密の距離".to_string(),
+                icon: String::new(),
+            },
+        ];
+
+        let lines = render_classic_variants(&nodes, &config, "box");
+        let widths = right_border_widths(&lines);
+        assert!(
+            widths.windows(2).all(|window| window[0] == window[1]),
+            "{widths:?}"
+        );
+    }
+
+    #[test]
+    fn test_render_section_box_cjk_width() {
+        let config = Config::default();
+        let nodes = vec![RenderNode::Group {
+            title: "Test".to_string(),
+            children: vec![
+                RenderNode::Line {
+                    key: "os".to_string(),
+                    value: "Linux".to_string(),
+                    icon: "\u{f17c}".to_string(),
+                },
+                RenderNode::Line {
+                    key: "plugin:banner-text".to_string(),
+                    value: "秘密の距離".to_string(),
+                    icon: String::new(),
+                },
+            ],
+        }];
+
+        let lines = render_section_box(&nodes, &config);
+        let widths = right_border_widths(&lines);
+        assert!(
+            widths.windows(2).all(|window| window[0] == window[1]),
+            "{widths:?}"
+        );
+    }
+
+    #[test]
+    fn test_render_side_block_cjk_width() {
+        let config = Config::default();
+        let nodes = vec![
+            RenderNode::Line {
+                key: "os".to_string(),
+                value: "Linux".to_string(),
+                icon: "\u{f17c}".to_string(),
+            },
+            RenderNode::Line {
+                key: "plugin:banner-text".to_string(),
+                value: "秘密の距離".to_string(),
+                icon: String::new(),
+            },
+        ];
+
+        let lines = render_side_block(&nodes, &config);
+        let widths = right_border_widths(&lines);
+        assert!(
+            widths.windows(2).all(|window| window[0] == window[1]),
+            "{widths:?}"
         );
     }
 

@@ -3,7 +3,7 @@
 
 <div align="center">
 
-[![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](https://github.com/xfetch-cli/xfetch/blob/main/LICENSE)
+[![License](https://img.shields.io/badge/license-GPL--3.0--only-blue?style=flat-square)](https://github.com/xfetch-cli/xfetch/blob/main/LICENSE)
 [![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20windows-lightgrey?style=flat-square)](https://github.com/xfetch-cli/xfetch/blob/main/docs/INSTALLATION.md)
 [![Build](https://img.shields.io/github/actions/workflow/status/xfetch-cli/xfetch/rust-tests.yml?style=flat-square&logo=github&label=build)](https://github.com/xfetch-cli/xfetch/actions/workflows/rust-tests.yml)
 [![Stars](https://img.shields.io/github/stars/xfetch-cli/xfetch?style=flat-square&logo=github)](https://github.com/xfetch-cli/xfetch/stargazers)
@@ -278,6 +278,15 @@ xfetch update                   # update to the latest release
 </div>
 
 <p align="center"><em>Contribute to the project, report issues, or connect with the developer using the links around</em></p>
+
+<h2 align="center" id="license">License</h2>
+<p align="center">
+  The xfetch core and first-party addons are licensed under GPL-3.0-only.
+  Third-party addons may use their own licenses under the addon exception
+  included in the <a href="./LICENSE">LICENSE</a>; a GPL-3.0-only compatible
+  license is recommended. Dependency licenses are listed in
+  <a href="./docs/ATTRIBUTIONS.md">docs/ATTRIBUTIONS.md</a>.
+</p>
 
 <h2 align="center" id="related-repos">Related Repos</h2>
 <ul>
